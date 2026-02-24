@@ -1,13 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Яндекс Еда</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f5; }
+        .y-yellow { color: #ffcc00; }
+        .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e0e0e0; z-index: 100; }
+    </style>
 </head>
-<body>
+<body class="min-h-screen pb-16">
+
+    <!-- Header -->
+    <header class="bg-white shadow sticky top-0 z-50">
+        <div class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl">🍔</span>
+                <div>
+                    <div class="font-bold text-2xl y-yellow">Яндекс Еда</div>
+                    <div class="text-sm text-gray-600 flex items-center gap-1">
+                        Москва <i class="fas fa-chevron-down text-xs ml-1"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-5 text-xl">
+                <i class="fas fa-bell"></i>
+                <i class="fas fa-user"></i>
+            </div>
+        </div>
+        <div class="px-4 pb-3">
+            <div class="bg-gray-100 rounded-full px-4 py-3 flex items-center gap-3 text-gray-500">
+                <i class="fas fa-search"></i>
+                <span>Поиск блюд и ресторанов</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="p-4">
+        <h2 class="font-bold text-xl mb-4">Рядом с вами</h2>
+        <div id="restaurants" class="grid grid-cols-1 gap-4"></div>
+    </main>
+
+    <!-- Bottom nav -->
+    <nav class="bottom-bar flex justify-around py-2 text-gray-600 text-2xl">
+        <div class="text-yellow-500"><i class="fas fa-home"></i></div>
+        <div><i class="fas fa-search"></i></div>
+        <div class="relative">
+            <i class="fas fa-shopping-cart"></i>
+            <span id="cart-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+        </div>
+        <div><i class="fas fa-user"></i></div>
+    </nav>
+
     <script>
-        window.location.replace("https://tiny-lake-43ff.yakaban983.workers.dev/?url=https://eda.yandex.ru");
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        Telegram.WebApp.setBackgroundColor("#f5f5f5");
+        Telegram.WebApp.setHeaderColor("bg_white");
+
+        const PROXY_URL = "https://твой-домен.ru/graphql";  // ← замени на свой FastAPI
+
+        async function fetchRestaurants() {
+            try {
+                const res = await fetch(PROXY_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        query: `query { searchPlaces(location: {lat: 55.7558, lon: 37.6173}, limit: 10) { id name rating deliveryTime priceLevel } }`
+                    })
+                });
+                const { data } = await res.json();
+                renderRestaurants(data?.searchPlaces || []);
+            } catch (e) {
+                console.error(e);
+                // fallback mock
+                renderRestaurants([
+                    {name: "Додо Пицца", rating: "4.8", deliveryTime: "25–35 мин", priceLevel: "₽₽₽"},
+                    {name: "Burger King", rating: "4.6", deliveryTime: "20–30 мин", priceLevel: "₽₽"}
+                ]);
+            }
+        }
+
+        function renderRestaurants(list) {
+            document.getElementById("restaurants").innerHTML = list.map(r => `
+                <div class="bg-white rounded-2xl p-4 shadow hover:shadow-md transition">
+                    <div class="font-bold text-lg">${r.name}</div>
+                    <div class="text-sm text-gray-600 flex gap-3 mt-1">
+                        <span>⭐ ${r.rating}</span>
+                        <span>• ${r.deliveryTime}</span>
+                        <span>• ${r.priceLevel}</span>
+                    </div>
+                    <button onclick="alert('Меню открыто через твой промик — цены снижены!')" 
+                            class="mt-3 bg-black text-white px-6 py-2 rounded-full text-sm font-medium">
+                        Смотреть меню
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        fetchRestaurants();
     </script>
-    <p>Загрузка...</p>
 </body>
 </html>
