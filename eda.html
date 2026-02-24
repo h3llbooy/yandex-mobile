@@ -463,265 +463,330 @@
 </div>
 
 <script>
-const _p          = new URLSearchParams(location.search);
-const TOKEN       = _p.get('token')     || '';
-const DEVICE_ID   = _p.get('device_id') || '9B57D76B-908D-4504-915D-381D08676F44';
-// Адрес прокси-сервера — он добавляет мобильный UA и все заголовки приложения
-// Бот передаёт его автоматически в ?proxy=
-const PROXY_BASE  = _p.get('proxy')     || 'http://localhost:8888';
+// ─── ПАРАМЕТРЫ (бот передаёт через URL) ─────────────────────────────────
+const _p         = new URLSearchParams(location.search);
+const TOKEN      = _p.get('token')     || '';
+const DEVICE_ID  = _p.get('device_id') || '9B57D76B-908D-4504-915D-381D08676F44';
+const PROXY_BASE = _p.get('proxy')     || 'http://localhost:8888';
 const LAT = 56.34750920385357, LON = 43.934390690686854;
+const CLIENT_SESSION = crypto.randomUUID();
 
-// Генерируем client-session как в приложении
-function genUUID() {
-  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
-}
-const CLIENT_SESSION = genUUID();
-
-// Заголовки на НАШ прокси — он их читает, добавляет мобильный UA и шлёт Яндексу
-// Яндекс видит: User-Agent: Eats-iOS(8.94.0) com.appkode.foodfox/8.94.0 (Apple; iPhone17,1; iOS 17.5)
+// Заголовки → наш прокси → добавляет мобильный UA → Яндекс видит приложение
 const HDRS = {
-  'Content-Type':      'application/json',
-  'X-Bearer':          TOKEN,
-  'X-Device-Id':       DEVICE_ID,
-  'X-Client-Session':  CLIENT_SESSION,
+  'Content-Type':     'application/json',
+  'X-Bearer':         TOKEN,
+  'X-Device-Id':      DEVICE_ID,
+  'X-Client-Session': CLIENT_SESSION,
 };
 
 let cart = {}, currentRest = null, currentScreen = 'catalog';
 let modalItem = null, modalQty = 1, selectedOpt = null;
 let selectedPay = 'sbp', profile = null;
+let RESTS = [];
 
-const RESTS = [
-  { id:'mc', slug:'mcdonald_s_1', name:"McDonald's", emoji:'🍔', bg:'linear-gradient(135deg,#DA291C,#FFC72C)',
-    rating:4.7, time:'25–35', freeDelivery:true, tags:['Бургеры','Картофель','Напитки'],
-    cats:[ { n:'Бургеры', items:[
-      {id:1001,n:'Биг Мак',d:'Два котлеты, соус Биг Мак, листья салата, лук',p:299,w:'200 г',e:'🍔',opts:[]},
-      {id:1002,n:'МакЧикен',d:'Хрустящая куриная котлета, майонез, листья салата',p:219,w:'187 г',e:'🍗',opts:[]},
-      {id:1003,n:'Роял Чизбургер',d:'Двойная котлета, плавленый сыр, маринованные огурцы',p:349,w:'245 г',e:'🍔',opts:[]},
-      {id:1004,n:'Фишбургер',d:'Нежный рыбный стейк, сыр, тартар',p:199,w:'145 г',e:'🐟',opts:[]},
-    ]},
-    { n:'Картофель', items:[
-      {id:1010,n:'Картофель Фри (большой)',d:'Хрустящий картофель фри',p:129,w:'154 г',e:'🍟',opts:[]},
-      {id:1011,n:'Наггетсы 9 шт',d:'Куриные наггетсы во вкусной панировке',p:269,w:'170 г',e:'🍗',opts:[{g:'Соус',i:[{id:9001,n:'Кетчуп',p:0},{id:9002,n:'Барбекю',p:0},{id:9003,n:'Сырный',p:0}]}]},
-      {id:1012,n:'Картофель по-деревенски',d:'С кожурой, острые специи',p:149,w:'140 г',e:'🥔',opts:[]},
-    ]},
-    { n:'Напитки', items:[
-      {id:1020,n:'Кока-Кола 0.5л',d:'Освежающий газированный напиток',p:139,w:'500 мл',e:'🥤',opts:[]},
-      {id:1021,n:'Молочный коктейль',d:'Ванильный, клубничный или шоколадный',p:249,w:'400 мл',e:'🥛',opts:[{g:'Вкус',i:[{id:9010,n:'Ваниль',p:0},{id:9011,n:'Клубника',p:0},{id:9012,n:'Шоколад',p:0}]}]},
-    ]},
-  ]},
-  { id:'bk', slug:'bk_revo2', name:'Burger King', emoji:'👑', bg:'linear-gradient(135deg,#D62300,#F5EBDC)',
-    rating:4.5, time:'30–40', freeDelivery:true, tags:['Воппер','Бургеры','Наггетсы'],
-    cats:[ { n:'Воппер', items:[
-      {id:2001,n:'Воппер',d:'Говяжья котлета 100% beef, помидоры, лук, огурцы, салат, майонез',p:399,w:'290 г',e:'🍔',opts:[]},
-      {id:2002,n:'Двойной Воппер',d:'Две говяжьи котлеты, все овощи',p:499,w:'385 г',e:'🍔',opts:[]},
-      {id:2003,n:'Чикен Бургер',d:'Хрустящая куриная котлета',p:299,w:'220 г',e:'🐔',opts:[]},
-    ]},
-    { n:'Закуски', items:[
-      {id:2010,n:'Острые Сырные Медальоны (9 шт.)',d:'Нежные сырные медальоны с Острой штукой',p:360,w:'108 г',e:'🧀',opts:[{g:'Выбери соус',i:[{id:9020,n:'Кетчуп',p:65},{id:9021,n:'Барбекю',p:65},{id:9022,n:'Сырный',p:65},{id:9023,n:'Острый Томатный',p:70}]}]},
-      {id:2011,n:'Луковые кольца (8 шт.)',d:'Хрустящие луковые кольца в панировке',p:199,w:'130 г',e:'🧅',opts:[]},
-    ]},
-    { n:'Напитки', items:[
-      {id:2020,n:'Pepsi 0.5л',d:'Газированный напиток',p:119,w:'500 мл',e:'🥤',opts:[]},
-      {id:2021,n:'Кинг Флоат',d:'Мороженое с Pepsi',p:179,w:'330 мл',e:'🍦',opts:[]},
-    ]},
-  ]},
-  { id:'kfc', slug:'kfc_main', name:'KFC', emoji:'🍗', bg:'linear-gradient(135deg,#E4002B,#F40027)',
-    rating:4.6, time:'25–35', freeDelivery:true, tags:['Курица','Крылья','Острое'],
-    cats:[ { n:'Крылья', items:[
-      {id:3001,n:'Крылья (6 шт)',d:'Хрустящие крылышки в фирменной панировке',p:329,w:'270 г',e:'🍗',opts:[{g:'Маринад',i:[{id:9030,n:'Классический',p:0},{id:9031,n:'Острый',p:0}]}]},
-      {id:3002,n:'Стрипсы (5 шт)',d:'Нежные куриные стрипсы',p:359,w:'190 г',e:'🍗',opts:[]},
-    ]},
-    { n:'Бургеры', items:[
-      {id:3010,n:'Твистер',d:'Куриная котлета в лепёшке с овощами',p:279,w:'215 г',e:'🌯',opts:[]},
-      {id:3011,n:'Сандвич Зингер',d:'Острая куриная котлета, сыр, огурцы',p:299,w:'230 г',e:'🌮',opts:[]},
-    ]},
-  ]},
-  { id:'sushi', slug:'sushi_wok', name:'Суши Wok', emoji:'🍣', bg:'linear-gradient(135deg,#1a1a2e,#e94560)',
-    rating:4.8, time:'40–55', freeDelivery:true, tags:['Суши','Роллы','Лапша'],
-    cats:[ { n:'Роллы', items:[
-      {id:4001,n:'Филадельфия',d:'Лосось, крем-сыр, огурец, авокадо',p:589,w:'280 г',e:'🍣',opts:[]},
-      {id:4002,n:'Калифорния',d:'Краб, огурец, авокадо, икра тобико',p:489,w:'260 г',e:'🦀',opts:[]},
-      {id:4003,n:'Дракон',d:'Угорь, авокадо, огурец, соус унаги',p:679,w:'310 г',e:'🐉',opts:[]},
-      {id:4004,n:'Радуга',d:'8 видов рыбы поверх ролла',p:729,w:'340 г',e:'🌈',opts:[]},
-    ]},
-    { n:'WOK', items:[
-      {id:4010,n:'Лапша с курицей',d:'Яичная лапша, куриная грудка, соевый соус',p:349,w:'380 г',e:'🍜',opts:[]},
-      {id:4011,n:'Рис с морепродуктами',d:'Тигровые креветки, кальмар, рис жасмин',p:449,w:'400 г',e:'🍚',opts:[]},
-    ]},
-  ]},
-  { id:'pizza', slug:'dodo_pizza', name:'Додо Пицца', emoji:'🍕', bg:'linear-gradient(135deg,#EE3124,#F5A623)',
-    rating:4.9, time:'35–50', freeDelivery:true, tags:['Пицца','Итальянская','Горячее'],
-    cats:[ { n:'Пицца 30 см', items:[
-      {id:5001,n:'Маргарита',d:'Томатный соус, моцарелла, свежие помидоры, базилик',p:599,w:'550 г',e:'🍕',opts:[]},
-      {id:5002,n:'Пепперони',d:'Томатный соус, моцарелла, пепперони',p:699,w:'590 г',e:'🍕',opts:[]},
-      {id:5003,n:'Четыре сыра',d:'Сливочный соус, моцарелла, чеддер, пармезан, дор-блю',p:749,w:'570 г',e:'🧀',opts:[]},
-      {id:5004,n:'Гавайская',d:'Томатный соус, моцарелла, ветчина, ананас',p:649,w:'560 г',e:'🍍',opts:[]},
-    ]},
-    { n:'Закуски', items:[
-      {id:5010,n:'Чесночный хлеб',d:'Хрустящий хлеб с чесночным маслом и зеленью',p:199,w:'150 г',e:'🥖',opts:[]},
-      {id:5011,n:'Сырные шарики',d:'6 хрустящих шариков с моцареллой внутри',p:299,w:'180 г',e:'🧀',opts:[]},
-    ]},
-  ]},
+const CATS = [
+  {e:'🍔',n:'Бургеры'},{e:'🍣',n:'Суши'},{e:'🍕',n:'Пицца'},
+  {e:'🍗',n:'Курица'},{e:'🥗',n:'Здоровое'},{e:'🍜',n:'Азия'},
+  {e:'🌮',n:'Фастфуд'},{e:'🍦',n:'Десерты'}
 ];
 
-const CATS = [{e:'🍔',n:'Бургеры'},{e:'🍣',n:'Суши'},{e:'🍕',n:'Пицца'},{e:'🍗',n:'Курица'},{e:'🥗',n:'Здоровое'},{e:'🍜',n:'Азия'},{e:'🌮',n:'Фастфуд'},{e:'🍦',n:'Десерты'}];
-
-window.addEventListener('load', () => {
-  document.getElementById('catsList').innerHTML = CATS.map((c,i) =>
-    `<button class="cat-btn ${i===0?'active':''}" onclick="filterByCat(this,'${c.n}')">${c.e}<span class="cat-name">${c.n}</span></button>`
-  ).join('');
-  renderRests(RESTS);
-  if (TOKEN) loadProfile();
-  setTimeout(() => {
-    const lo = document.getElementById('loading');
-    lo.style.opacity = '0'; setTimeout(() => lo.style.display = 'none', 400);
-  }, 900);
-  document.getElementById('addressText').textContent = TOKEN ? 'Мой адрес' : 'Укажите адрес';
-});
-
-async function apiCall(path, body) {
+// ─── ГЛАВНЫЙ API МЕТОД ───────────────────────────────────────────────────
+// Все запросы идут через прокси на сервере
+// Прокси добавляет: User-Agent: Eats-iOS(8.94.0) com.appkode.foodfox/8.94.0...
+// Яндекс видит нативное iOS приложение → промокоды и все фичи работают
+async function api(path, body, method='POST') {
   try {
-    // Запрос идёт на наш прокси → он добавляет Eats-iOS UA → Яндекс даёт промокоды
-    const r = await fetch(PROXY_BASE + '/proxy' + path, {
-      method: 'POST',
-      headers: HDRS,
-      body: JSON.stringify(body)
-    });
-    if (!r.ok) return null;
+    const opts = { method, headers: HDRS };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(PROXY_BASE + '/proxy' + path, opts);
+    if (!r.ok) { console.warn('[API]', path, r.status); return null; }
     return await r.json();
   } catch(e) { console.error('[API]', path, e); return null; }
 }
 
-async function loadProfile() {
-  const d = await apiCall('/eats/v1/launch/v2/native', {experiments:{consumer:'eda_ab_service',args:[{name:'application',type:'string',value:'eda_ios_app'},{name:'version',type:'application_version',value:'8.94.0'},{name:'device_id',type:'string',value:DEVICE_ID}],user_agent:'Eats-iOS(8.94.0) com.appkode.foodfox/8.94.0 (Apple; iPhone17,1; iOS 17.5)'}});
-  if (d && d.profile) {
-    profile = d.profile;
-    document.getElementById('profileName').textContent = profile.name || 'Пользователь';
-    document.getElementById('profileUid').textContent = 'UID: ' + (profile.passport_uid || '—');
+// ─── INIT ────────────────────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  document.getElementById('catsList').innerHTML = CATS.map((c,i) =>
+    `<button class="cat-btn ${i===0?'active':''}" onclick="filterByCat(this,'${c.n}')">
+      <span class="cat-emoji">${c.e}</span><span class="cat-name">${c.n}</span>
+    </button>`
+  ).join('');
+
+  if (TOKEN) {
+    loadProfile();
+    loadRestaurants();
   } else {
-    document.getElementById('profileName').textContent = 'Гость';
-    document.getElementById('profileUid').textContent = 'Не авторизован';
+    document.getElementById('restaurantsList').innerHTML =
+      '<div style="text-align:center;padding:60px 32px;color:var(--gray-text);font-size:15px;">Войдите через бота чтобы увидеть рестораны</div>';
+  }
+
+  document.getElementById('addressText').textContent = TOKEN ? 'Мой адрес' : 'Укажите адрес';
+  setTimeout(() => {
+    const lo = document.getElementById('loading');
+    lo.style.opacity = '0';
+    setTimeout(() => lo.style.display = 'none', 400);
+  }, 800);
+});
+
+// ─── ПРОФИЛЬ ─────────────────────────────────────────────────────────────
+async function loadProfile() {
+  const d = await api('/eats/v1/eats-launch/v1/welcome-features', {
+    location: { latitude: LAT, longitude: LON },
+    shipping_type: 'delivery',
+  });
+  if (d && d.user) {
+    profile = d.user;
+    document.getElementById('profileName').textContent = profile.name || profile.login || 'Пользователь';
+    document.getElementById('profileUid').textContent  = profile.uid ? 'UID: ' + profile.uid : '';
+  } else {
+    // Пробуем launch v2
+    const d2 = await api('/eats/v1/launch/v2/native', {
+      experiments: {
+        consumer: 'eda_ab_service',
+        args: [
+          {name:'application', type:'string', value:'eda_ios_app'},
+          {name:'version',     type:'application_version', value:'8.94.0'},
+          {name:'device_id',   type:'string', value: DEVICE_ID},
+        ],
+        user_agent: 'Eats-iOS(8.94.0) com.appkode.foodfox/8.94.0 (Apple; iPhone17,1; iOS 17.5)',
+      }
+    });
+    if (d2 && d2.profile) {
+      profile = d2.profile;
+      document.getElementById('profileName').textContent = profile.name || 'Пользователь';
+      document.getElementById('profileUid').textContent  = 'UID: ' + (profile.passport_uid || '—');
+    } else {
+      document.getElementById('profileName').textContent = 'Пользователь';
+      document.getElementById('profileUid').textContent  = TOKEN ? TOKEN.slice(0,20)+'...' : '';
+    }
   }
 }
 
+// ─── РЕСТОРАНЫ ───────────────────────────────────────────────────────────
+async function loadRestaurants() {
+  document.getElementById('restaurantsList').innerHTML = '<div class="spinner"><div class="spin"></div></div>';
+
+  // Основной запрос — layout-constructor как в снифе приложения
+  const d = await api('/eats/v1/layout-constructor/v1/layout', {
+    location:      { latitude: LAT, longitude: LON },
+    filters:       [],
+    page:          { limit: 40, offset: 0 },
+    shipping_type: 'delivery',
+  });
+
+  if (d && d.payload && d.payload.foundPlaces && d.payload.foundPlaces.length) {
+    RESTS = d.payload.foundPlaces.map(p => {
+      const pl = p.place || {};
+      return {
+        slug:         pl.slug || '',
+        name:         pl.name || '—',
+        imageUrl:     pl.pictureUrl || pl.headerImageUrl || '',
+        bg:           'linear-gradient(135deg,#FFE033,#F5C800)',
+        rating:       pl.rating ? String(pl.rating) : '',
+        time:         pl.deliveryTime ? String(pl.deliveryTime) : '',
+        freeDelivery: pl.deliveryCost === 0,
+        tags:         (pl.categories||[]).map(c=>c.name||c).filter(Boolean),
+      };
+    });
+    renderRests(RESTS);
+    return;
+  }
+
+  // Fallback — multi-carts catalog
+  const d2 = await api(`/eats/v1/cart/v2/multi-carts?screen=catalog&longitude=${LON}&latitude=${LAT}&soft_multi=true`, {});
+  if (d2) {
+    // Если и это не сработало — показываем сообщение
+  }
+
+  document.getElementById('restaurantsList').innerHTML =
+    '<div style="text-align:center;padding:40px;color:var(--gray-text);">Не удалось загрузить рестораны.<br>Проверь подключение.</div>';
+}
+
+// ─── ФИЛЬТРЫ ─────────────────────────────────────────────────────────────
 function filterByCat(btn, cat) {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  const f = RESTS.filter(r => r.tags.some(t => t.includes(cat) || cat === 'Бургеры' && r.tags.includes('Бургеры')));
+  const q = cat.toLowerCase();
+  const f = RESTS.filter(r => r.tags.some(t => t.toLowerCase().includes(q)));
   renderRests(f.length ? f : RESTS);
 }
 
 function filterRestaurants(q) {
   if (!q) { renderRests(RESTS); return; }
   q = q.toLowerCase();
-  renderRests(RESTS.filter(r => r.name.toLowerCase().includes(q) || r.tags.some(t => t.toLowerCase().includes(q)) || r.cats.some(c => c.items.some(i => i.n.toLowerCase().includes(q)))));
+  renderRests(RESTS.filter(r =>
+    r.name.toLowerCase().includes(q) ||
+    r.tags.some(t => t.toLowerCase().includes(q))
+  ));
 }
 
+// ─── РЕНДЕР РЕСТОРАНОВ ───────────────────────────────────────────────────
 function renderRests(list) {
   const el = document.getElementById('restaurantsList');
-  if (!list.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-text);">Ничего не найдено 🔍</div>'; return; }
+  if (!list.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-text);">Ничего не найдено 🔍</div>';
+    return;
+  }
   el.innerHTML = list.map(r => `
-    <div class="rest-card" onclick="openRest('${r.id}')">
-      <div class="rest-img-placeholder" style="background:${r.bg}">
-        <span style="font-size:60px">${r.emoji}</span>
-        <div class="rest-badge free">Бесплатно</div>
+    <div class="rest-card" onclick="openRest('${r.slug}')">
+      <div class="rest-img-placeholder" style="background:${r.bg};overflow:hidden;">
+        ${r.imageUrl
+          ? `<img src="${r.imageUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`
+          : '<span style="font-size:60px">🍽️</span>'}
+        ${r.freeDelivery ? '<div class="rest-badge free">Бесплатно</div>' : ''}
       </div>
       <div class="rest-info">
         <div class="rest-name">${r.name}</div>
         <div class="rest-meta">
-          <span class="rest-rating">★ ${r.rating}</span>
-          <span class="rest-time">⏱ ${r.time} мин</span>
-          <span class="rest-delivery">Бесплатная доставка</span>
+          ${r.rating ? `<span class="rest-rating">★ ${r.rating}</span>` : ''}
+          ${r.time   ? `<span class="rest-time">⏱ ${r.time} мин</span>` : ''}
+          ${r.freeDelivery ? '<span class="rest-delivery">Бесплатная доставка</span>' : ''}
         </div>
-        <div class="rest-tags">${r.tags.map(t=>`<span class="rest-tag">${t}</span>`).join('')}</div>
+        <div class="rest-tags">${r.tags.slice(0,3).map(t=>`<span class="rest-tag">${t}</span>`).join('')}</div>
       </div>
     </div>
   `).join('');
 }
 
-function openRest(id) {
-  currentRest = RESTS.find(r => r.id === id);
+// ─── ОТКРЫТЬ РЕСТОРАН / МЕНЮ ─────────────────────────────────────────────
+async function openRest(slug) {
+  currentRest = RESTS.find(r => r.slug === slug);
   if (!currentRest) return;
-  renderMenu();
   goTo('menu');
-}
 
-function renderMenu() {
-  const r = currentRest;
-  document.getElementById('menuHeroImg').innerHTML = `<span style="font-size:70px;background:${r.bg};width:100%;height:100%;display:flex;align-items:center;justify-content:center;">${r.emoji}</span>`;
-  document.getElementById('menuRestName').textContent = r.name;
+  // Рисуем заголовок сразу
+  document.getElementById('menuRestName').textContent = currentRest.name;
+  document.getElementById('menuHeroImg').innerHTML = currentRest.imageUrl
+    ? `<img src="${currentRest.imageUrl}" style="width:100%;height:100%;object-fit:cover;">`
+    : `<span style="font-size:70px">🍽️</span>`;
   document.getElementById('menuRestMeta').innerHTML = `
-    <span class="menu-rest-badge delivery">Бесплатная доставка</span>
-    <span class="menu-rest-badge time">⏱ ${r.time} мин</span>
-    <span class="menu-rest-badge time">★ ${r.rating}</span>`;
-  document.getElementById('menuCatTabs').innerHTML = r.cats.map((c,i) =>
+    ${currentRest.freeDelivery ? '<span class="menu-rest-badge delivery">Бесплатная доставка</span>' : ''}
+    ${currentRest.time   ? `<span class="menu-rest-badge time">⏱ ${currentRest.time} мин</span>` : ''}
+    ${currentRest.rating ? `<span class="menu-rest-badge time">★ ${currentRest.rating}</span>` : ''}
+  `;
+  document.getElementById('menuCatTabs').innerHTML = '';
+  document.getElementById('menuItemsContainer').innerHTML = '<div class="spinner"><div class="spin"></div></div>';
+
+  // Загружаем меню с реального API
+  const d = await api(`/api/v2/catalog/${slug}/menu`, {
+    latitude: LAT, longitude: LON, shipping_type: 'delivery'
+  });
+
+  if (!d || !d.payload || !d.payload.categories) {
+    document.getElementById('menuItemsContainer').innerHTML =
+      '<div style="text-align:center;padding:40px;color:var(--gray-text);">Не удалось загрузить меню</div>';
+    return;
+  }
+
+  // Сохраняем категории и позиции
+  currentRest.cats = d.payload.categories.map(cat => ({
+    n:     cat.name,
+    items: (cat.items || []).map(item => ({
+      id:  item.id,
+      n:   item.name,
+      d:   item.description || '',
+      p:   item.price ? Math.round(item.price / 100) : 0,
+      w:   item.weight || item.weightInGrams ? (item.weightInGrams||'') + ' г' : '',
+      e:   '🍽️',
+      img: item.pictureUrl || item.headerImageUrl || '',
+      opts: (item.options||[]).map(og => ({
+        g: og.name,
+        i: (og.options||[]).map(o => ({
+          id: o.id, n: o.name, p: o.price ? Math.round(o.price/100) : 0
+        }))
+      })),
+    }))
+  }));
+
+  // Рендерим табы категорий
+  document.getElementById('menuCatTabs').innerHTML = currentRest.cats.map((c,i) =>
     `<button class="menu-cat-tab ${i===0?'active':''}" onclick="scrollCat(${i},this)">${c.n}</button>`
   ).join('');
-  document.getElementById('menuItemsContainer').innerHTML = r.cats.map((cat,ci) => `
-    <div class="menu-section" id="ms${ci}">
-      <div class="menu-section-title">${cat.n}</div>
-      <div class="menu-items">${cat.items.map(item => renderMenuItem(item)).join('')}</div>
-    </div>`
-  ).join('') + '<div style="height:24px;"></div>';
+
+  // Рендерим позиции
+  document.getElementById('menuItemsContainer').innerHTML =
+    currentRest.cats.map((cat, ci) => `
+      <div class="menu-section" id="ms${ci}">
+        <div class="menu-section-title">${cat.n}</div>
+        <div class="menu-items">${cat.items.map(item => renderMenuItem(item)).join('')}</div>
+      </div>
+    `).join('') + '<div style="height:80px;"></div>';
 }
 
 function renderMenuItem(item) {
   const q = getQty(item.id);
-  return `<div class="menu-item" onclick='openModal(${JSON.stringify(item)})'>
-    <div class="menu-item-img">${item.e}</div>
-    <div class="menu-item-body">
-      <div class="menu-item-name">${item.n}</div>
-      <div class="menu-item-desc">${item.d}</div>
-      <div class="menu-item-weight">${item.w}</div>
-      <div class="menu-item-footer">
-        <div class="menu-item-price">от ${item.p} ₽</div>
-        ${q > 0
-          ? `<div class="qty-ctrl"><button class="qty-btn" onclick="event.stopPropagation();adjQty(${item.id},-1)">−</button><span class="qty-num">${q}</span><button class="qty-btn" onclick="event.stopPropagation();adjQty(${item.id},1)">+</button></div>`
-          : `<button class="add-btn" onclick='event.stopPropagation();quickAdd(${JSON.stringify(item)})'>+</button>`}
+  return `
+    <div class="menu-item" onclick='openModal(${JSON.stringify(item).replace(/'/g,"&#39;")})'>
+      <div class="menu-item-img">
+        ${item.img
+          ? `<img src="${item.img}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onerror="this.parentElement.textContent='🍽️'">`
+          : item.e}
       </div>
-    </div>
-  </div>`;
+      <div class="menu-item-body">
+        <div class="menu-item-name">${item.n}</div>
+        ${item.d ? `<div class="menu-item-desc">${item.d}</div>` : ''}
+        ${item.w ? `<div class="menu-item-weight">${item.w}</div>` : ''}
+        <div class="menu-item-footer">
+          <div class="menu-item-price">${item.p} ₽</div>
+          ${q > 0
+            ? `<div class="qty-ctrl">
+                <button class="qty-btn" onclick="event.stopPropagation();adjQty(${item.id},-1)">−</button>
+                <span class="qty-num">${q}</span>
+                <button class="qty-btn" onclick="event.stopPropagation();adjQty(${item.id},1)">+</button>
+               </div>`
+            : `<button class="add-btn" onclick='event.stopPropagation();quickAdd(${JSON.stringify(item).replace(/'/g,"&#39;")})'>+</button>`}
+        </div>
+      </div>
+    </div>`;
 }
 
 function scrollCat(i, btn) {
   document.querySelectorAll('.menu-cat-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('ms'+i)?.scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('ms'+i)?.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-// MODAL
+// ─── МОДАЛКА ТОВАРА ───────────────────────────────────────────────────────
 function openModal(item) {
+  if (typeof item === 'string') item = JSON.parse(item);
   modalItem = item; modalQty = 1; selectedOpt = null;
-  const mi = document.getElementById('modalImg');
-  mi.innerHTML = `<span style="font-size:80px">${item.e}</span><button class="modal-close" onclick="closeModal()">✕</button>`;
-  document.getElementById('modalName').textContent = item.n;
-  document.getElementById('modalDesc').textContent = item.d || '';
+  document.getElementById('modalImg').innerHTML =
+    (item.img ? `<img src="${item.img}" style="width:100%;height:100%;object-fit:cover;">` : `<span style="font-size:80px">${item.e}</span>`) +
+    `<button class="modal-close" onclick="closeModal()">✕</button>`;
+  document.getElementById('modalName').textContent   = item.n;
+  document.getElementById('modalDesc').textContent   = item.d || '';
   document.getElementById('modalWeight').textContent = item.w || '';
-  document.getElementById('modalQty').textContent = '1';
+  document.getElementById('modalQty').textContent    = '1';
   const ow = document.getElementById('modalOptsWrap');
   if (item.opts && item.opts.length) {
     const g = item.opts[0];
     document.getElementById('modalOptsTitle').textContent = g.g;
     document.getElementById('modalOpts').innerHTML = g.i.map((o,idx) =>
-      `<div class="modal-opt ${idx===0?'selected':''}" onclick="pickOpt(this,${JSON.stringify(o)})">
+      `<div class="modal-opt ${idx===0?'selected':''}" onclick='pickOpt(this,${JSON.stringify(o)})'>
         <span class="modal-opt-name">${o.n}</span>
         <span class="modal-opt-price">${o.p>0?'+'+o.p+' ₽':'бесплатно'}</span>
-      </div>`).join('');
+       </div>`
+    ).join('');
     selectedOpt = g.i[0];
     ow.style.display = 'block';
-  } else { ow.style.display = 'none'; }
+  } else {
+    ow.style.display = 'none';
+  }
   updateModalPrice();
   document.getElementById('itemModal').classList.add('open');
 }
 
 function pickOpt(el, opt) {
+  if (typeof opt === 'string') opt = JSON.parse(opt);
   document.querySelectorAll('.modal-opt').forEach(e => e.classList.remove('selected'));
-  el.classList.add('selected'); selectedOpt = opt; updateModalPrice();
+  el.classList.add('selected');
+  selectedOpt = opt;
+  updateModalPrice();
 }
 
 function updateModalPrice() {
   if (!modalItem) return;
-  let p = modalItem.p + (selectedOpt && selectedOpt.p > 0 ? selectedOpt.p : 0);
+  const p = modalItem.p + (selectedOpt && selectedOpt.p > 0 ? selectedOpt.p : 0);
   document.getElementById('modalAddPrice').textContent = (p * modalQty) + ' ₽';
 }
 
@@ -737,33 +802,45 @@ function addFromModal() {
   const op = selectedOpt ? (selectedOpt.p || 0) : 0;
   for (let i = 0; i < modalQty; i++) addToCart(modalItem, on, op);
   closeModal();
-  showToast(modalItem.n + ' добавлен в корзину');
+  showToast(modalItem.n + ' добавлен в корзину ✓');
 }
 
 function closeModal() {
   document.getElementById('itemModal').classList.remove('open');
   modalItem = null;
 }
-document.getElementById('itemModal').addEventListener('click', e => { if (e.target === document.getElementById('itemModal')) closeModal(); });
+document.getElementById('itemModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('itemModal')) closeModal();
+});
 
 function quickAdd(item) {
+  if (typeof item === 'string') item = JSON.parse(item);
   if (item.opts && item.opts.length) { openModal(item); return; }
   addToCart(item, '', 0);
-  showToast(item.n + ' добавлен');
-  renderMenu();
+  showToast(item.n + ' добавлен ✓');
+  // Перерисуем кнопки в меню
+  if (currentRest && currentRest.cats) {
+    document.getElementById('menuItemsContainer').innerHTML =
+      currentRest.cats.map((cat,ci) => `
+        <div class="menu-section" id="ms${ci}">
+          <div class="menu-section-title">${cat.n}</div>
+          <div class="menu-items">${cat.items.map(i => renderMenuItem(i)).join('')}</div>
+        </div>
+      `).join('') + '<div style="height:80px;"></div>';
+  }
 }
 
-// CART
+// ─── КОРЗИНА ─────────────────────────────────────────────────────────────
 function addToCart(item, optName, optPrice) {
-  if (!cart.items) cart = {slug: currentRest.slug, restName: currentRest.name, items: []};
+  if (!cart.items) cart = { slug: currentRest.slug, restName: currentRest.name, items: [] };
   if (cart.slug !== currentRest.slug) {
     if (!confirm(`Очистить корзину от "${cart.restName}"?`)) return;
-    cart = {slug: currentRest.slug, restName: currentRest.name, items: []};
+    cart = { slug: currentRest.slug, restName: currentRest.name, items: [] };
   }
   const key = item.id + '_' + optName;
-  const ex = cart.items.find(i => i.key === key);
+  const ex  = cart.items.find(i => i.key === key);
   if (ex) ex.qty++;
-  else cart.items.push({key, iid: item.id, n: item.n, p: item.p + optPrice, e: item.e, on: optName, qty: 1});
+  else cart.items.push({ key, iid: item.id, n: item.n, p: item.p + optPrice, e: item.e, on: optName, qty: 1 });
   updateBadge();
 }
 
@@ -774,25 +851,35 @@ function adjQty(iid, d) {
   cart.items[idx].qty += d;
   if (cart.items[idx].qty <= 0) cart.items.splice(idx, 1);
   if (!cart.items.length) cart = {};
-  updateBadge(); renderMenu();
+  updateBadge();
+  // Обновить меню если открыто
+  if (currentScreen === 'menu' && currentRest && currentRest.cats) {
+    document.getElementById('menuItemsContainer').innerHTML =
+      currentRest.cats.map((cat,ci) => `
+        <div class="menu-section" id="ms${ci}">
+          <div class="menu-section-title">${cat.n}</div>
+          <div class="menu-items">${cat.items.map(i => renderMenuItem(i)).join('')}</div>
+        </div>
+      `).join('') + '<div style="height:80px;"></div>';
+  }
 }
 
-function getQty(iid) { return cart.items ? cart.items.filter(i => i.iid === iid).reduce((s,i) => s+i.qty, 0) : 0; }
-function getTotal() { return cart.items ? cart.items.reduce((s,i) => s+i.p*i.qty, 0) : 0; }
-function getCount() { return cart.items ? cart.items.reduce((s,i) => s+i.qty, 0) : 0; }
-function updateBadge() { const c = getCount(); document.getElementById('cartBadge').textContent = c > 0 ? c : ''; }
-function clearCart() { cart = {}; updateBadge(); }
+function getQty(iid)   { return cart.items ? cart.items.filter(i=>i.iid===iid).reduce((s,i)=>s+i.qty,0) : 0; }
+function getTotal()    { return cart.items ? cart.items.reduce((s,i)=>s+i.p*i.qty,0) : 0; }
+function getCount()    { return cart.items ? cart.items.reduce((s,i)=>s+i.qty,0) : 0; }
+function updateBadge() { const c=getCount(); document.getElementById('cartBadge').textContent=c>0?c:''; }
+function clearCart()   { cart={}; updateBadge(); }
 
 function renderCartScreen() {
   if (!cart.items || !cart.items.length) {
-    document.getElementById('cartEmpty').style.display = 'flex';
+    document.getElementById('cartEmpty').style.display  = 'flex';
     document.getElementById('cartFilled').style.display = 'none';
     return;
   }
-  document.getElementById('cartEmpty').style.display = 'none';
+  document.getElementById('cartEmpty').style.display  = 'none';
   document.getElementById('cartFilled').style.display = 'block';
   document.getElementById('cartRestName').textContent = '📦 ' + (cart.restName || '');
-  document.getElementById('cartItemsList').innerHTML = cart.items.map(ci => `
+  document.getElementById('cartItemsList').innerHTML  = cart.items.map(ci => `
     <div class="cart-item">
       <div class="cart-item-emoji">${ci.e}</div>
       <div class="cart-item-body">
@@ -800,7 +887,7 @@ function renderCartScreen() {
         ${ci.on ? `<div class="cart-item-opt">${ci.on}</div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-        <div style="font-size:14px;font-weight:800;color:var(--black);">${ci.p*ci.qty} ₽</div>
+        <div style="font-size:14px;font-weight:800;">${ci.p*ci.qty} ₽</div>
         <div style="display:flex;align-items:center;gap:6px;">
           <button class="cart-qty-btn" onclick="adjQty(${ci.iid},-1);renderCartScreen()">−</button>
           <span class="cart-qty-num">${ci.qty}</span>
@@ -808,63 +895,83 @@ function renderCartScreen() {
         </div>
       </div>
     </div>`).join('');
-  const sub = getTotal(), fee = Math.round(sub * 0.05), total = sub + fee;
-  document.getElementById('summaryItems').textContent = sub + ' ₽';
-  document.getElementById('summaryFee').textContent = fee + ' ₽';
-  document.getElementById('summaryTotal').textContent = total + ' ₽';
-  document.getElementById('checkoutBtnTotal').textContent = total + ' ₽';
+  const sub=getTotal(), fee=Math.round(sub*0.05), total=sub+fee;
+  document.getElementById('summaryItems').textContent      = sub   + ' ₽';
+  document.getElementById('summaryFee').textContent        = fee   + ' ₽';
+  document.getElementById('summaryTotal').textContent      = total + ' ₽';
+  document.getElementById('checkoutBtnTotal').textContent  = total + ' ₽';
 }
 
+// ─── ПРОМОКОД ────────────────────────────────────────────────────────────
 async function applyPromo() {
-  const c = document.getElementById('promoInput').value.trim().toUpperCase();
-  if (!c) return;
+  const code = document.getElementById('promoInput').value.trim().toUpperCase();
+  if (!code) return;
   if (!TOKEN) { showToast('❌ Нужно войти через бота'); return; }
   showToast('⏳ Проверяю промокод...');
-  const d = await apiCall('/api/v1/promotions/apply_code', {
-    code: c,
+  const d = await api('/api/v1/promotions/apply_code', {
+    code,
     place_slug: cart.slug || '',
-    location: { latitude: LAT, longitude: LON }
+    location:   { latitude: LAT, longitude: LON },
   });
   if (d && (d.discount || d.applied)) {
     const disc = d.discount || {};
-    const txt = disc.amount ? `−${disc.amount} ₽` : disc.percent ? `−${disc.percent}%` : 'скидка применена';
+    const txt  = disc.amount  ? `−${disc.amount} ₽`
+               : disc.percent ? `−${disc.percent}%`
+               : 'скидка применена';
     showToast('✅ Промокод: ' + txt);
   } else {
     showToast('❌ ' + (d && d.message ? d.message : 'Промокод не найден'));
   }
 }
 
+// ─── ОФОРМЛЕНИЕ ──────────────────────────────────────────────────────────
 function renderCheckoutScreen() {
-  document.getElementById('checkoutAddr').textContent = 'Волжская набережная, 8';
-  const sub = getTotal(), fee = Math.round(sub * 0.05), total = sub + fee;
+  const sub=getTotal(), fee=Math.round(sub*0.05), total=sub+fee;
+  document.getElementById('checkoutAddr').textContent  = 'Волжская набережная, 8';
   document.getElementById('checkoutTotal').textContent = total + ' ₽';
   document.getElementById('placeOrderTotal').textContent = total + ' ₽';
-  document.getElementById('checkoutItems').innerHTML = (cart.items||[]).map(ci =>
-    `<div class="summary-row"><span class="summary-label">${ci.n} × ${ci.qty}</span><span class="summary-value">${ci.p*ci.qty} ₽</span></div>`
+  document.getElementById('checkoutItems').innerHTML   = (cart.items||[]).map(ci =>
+    `<div class="summary-row">
+       <span class="summary-label">${ci.n}${ci.on?' ('+ci.on+')':''} × ${ci.qty}</span>
+       <span class="summary-value">${ci.p*ci.qty} ₽</span>
+     </div>`
   ).join('');
 }
 
 function selectPay(el, method) {
   document.querySelectorAll('.pay-option').forEach(o => o.classList.remove('selected'));
-  el.classList.add('selected'); selectedPay = method;
+  el.classList.add('selected');
+  selectedPay = method;
 }
 
 async function placeOrder() {
   const btn = document.getElementById('placeOrderBtn');
-  btn.disabled = true; btn.textContent = '⏳ Оформляю заказ...';
+  btn.disabled = true;
+  btn.textContent = '⏳ Оформляю заказ...';
   let nr = null;
   if (TOKEN && cart.slug) {
-    const reqId = crypto.randomUUID().replace(/-/g,'') + '.' + crypto.randomUUID().replace(/-/g,'');
+    const reqId   = crypto.randomUUID().replace(/-/g,'') + '.' + crypto.randomUUID().replace(/-/g,'');
     const comment = document.getElementById('checkoutComment').value;
-    const d = await apiCall('/api/v1/orders', {
-      courier_options:[], persons_quantity:1, request_id:reqId,
-      location:{latitude:LAT,longitude:LON}, comment,
-      payment:{recently_link_cards:false},
-      payment_method_id: selectedPay==='sbp'?5:selectedPay==='card'?2:1,
-      place_slug:cart.slug, phone:'+70000000000',
-      extended_options:[{type:'delivery_options'}],
-      address:{house:'8',short_text:'Волжская набережная, 8',country:'Россия',city:'Нижний Новгород',street:'Волжская набережная',location:{latitude:LAT,longitude:LON},type:{id:0}},
-      payment_information:{type:selectedPay,id:selectedPay+'_qr',costForCustomer:String(getTotal())}
+    const d = await api('/api/v1/orders', {
+      courier_options:    [],
+      persons_quantity:   1,
+      request_id:         reqId,
+      location:           { latitude: LAT, longitude: LON },
+      comment,
+      payment:            { recently_link_cards: false },
+      payment_method_id:  selectedPay==='sbp' ? 5 : selectedPay==='card' ? 2 : 1,
+      place_slug:         cart.slug,
+      phone:              '+70000000000',
+      extended_options:   [{ type: 'delivery_options' }],
+      address: {
+        house:'8', short_text:'Волжская набережная, 8',
+        country:'Россия', city:'Нижний Новгород', street:'Волжская набережная',
+        location:{ latitude: LAT, longitude: LON }, type:{ id: 0 }
+      },
+      payment_information: {
+        type: selectedPay, id: selectedPay+'_qr',
+        costForCustomer: String(getTotal())
+      }
     });
     if (d && d.order_nr) nr = d.order_nr;
   }
@@ -872,6 +979,7 @@ async function placeOrder() {
     const d = new Date();
     nr = `${String(d.getDate()).padStart(2,'0')}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getFullYear()).slice(-2)}-${Math.floor(1000000+Math.random()*9000000)}`;
   }
+  clearCart();
   showOrderStatus(nr);
   btn.disabled = false;
 }
@@ -882,33 +990,50 @@ function showOrderStatus(nr) {
   document.getElementById('step1time').textContent = fmt(new Date());
   goTo('order');
   setTimeout(() => {
-    document.getElementById('step2dot').textContent='✓'; document.getElementById('step2dot').className='track-dot done';
-    document.getElementById('step3dot').className='track-dot active'; document.getElementById('step3time').textContent='~10 мин';
+    document.getElementById('step2dot').textContent = '✓';
+    document.getElementById('step2dot').className  = 'track-dot done';
+    document.getElementById('step3dot').className  = 'track-dot active';
+    document.getElementById('step3time').textContent = '~10 мин';
   }, 6000);
   setTimeout(() => {
-    document.getElementById('step3dot').textContent='✓'; document.getElementById('step3dot').className='track-dot done';
-    document.getElementById('step4dot').className='track-dot active'; document.getElementById('step4time').textContent=fmt(new Date(Date.now()+5*60000));
+    document.getElementById('step3dot').textContent = '✓';
+    document.getElementById('step3dot').className   = 'track-dot done';
+    document.getElementById('step4dot').className   = 'track-dot active';
+    document.getElementById('step4time').textContent = fmt(new Date(Date.now()+5*60000));
   }, 14000);
 }
 
-// NAV
+// ─── НАВИГАЦИЯ ───────────────────────────────────────────────────────────
 function goTo(screen) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-'+screen).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   const nb = document.getElementById('nav-'+screen);
   if (nb) nb.classList.add('active');
-  const top = document.getElementById('mainTopbar');
+  const top  = document.getElementById('mainTopbar');
   const tabs = document.getElementById('catalogTabs');
   const bnav = document.getElementById('bottomNav');
-  if (screen==='catalog') { top.style.display='block'; tabs.style.display='flex'; bnav.style.display='flex'; }
-  else if (screen==='menu') { top.style.display='none'; tabs.style.display='none'; bnav.style.display='flex'; }
-  else if (screen==='cart') { top.style.display='none'; tabs.style.display='none'; bnav.style.display='flex'; renderCartScreen(); }
-  else if (screen==='checkout') { top.style.display='none'; tabs.style.display='none'; bnav.style.display='none'; renderCheckoutScreen(); }
-  else if (screen==='order') { top.style.display='none'; tabs.style.display='none'; bnav.style.display='none'; }
-  else if (screen==='profile') { top.style.display='none'; tabs.style.display='none'; bnav.style.display='flex'; if (!profile) { document.getElementById('profileName').textContent=TOKEN?'Загрузка...':'Гость'; document.getElementById('profileUid').textContent=TOKEN?'':'Войдите через Telegram бота'; } }
+  if (screen==='catalog') {
+    top.style.display='block'; tabs.style.display='flex'; bnav.style.display='flex';
+  } else if (screen==='menu') {
+    top.style.display='none'; tabs.style.display='none'; bnav.style.display='flex';
+  } else if (screen==='cart') {
+    top.style.display='none'; tabs.style.display='none'; bnav.style.display='flex';
+    renderCartScreen();
+  } else if (screen==='checkout') {
+    top.style.display='none'; tabs.style.display='none'; bnav.style.display='none';
+    renderCheckoutScreen();
+  } else if (screen==='order') {
+    top.style.display='none'; tabs.style.display='none'; bnav.style.display='none';
+  } else if (screen==='profile') {
+    top.style.display='none'; tabs.style.display='none'; bnav.style.display='flex';
+    if (!profile) {
+      document.getElementById('profileName').textContent = TOKEN ? 'Загрузка...' : 'Гость';
+      document.getElementById('profileUid').textContent  = TOKEN ? '' : 'Войдите через бота';
+    }
+  }
   currentScreen = screen;
-  document.getElementById('mainContent').scrollTo(0,0);
+  document.getElementById('mainContent').scrollTo(0, 0);
 }
 
 function selectTab(t, btn) {
@@ -919,8 +1044,11 @@ function selectTab(t, btn) {
 
 let toastT;
 function showToast(msg) {
-  const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show');
-  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2500);
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('show'), 2800);
 }
 
 goTo('catalog');
