@@ -466,8 +466,24 @@
 const TOKEN = new URLSearchParams(location.search).get('token') || '';
 const BASE = 'https://eda.yandex.ru';
 const LAT = 56.34750920385357, LON = 43.934390690686854;
-const DEVICE_ID = '9B57D76B-908D-4504-915D-381D08676F44';
-const HDRS = { 'Content-Type':'application/json', 'Authorization': TOKEN ? `Bearer ${TOKEN}` : '', 'User-Agent':'ios(8.94.0)', 'x-device-id': DEVICE_ID, 'x-app-version':'8.94.0', 'x-platform':'ios_app' };
+const APP_ID = 'com.appkode.foodfox';
+const APP_VERSION = '8.94.0';
+const SDK_VERSION = '6.32.0.10003';
+// Генерируем или берём из URL device_id чтобы не светить одним и тем же
+const DEVICE_ID = new URLSearchParams(location.search).get('device_id') || '9B57D76B-908D-4504-915D-381D08676F44';
+// Точный UA как в нативном приложении — это ключевое для промокодов
+const MOBILE_UA = `Eats-iOS(${APP_VERSION}) com.appkode.foodfox/${APP_VERSION} (Apple; iPhone17,1; iOS 17.5) PassportSDK/${SDK_VERSION}`;
+const HDRS = {
+  'Content-Type': 'application/json',
+  'Authorization': TOKEN ? `Bearer ${TOKEN}` : '',
+  'User-Agent': MOBILE_UA,
+  'x-device-id': DEVICE_ID,
+  'x-app-version': APP_VERSION,
+  'x-platform': 'ios_app',
+  'x-app-id': APP_ID,
+  'x-supported-features': 'loyalty,discounts,promo_codes,referral',
+  'Accept-Language': 'ru-RU,ru;q=0.9',
+};
 
 let cart = {}, currentRest = null, currentScreen = 'catalog';
 let modalItem = null, modalQty = 1, selectedOpt = null;
@@ -571,7 +587,7 @@ async function apiCall(path, body) {
 }
 
 async function loadProfile() {
-  const d = await apiCall('/eats/v1/launch/v2/native', {experiments:{consumer:'eda_ab_service',args:[{name:'application',type:'string',value:'eda_ios_app'},{name:'version',type:'application_version',value:'8.94.0'},{name:'device_id',type:'string',value:DEVICE_ID}],user_agent:'Eats-iOS(8.94.0)'}});
+  const d = await apiCall('/eats/v1/launch/v2/native', {experiments:{consumer:'eda_ab_service',args:[{name:'application',type:'string',value:'eda_ios_app'},{name:'version',type:'application_version',value:APP_VERSION},{name:'device_id',type:'string',value:DEVICE_ID}],user_agent:MOBILE_UA}});
   if (d && d.profile) {
     profile = d.profile;
     document.getElementById('profileName').textContent = profile.name || 'Пользователь';
@@ -793,10 +809,28 @@ function renderCartScreen() {
   document.getElementById('checkoutBtnTotal').textContent = total + ' ₽';
 }
 
-function applyPromo() {
-  const c = document.getElementById('promoInput').value.trim();
+async function applyPromo() {
+  const c = document.getElementById('promoInput').value.trim().toUpperCase();
   if (!c) return;
-  showToast('❌ Промокод не найден');
+  if (!TOKEN) { showToast('❌ Нужно войти в аккаунт'); return; }
+  showToast('⏳ Проверяю промокод...');
+  // Реальный API Яндекс Еды для промокодов (мобильный эндпоинт)
+  const d = await apiCall('/api/v1/promotions/apply_code', {
+    code: c,
+    place_slug: cart.slug || '',
+    location: { latitude: LAT, longitude: LON }
+  });
+  if (d && d.discount) {
+    const disc = d.discount;
+    const txt = disc.amount ? `−${disc.amount} ₽` : disc.percent ? `−${disc.percent}%` : 'скидка';
+    showToast(`✅ Промокод применён: ${txt}`);
+  } else if (d && d.message) {
+    showToast(`❌ ${d.message}`);
+  } else if (d && d.error) {
+    showToast(`❌ ${d.error}`);
+  } else {
+    showToast('❌ Промокод не найден или истёк');
+  }
 }
 
 function renderCheckoutScreen() {
@@ -828,6 +862,10 @@ async function placeOrder() {
       payment_method_id: selectedPay==='sbp'?5:selectedPay==='card'?2:1,
       place_slug:cart.slug, phone:'+70000000000',
       extended_options:[{type:'delivery_options'}],
+      // Мобильные поля — важно для правильной обработки заказа
+      client_type: 'ios_app',
+      app_version: APP_VERSION,
+      device_id: DEVICE_ID,
       address:{house:'8',short_text:'Волжская набережная, 8',country:'Россия',city:'Нижний Новгород',street:'Волжская набережная',location:{latitude:LAT,longitude:LON},type:{id:0}},
       payment_information:{type:selectedPay,id:selectedPay+'_qr',costForCustomer:String(getTotal())}
     });
