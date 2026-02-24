@@ -1,4 +1,40 @@
-<!DOCTYPE html>
+<script>
+const PROXY_BASE = "https://твой-eda-proxy.onrender.com/proxy";  // вставь свой URL
+
+// Пример: загрузка меню
+async function loadMenu() {
+    const url = `${PROXY_BASE}/api/v2/menu/retrieve/vkusno__i_tochka_ckgad?shippingType=delivery&latitude=56.34751&longitude=43.9344&is_ad=false`;
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        console.log("Меню с твоим промиком:", data);
+        // рендери блюда
+    } catch(e) { console.error(e); }
+}
+
+// Применение промика (код не важен — прокси подменит)
+async function applyMyPromo() {
+    const url = `${PROXY_BASE}/api/v2/cart/promocode?screen=checkout&soft_multi=true&placeSlug=vkusno__i_tochka_ckgad&shippingType=delivery&receiving_type=delivery&offer_identity=db82ce03c510df632e0a8922db69649d`;
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: "test" })  // любой код — прокси заменит
+        });
+        const result = await res.json();
+        console.log("Скидка прилетела:", result);
+        // покажи юзеру "Скидка -X% применена"
+    } catch(e) { console.error(e); }
+}
+
+// Полная корзина
+async function getCart() {
+    const url = `${PROXY_BASE}/eats/v1/cart/v2/full-carts?latitude=56.34751&shippingType=delivery&placeSlug=vkusno__i_tochka_ckgad&with_move_cart_toast=false&longitude=43.9344&screen=cart`;
+    const res = await fetch(url);
+    const cart = await res.json();
+    console.log("Корзина с ценами:", cart);
+}
+</script><!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -107,3 +143,4 @@
     </script>
 </body>
 </html>
+
