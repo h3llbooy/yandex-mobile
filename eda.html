@@ -581,15 +581,16 @@ async function POST(path, body={}) {
         'X-Bearer':TOKEN,
         'X-Device-Id':DEV_ID,
         'X-Client-Session':SES,
+        'X-Request-Id': crypto.randomUUID(),
       },
       body: JSON.stringify(body)
     });
     if (!r.ok) {
       const txt = await r.text().catch(()=>'');
-      console.warn('[POST]',r.status,path,txt.slice(0,200));
+      console.warn('[POST]',r.status,path,txt.slice(0,300));
       return null;
     }
-    return r.json();
+    return r.json().catch(()=>null);
   } catch(e) {console.error('[POST]',path,e); return null;}
 }
 
@@ -603,10 +604,10 @@ async function GET(path) {
     });
     if (!r.ok) {
       const txt = await r.text().catch(()=>'');
-      console.warn('[GET]',r.status,path,txt.slice(0,200));
+      console.warn('[GET]',r.status,path,txt.slice(0,300));
       return null;
     }
-    return r.json();
+    return r.json().catch(()=>null);
   } catch(e) {console.error('[GET]',path,e); return null;}
 }
 
@@ -660,20 +661,59 @@ window.addEventListener('load', () => {
 // LAUNCH — профиль
 // ══════════════════════════════════════════════════════════
 async function loadLaunch() {
+  // Пробуем получить профиль из launch
+  let name = '', uid = '', av = '';
+
   const d = await POST('/eats/v1/launch/v2/native', {experiments:{}});
   if (d?.profile) {
     const p = d.profile;
-    const nm = p.name || p.display_name || p.first_name || 'Пользователь';
-    document.getElementById('profNm').textContent = nm;
-    document.getElementById('profUid').textContent = p.passport_uid ? 'UID: '+p.passport_uid : '';
-    const av = p.picture_url || p.avatar_url || '';
-    if (av) {
-      const imgHtml = `<img src="${av}" onerror="this.parentElement.innerHTML='👤'">`;
-      document.getElementById('profAv').innerHTML = imgHtml;
-      document.getElementById('topAvatar').innerHTML = `<img src="${av}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.outerHTML='👤'">`;
+    name = p.name || p.display_name || p.first_name || '';
+    uid  = p.passport_uid || p.uid || '';
+    av   = p.picture_url || p.avatar_url || '';
+  }
+
+  // Fallback: /api/v2/user/info
+  if (!name) {
+    const u = await GET('/api/v2/user/info');
+    if (u) {
+      name = u.name || u.display_name || u.first_name || '';
+      uid  = u.passport_uid || u.uid || uid;
+      av   = u.picture_url || u.avatar_url || av;
     }
-  } else {
-    document.getElementById('profNm').textContent = 'Пользователь';
+  }
+
+  // Fallback: Passport login.yandex.ru/info через proxy-get
+  if (!name) {
+    try {
+      const r = await fetch(PX+'/proxy-get', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          path: 'https://login.yandex.ru/info?format=json',
+          bearer: TOKEN, device_id: DEV_ID, session: SES
+        })
+      });
+      if (r.ok) {
+        const u = await r.json().catch(()=>null);
+        if (u) {
+          name = u.display_name || u.real_name || u.first_name || u.login || '';
+          uid  = u.id || uid;
+          av   = u.default_avatar_id
+            ? `https://avatars.yandex.net/get-yapic/${u.default_avatar_id}/islands-200`
+            : av;
+        }
+      }
+    } catch(e) { console.warn('[PASSPORT INFO]', e); }
+  }
+
+  // Применяем данные
+  document.getElementById('profNm').textContent = name || 'Пользователь';
+  document.getElementById('profUid').textContent = uid ? 'UID: '+uid : '';
+  if (av) {
+    const imgHtml = `<img src="${av}" onerror="this.parentElement.innerHTML='👤'">`;
+    document.getElementById('profAv').innerHTML = imgHtml;
+    document.getElementById('topAvatar').innerHTML =
+      `<img src="${av}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.outerHTML='👤'">`;
   }
   document.getElementById('addrTxt').textContent = ADDR.short;
 
@@ -1666,57 +1706,87 @@ async function useGeo() {
 }
 
 // ══════════════════════════════════════════════════════════
-// ПРОФИЛЬ: ЗАКАЗЫ — реальный эндпоинт из снифа
+// ПРОФИЛЬ: ЗАКАЗЫ — несколько эндпоинтов
 // ══════════════════════════════════════════════════════════
 async function loadOrders() {
   const el = document.getElementById('ordersC');
   el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
 
-  // Основной эндпоинт из снифа сайта
-  let d = await POST('/eats/v1/orders-info/v1/orders', {goods_items_limit: 6});
-  console.log('[ORDERS new]', JSON.stringify(d)?.slice(0,400));
+  let orders = null;
 
-  if (d?.orders?.length) {
-    el.innerHTML = '<div class="ord-list">'+d.orders.map(o=>{
+  // Эндпоинт 1: orders-info (самый актуальный из снифа)
+  let d = await POST('/eats/v1/orders-info/v1/orders', {goods_items_limit: 6});
+  if (d?.orders?.length) { orders = d.orders; }
+
+  // Эндпоинт 2: /api/v2/user/orders
+  if (!orders) {
+    d = await GET('/api/v2/user/orders?page=1&limit=20');
+    if (d?.orders?.length) orders = d.orders;
+    else if (Array.isArray(d)) orders = d;
+  }
+
+  // Эндпоинт 3: /eats/v1/user/v2/orders
+  if (!orders) {
+    d = await GET('/eats/v1/user/v2/orders?page=1&limit=20');
+    if (d?.orders?.length) orders = d.orders;
+  }
+
+  console.log('[ORDERS]', orders ? orders.length : 'none');
+
+  if (orders?.length) {
+    el.innerHTML = '<div class="ord-list">'+orders.map(o=>{
       const w = o.widgets?.general || {};
-      const goods = o.widgets?.goods?.items || [];
-      const nr    = o.order_nr || '—';
-      const name  = w.name  || o.place_name || '';
-      const date  = w.date  || '';
-      const cost  = w.cost_value || o.cost || '';
-      const stText= w.status?.text || 'Доставлен';
-      const stOk  = stText.includes('Доставл') || stText.includes('выполн');
+      const goods = o.widgets?.goods?.items || o.items || [];
+      const nr    = o.order_nr || o.id || '—';
+      const name  = w.name  || o.place_name || o.restaurant_name || '';
+      const date  = w.date  || o.created_at || o.date || '';
+      const cost  = w.cost_value || o.cost || o.total || '';
+      const stText= w.status?.text || o.status || 'Доставлен';
+      const stOk  = stText.includes('Доставл') || stText.includes('выполн') || stText.includes('Завершён');
       const stBad = stText.includes('Отмен') || stText.includes('Ошибк');
       const stCls = stOk ? 'ob-ok' : stBad ? 'ob-no' : 'ob-pend';
-      const itemNames = goods.slice(0,3).map(i=>i.title||'').filter(Boolean).join(', ');
+      const itemNames = goods.slice(0,3).map(i=>i.title||i.name||'').filter(Boolean).join(', ');
       const more = goods.length > 3 ? ` +${goods.length-3}` : '';
       return `<div class="ord-card">
         <div class="oc-head"><span class="oc-nr">№ ${nr}</span><span class="oc-dt">${date}</span></div>
         ${name ? `<div class="oc-rest">${name}</div>` : ''}
         ${itemNames ? `<div class="oc-items">${itemNames}${more}</div>` : ''}
         <div class="oc-foot">
-          <span class="oc-tot">${cost} ₽</span>
+          <span class="oc-tot">${cost}${cost&&!String(cost).includes('₽')?' ₽':''}</span>
           <span class="ob ${stCls}">${stText}</span>
         </div>
       </div>`;
     }).join('')+'</div>';
-    document.getElementById('piOrd').textContent = d.orders.length+' заказов';
+    document.getElementById('piOrd').textContent = orders.length+' заказов';
   } else {
     el.innerHTML = '<div class="empty"><div class="e-ic">📦</div><div class="e-t">Заказов нет</div><div class="e-s">Сделайте первый заказ!</div></div>';
   }
 }
 
 // ══════════════════════════════════════════════════════════
-// ПРОФИЛЬ: АДРЕСА — реальный эндпоинт из снифа
+// ПРОФИЛЬ: АДРЕСА
 // ══════════════════════════════════════════════════════════
 async function loadAddresses() {
   const el = document.getElementById('addressesC');
   el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
 
-  // Из снифа: GET /api/v3/user/addresses (возвращает массив напрямую)
-  let addrs = await GET('/api/v3/user/addresses');
-  if (!Array.isArray(addrs)) addrs = addrs?.addresses || addrs?.items || [];
-  console.log('[ADDRESSES]', JSON.stringify(addrs)?.slice(0,400));
+  let addrs = null;
+
+  // Эндпоинт 1: /api/v3/user/addresses
+  let d = await GET('/api/v3/user/addresses');
+  if (Array.isArray(d)) addrs = d;
+  else if (d?.addresses?.length) addrs = d.addresses;
+
+  // Эндпоинт 2: /api/v2/user/addresses
+  if (!addrs) {
+    d = await GET('/api/v2/user/addresses');
+    if (Array.isArray(d)) addrs = d;
+    else if (d?.addresses?.length) addrs = d.addresses;
+    else if (d?.items?.length) addrs = d.items;
+  }
+
+  console.log('[ADDRESSES]', addrs ? addrs.length : 'none');
+  if (!addrs) addrs = [];
 
   let html = `<div class="addr-card" onclick="openAddr()">
     <div class="ac-ic">📍</div>
@@ -1728,7 +1798,6 @@ async function loadAddresses() {
     html += addrs.map(a=>{
       const t = a.type?.id || a.type || 0;
       const ic = {0:'🏠',1:'🏢',2:'📍'}[t] || '📍';
-      // В /api/v3 координаты в location.latitude / location.longitude
       const lat = a.location?.latitude  || LAT;
       const lon = a.location?.longitude || LON;
       const ad = {
@@ -1796,20 +1865,37 @@ async function loadPromos() {
   const el = document.getElementById('promosC');
   el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
 
+  let promos = null;
+
+  // Эндпоинт 1: POST с payment
   let d = await POST('/api/v1/user/promocodes', {
     payment: {payment_method_id: payId||'sbp', type: payType||'sbp'}
   });
-  if (!d?.promocodes) d = await GET('/api/v1/user/promocodes');
-  console.log('[PROMOS]', JSON.stringify(d)?.slice(0,300));
+  if (d?.promocodes?.length) promos = d.promocodes;
 
-  if (d?.promocodes?.length) {
-    el.innerHTML = d.promocodes.map(p=>
+  // Эндпоинт 2: GET
+  if (!promos) {
+    d = await GET('/api/v1/user/promocodes');
+    if (d?.promocodes?.length) promos = d.promocodes;
+  }
+
+  // Эндпоинт 3: v2
+  if (!promos) {
+    d = await GET('/api/v2/user/promocodes');
+    if (d?.promocodes?.length) promos = d.promocodes;
+    else if (Array.isArray(d)) promos = d;
+  }
+
+  console.log('[PROMOS]', promos ? promos.length : 'none');
+
+  if (promos?.length) {
+    el.innerHTML = promos.map(p=>
       `<div class="promo-card">
         <div class="promo-code">${p.code||''}</div>
         <div class="promo-desc">${p.description||p.title||''}</div>
         ${p.discount?`<span class="promo-bdg">−${p.discount}</span>`:''}
       </div>`).join('');
-    document.getElementById('piPromo').textContent = d.promocodes.length+' промокода(ов)';
+    document.getElementById('piPromo').textContent = promos.length+' промокода(ов)';
   } else {
     el.innerHTML = '<div class="empty"><div class="e-ic">🏷️</div><div class="e-t">Промокодов нет</div><div class="e-s">Введите промокод при оформлении заказа</div></div>';
   }
