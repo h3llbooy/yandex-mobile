@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Яндекс Еда</title>
+<style>
+:root{--y:#FFE033;--bl:#1A1A1A;--bg:#F5F5F5;--gt:#8C8C8C;--gb:#E8E8E8;--gn:#029154;--rd:#E63946;--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;background:var(--bg)}
+#app{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--y);padding:calc(var(--st)+12px) 16px 12px;flex-shrink:0}
+.topbar-inner{display:flex;align-items:center;gap:10px}
+.logo{font-size:22px;font-weight:900;color:var(--bl);flex-shrink:0}
+.addr-btn{flex:1;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.08);border-radius:12px;padding:8px 12px;border:none;text-align:left;min-width:0;cursor:pointer}
+.addr-text{font-size:13px;font-weight:600;color:var(--bl);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.profile-btn{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.1);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.tabs{background:var(--y);display:flex;padding:0 16px 12px;gap:8px;flex-shrink:0}
+.tab-btn{padding:7px 16px;border-radius:20px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.tab-btn.active{background:var(--bl);color:#fff}
+.tab-btn:not(.active){background:rgba(0,0,0,.08);color:var(--bl)}
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.content::-webkit-scrollbar{display:none}
+/* все экраны скрыты по умолчанию */
+.screen{display:none}
+.screen.active{display:block}
+/* поддержка — особый экран с flex layout для чата */
+#screen-support.active{display:flex;flex-direction:column;height:100%}
+
+/* МОДАЛЬНОЕ — адрес */
+.addr-modal{position:fixed;inset:0;background:#fff;z-index:300;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .35s ease}
+.addr-modal.open{transform:none}
+.addr-modal-head{padding:calc(var(--st)+16px) 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--gb);flex-shrink:0}
+.addr-back{background:none;border:none;font-size:22px;cursor:pointer;color:var(--bl)}
+.addr-sbox{flex:1;display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:12px;padding:10px 14px}
+.addr-sinp{flex:1;border:none;outline:none;font-size:15px;background:transparent}
+.addr-res{overflow-y:auto;flex:1}
+.addr-ri{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--gb);cursor:pointer}
+.addr-ri:active{background:var(--bg)}
+.ari-ic{font-size:20px;width:38px;height:38px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ari-main{font-size:14px;font-weight:600;color:var(--bl)}
+.ari-sub{font-size:12px;color:var(--gt);margin-top:2px}
+
+/* МОДАЛЬНОЕ — самовывоз */
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:250;opacity:0;pointer-events:none;transition:opacity .3s;display:flex;align-items:flex-end}
+.sheet-overlay.open{opacity:1;pointer-events:all}
+.sheet{background:#fff;border-radius:24px 24px 0 0;width:100%;max-height:80vh;overflow-y:auto;padding-bottom:calc(20px + var(--sb));transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+.sheet-overlay.open .sheet{transform:none}
+.sheet-head{padding:16px 16px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gb);position:sticky;top:0;background:#fff;z-index:1}
+.sheet-title{font-size:18px;font-weight:800}
+.sheet-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--bl)}
+.pickup-item{padding:14px 16px;border-bottom:1px solid var(--gb);cursor:pointer}
+.pickup-item:active{background:var(--bg)}
+.pi-name{font-size:14px;font-weight:700;color:var(--bl)}
+.pi-addr{font-size:12px;color:var(--gt);margin-top:3px}
+.pi-ready{font-size:12px;color:var(--gn);margin-top:2px}
+
+/* МОДАЛЬНОЕ — блюдо */
+.item-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .3s;display:flex;align-items:flex-end}
+.item-overlay.open{opacity:1;pointer-events:all}
+.item-sheet{background:#fff;border-radius:24px 24px 0 0;width:100%;max-height:90vh;overflow-y:auto;padding-bottom:calc(20px + var(--sb));transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+.item-overlay.open .item-sheet{transform:none}
+.item-img{width:100%;height:220px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:80px;border-radius:24px 24px 0 0;overflow:hidden;position:relative}
+.item-img img{width:100%;height:100%;object-fit:cover}
+.item-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);border:none;cursor:pointer;color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center}
+.item-body{padding:20px}
+.item-name{font-size:22px;font-weight:800;margin-bottom:8px}
+.item-desc{font-size:14px;color:var(--gt);line-height:1.5;margin-bottom:6px}
+.item-w{font-size:12px;color:#bbb;margin-bottom:16px}
+.item-opts-title{font-size:15px;font-weight:700;margin-bottom:10px}
+.item-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.io{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;border:2px solid var(--gb);cursor:pointer}
+.io.sel{border-color:var(--bl);background:#f8f8f8}
+.ion{font-size:14px}.iop{font-size:13px;color:var(--gt);font-weight:600}
+.item-add-row{display:flex;align-items:center;gap:12px}
+.mqc{display:flex;align-items:center;gap:10px}
+.mqb{width:36px;height:36px;border-radius:10px;background:var(--bg);border:none;cursor:pointer;font-size:20px;font-weight:700;color:var(--bl);display:flex;align-items:center;justify-content:center}
+.mqn{font-size:18px;font-weight:800;min-width:24px;text-align:center}
+.item-add-btn{flex:1;background:var(--y);color:var(--bl);border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+
+/* CATALOG */
+.srch-wrap{padding:12px 16px 8px}
+.srch-box{display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.srch-inp{flex:1;border:none;outline:none;font-size:15px;background:transparent}
+.srch-inp::placeholder{color:#b0b0b0}
+.banners{display:flex;gap:12px;padding:8px 16px 12px;overflow-x:auto;scrollbar-width:none}
+.banners::-webkit-scrollbar{display:none}
+.banner{min-width:240px;height:100px;border-radius:20px;display:flex;align-items:flex-end;padding:14px;flex-shrink:0;cursor:pointer;position:relative;overflow:hidden}
+.banner:active{transform:scale(.97)}
+.b1{background:linear-gradient(135deg,#ff6b35,#ff3d3d)}
+.b2{background:linear-gradient(135deg,#6c5ce7,#a29bfe)}
+.b3{background:linear-gradient(135deg,#00b894,#00cec9)}
+.bn-txt{color:#fff;font-weight:800;font-size:14px;line-height:1.2}
+.bn-ico{position:absolute;right:12px;top:10px;font-size:38px}
+.cats{display:flex;gap:10px;padding:4px 16px 12px;overflow-x:auto;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cat-btn{display:flex;flex-direction:column;align-items:center;gap:4px;background:#fff;border-radius:16px;padding:10px 14px;min-width:68px;border:none;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.06);flex-shrink:0;transition:all .15s}
+.cat-btn.active{background:var(--bl)}.cat-btn.active .cat-nm{color:#fff}
+.cat-ic{font-size:24px}.cat-nm{font-size:11px;font-weight:600;color:var(--bl);white-space:nowrap}
+.rests{padding:0 16px;display:flex;flex-direction:column;gap:14px}
+.rest-card{background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer}
+.rest-card:active{transform:scale(.98)}
+.rc-img{width:100%;height:150px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:60px;position:relative;overflow:hidden}
+.rc-img img{width:100%;height:100%;object-fit:cover}
+.rc-badge{position:absolute;top:10px;left:10px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:var(--gn);color:#fff}
+.rc-closed{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700}
+.rc-info{padding:12px 14px}
+.rc-name{font-size:16px;font-weight:700;margin-bottom:5px}
+.rc-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rc-star{font-size:13px;font-weight:600}.rc-time{font-size:13px;color:var(--gt)}.rc-free{font-size:13px;font-weight:600;color:var(--gn)}
+.rc-tags{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.rc-tag{font-size:11px;color:var(--gt);background:var(--bg);border-radius:6px;padding:2px 7px}
+
+/* MENU */
+.menu-hero{position:relative}
+.menu-hero-img{width:100%;height:190px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:70px;overflow:hidden}
+.menu-hero-img img{width:100%;height:100%;object-fit:cover}
+.menu-back-btn{position:absolute;top:calc(var(--st)+12px);left:12px;width:38px;height:38px;border-radius:50%;background:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.menu-info{padding:14px 16px 10px;background:#fff}
+.menu-nm{font-size:22px;font-weight:800;margin-bottom:6px}
+.menu-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.m-bdg{font-size:12px;font-weight:600;padding:3px 10px;border-radius:10px}
+.mb-g{background:#e8f8ee;color:var(--gn)}.mb-y{background:#fff5d0;color:#b8860b}
+.mcats{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;border-top:1px solid var(--gb);background:#fff;position:sticky;top:0;z-index:20}
+.mcats::-webkit-scrollbar{display:none}
+.mcat{padding:6px 14px;border-radius:20px;border:none;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.mcat.active{background:var(--bl);color:#fff}
+.mcat:not(.active){background:var(--bg);color:var(--bl)}
+.msec{padding:16px 16px 0}
+.msec-title{font-size:18px;font-weight:800;margin-bottom:12px}
+.mi-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.mi{background:#fff;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:flex-start;box-shadow:0 1px 4px rgba(0,0,0,.05);cursor:pointer}
+.mi:active{transform:scale(.98)}
+.mi-img{width:88px;height:88px;border-radius:12px;flex-shrink:0;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden}
+.mi-img img{width:100%;height:100%;object-fit:cover}
+.mi-body{flex:1;min-width:0}
+.mi-name{font-size:14px;font-weight:700;margin-bottom:4px;line-height:1.3}
+.mi-desc{font-size:12px;color:var(--gt);line-height:1.4;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mi-w{font-size:11px;color:#bbb;margin-bottom:6px}
+.mi-foot{display:flex;align-items:center;justify-content:space-between}
+.mi-price{font-size:15px;font-weight:800}
+.add-btn{width:32px;height:32px;border-radius:10px;background:var(--y);border:none;cursor:pointer;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.add-btn:active{transform:scale(.88)}
+.qc{display:flex;align-items:center;gap:8px}
+.qb{width:30px;height:30px;border-radius:8px;background:var(--bg);border:none;cursor:pointer;font-size:18px;font-weight:700;color:var(--bl);display:flex;align-items:center;justify-content:center}
+.qn{font-size:15px;font-weight:800;min-width:20px;text-align:center}
+
+/* CART */
+.cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center;gap:12px}
+.ce-ico{font-size:64px}.ce-t{font-size:20px;font-weight:800}.ce-s{font-size:14px;color:var(--gt)}
+.cart-go{margin-top:8px;background:var(--y);color:var(--bl);border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer}
+.cart-body{padding:16px}
+.cart-rlbl{font-size:13px;color:var(--gt);margin-bottom:12px}
+.ci-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.ci{background:#fff;border-radius:16px;padding:12px;display:flex;gap:10px;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.ci-img{width:48px;height:48px;border-radius:10px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden}
+.ci-img img{width:100%;height:100%;object-fit:cover}
+.ci-body{flex:1;min-width:0}
+.ci-name{font-size:13px;font-weight:700;line-height:1.3}
+.ci-opt{font-size:11px;color:var(--gt)}
+.cqb{width:26px;height:26px;border-radius:7px;background:var(--bg);border:none;cursor:pointer;font-size:16px;font-weight:700;color:var(--bl);display:flex;align-items:center;justify-content:center}
+.cqn{font-size:14px;font-weight:800;min-width:18px;text-align:center}
+.promo-row{background:#fff;border-radius:16px;padding:14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.promo-inp{flex:1;border:none;outline:none;font-size:14px;background:transparent}
+.promo-apply{background:var(--y);border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.sum-box{background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.sr{display:flex;justify-content:space-between;margin-bottom:10px}
+.sr:last-child{margin-bottom:0}
+.sl{font-size:14px;color:var(--gt)}.sv{font-size:14px;font-weight:600}
+.st-row .sl,.st-row .sv{font-size:16px;font-weight:800}
+.sdiv{height:1px;background:var(--gb);margin:10px 0}
+.sfree{color:var(--gn)}
+.co-btn{width:100%;background:var(--y);color:var(--bl);border:none;border-radius:16px;padding:16px;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+
+/* CHECKOUT */
+.co-sec{background:#fff;border-radius:20px;margin:12px 16px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.co-title{font-size:15px;font-weight:800;margin-bottom:12px}
+.co-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gb);cursor:pointer}
+.co-row:last-child{border-bottom:none;padding-bottom:0}
+.co-icon{font-size:20px;width:36px;height:36px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.co-body{flex:1}.co-l{font-size:12px;color:var(--gt)}.co-v{font-size:14px;font-weight:600}
+.pay-opts{display:flex;gap:8px;flex-wrap:wrap}
+.pay-opt{flex:1;min-width:80px;padding:10px;border-radius:12px;border:2px solid var(--gb);text-align:center;cursor:pointer}
+.pay-opt.sel{border-color:var(--bl);background:var(--bl);color:#fff}
+.po-i{font-size:20px;margin-bottom:2px}.po-n{font-size:11px;font-weight:600}
+.place-btn{margin:12px 16px calc(12px + var(--sb));width:calc(100% - 32px);background:var(--y);color:var(--bl);border:none;border-radius:16px;padding:17px;font-size:17px;font-weight:800;cursor:pointer;display:block}
+.place-btn:disabled{opacity:.6}
+
+/* ORDER */
+.ord-wrap{padding:20px 16px;text-align:center}
+.ord-ico{font-size:64px;margin-bottom:16px}
+.ord-t{font-size:24px;font-weight:900;margin-bottom:8px}
+.ord-s{font-size:15px;color:var(--gt);margin-bottom:24px}
+.ord-nr{background:#fff;border-radius:16px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:12px}
+.onl{font-size:12px;color:var(--gt);margin-bottom:4px}.onv{font-size:20px;font-weight:900}
+.track-box{background:#fff;border-radius:16px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:20px;text-align:left}
+.ts{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;position:relative}
+.ts:last-child{margin-bottom:0}
+.ts-line{position:absolute;left:14px;top:30px;width:2px;height:calc(100% + 4px);background:var(--gb)}
+.ts:last-child .ts-line{display:none}
+.ts-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;z-index:1}
+.td-done{background:var(--gn);color:#fff}.td-act{background:var(--y);animation:pulse 1.5s infinite}.td-pend{background:var(--gb)}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.ts-lbl{font-size:14px;font-weight:700}.ts-tm{font-size:12px;color:var(--gt);margin-top:2px}
+.ts-body{padding-top:4px}
+.back-main{width:100%;background:var(--y);color:var(--bl);border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:800;cursor:pointer}
+
+/* PROFILE */
+.prof-head{background:var(--y);padding:calc(var(--st)+20px) 16px 24px}
+.ph-row{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.ph-av{width:72px;height:72px;border-radius:50%;background:rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;overflow:hidden}
+.ph-av img{width:100%;height:100%;object-fit:cover}
+.ph-nm{font-size:20px;font-weight:800}.ph-uid{font-size:12px;color:rgba(0,0,0,.45);margin-top:2px}
+.prof-plus{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.08);border-radius:14px;padding:10px 14px;cursor:pointer}
+.pp-ic{font-size:20px}.pp-tx{font-size:13px;font-weight:600;flex:1}
+.pp-st{font-size:11px;font-weight:700;background:#fff;border-radius:8px;padding:3px 8px;color:var(--gt)}
+.prof-body{padding:16px;display:flex;flex-direction:column;gap:10px}
+.prof-sec{background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.pmi{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:1px solid var(--gb)}
+.pmi:last-child{border-bottom:none}.pmi:active{background:var(--bg)}
+.pmi-ic{font-size:22px;width:40px;height:40px;background:var(--bg);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pmi-bd{flex:1}.pmi-tx{font-size:15px;font-weight:600}.pmi-sb{font-size:12px;color:var(--gt);margin-top:1px}
+.pmi-ar{color:var(--gt);font-size:18px}
+
+/* SUB */
+.scr-hdr{display:flex;align-items:center;gap:10px;padding:calc(var(--st)+12px) 16px 12px;background:#fff;border-bottom:1px solid var(--gb);position:sticky;top:0;z-index:10;flex-shrink:0}
+.back-btn{background:none;border:none;font-size:22px;cursor:pointer;padding:0;color:var(--bl)}
+.scr-title{font-size:18px;font-weight:800}
+.ord-list{padding:12px 16px;display:flex;flex-direction:column;gap:12px}
+.ord-card{background:#fff;border-radius:20px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.05);cursor:pointer}
+.oc-head{display:flex;justify-content:space-between;margin-bottom:8px}
+.oc-nr{font-size:14px;font-weight:800}.oc-dt{font-size:12px;color:var(--gt)}
+.oc-rest{font-size:14px;color:var(--gt);margin-bottom:6px}
+.oc-items{font-size:13px;font-weight:600;margin-bottom:8px}
+.oc-foot{display:flex;align-items:center;justify-content:space-between}
+.oc-tot{font-size:15px;font-weight:800}
+.ob{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px}
+.ob-ok{background:#e8f8ee;color:var(--gn)}.ob-no{background:#fee;color:var(--rd)}.ob-pend{background:#fff5d0;color:#b8860b}
+.addr-card{background:#fff;border-radius:16px;padding:14px 16px;margin:0 16px 10px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.05);cursor:pointer}
+.addr-card:active{background:#f9f9f9}
+.ac-ic{font-size:22px;width:40px;height:40px;background:var(--bg);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ac-bd{flex:1}.ac-nm{font-size:14px;font-weight:700}.ac-fl{font-size:12px;color:var(--gt);margin-top:2px}
+.pay-card{background:#fff;border-radius:16px;padding:14px 16px;margin:0 16px 10px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.pc-ic{font-size:22px;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pc-bd{flex:1}.pc-nm{font-size:14px;font-weight:700}.pc-sb{font-size:12px;color:var(--gt);margin-top:2px}
+.promo-card{background:#fff;border-radius:16px;padding:16px;margin:0 16px 10px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.promo-code{font-size:16px;font-weight:800;font-family:monospace;letter-spacing:1px;margin-bottom:4px}
+.promo-desc{font-size:13px;color:var(--gt)}
+.promo-bdg{display:inline-block;margin-top:8px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;background:#e8f8ee;color:var(--gn)}
+
+/* SUPPORT */
+.sup-chat{padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;flex:1}
+.sm{max-width:80%;padding:12px 14px;border-radius:16px;font-size:14px;line-height:1.4}
+.sm-b{background:#fff;align-self:flex-start;border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.sm-u{background:var(--bl);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.sup-row{padding:12px 16px calc(12px + var(--sb));background:#fff;border-top:1px solid var(--gb);display:flex;gap:10px;align-items:center;flex-shrink:0}
+.sup-inp{flex:1;border:1px solid var(--gb);border-radius:20px;padding:10px 14px;font-size:14px;outline:none;background:var(--bg)}
+.sup-send{width:40px;height:40px;border-radius:50%;background:var(--y);border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* NAV */
+.bnav{display:flex;background:#fff;border-top:1px solid var(--gb);padding:8px 0 calc(8px + var(--sb));flex-shrink:0;z-index:100}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;background:transparent;cursor:pointer;padding:4px 0}
+.nb-ic{font-size:22px;position:relative;display:inline-block}
+.nb-lbl{font-size:10px;font-weight:600;color:var(--gt)}.nb.active .nb-lbl{color:var(--bl)}
+.cbadge{position:absolute;top:-4px;right:-8px;background:var(--rd);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;border:2px solid #fff}
+
+/* MISC */
+.loading{position:fixed;inset:0;background:var(--y);display:flex;align-items:center;justify-content:center;z-index:1000;transition:opacity .4s;flex-direction:column;gap:12px}
+.loading-logo{font-size:42px;font-weight:900}.loading-sub{font-size:14px;color:rgba(0,0,0,.4)}
+.toast{position:fixed;bottom:calc(80px + var(--sb));left:50%;transform:translateX(-50%) translateY(20px);background:var(--bl);color:#fff;border-radius:14px;padding:12px 20px;font-size:14px;font-weight:600;z-index:600;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.spin-wrap{display:flex;justify-content:center;padding:40px}
+.spin{width:32px;height:32px;border:3px solid var(--gb);border-top-color:var(--bl);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:60px 32px;color:var(--gt)}
+.e-ic{font-size:48px;margin-bottom:12px}.e-t{font-size:15px;font-weight:600;color:var(--bl)}.e-s{font-size:13px;margin-top:6px}
+
+/* MAP PREVIEW в checkout */
+.map-box{width:100%;height:120px;border-radius:14px;overflow:hidden;position:relative;background:#dde8f8;margin:10px 0 0;cursor:pointer}
+.map-box img{width:100%;height:100%;object-fit:cover}
+.map-pin{position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);font-size:30px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+.map-hint{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.45);color:#fff;font-size:11px;padding:5px 10px;font-weight:600}
+/* PROMO в checkout */
+.co-promo{display:flex;gap:8px;margin-top:10px}
+.co-promo input{flex:1;border:1.5px solid var(--gb);border-radius:10px;padding:10px 12px;font-size:14px;outline:none;background:#fafafa}
+.co-promo input:focus{border-color:var(--bl)}
+.co-promo button{background:var(--bl);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.co-promo-ok{font-size:12px;color:var(--gn);font-weight:600;margin-top:6px;display:none}
+.co-promo-err{font-size:12px;color:var(--rd);font-weight:600;margin-top:6px;display:none}
+</style>
+</head>
+<body>
+<div class="loading" id="loading">
+  <div class="loading-logo">🍔 Еда</div>
+  <div class="loading-sub">Загрузка...</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- ADDRESS MODAL -->
+<div class="addr-modal" id="addrModal">
+  <div class="addr-modal-head">
+    <button class="addr-back" onclick="closeAddr()">←</button>
+    <div class="addr-sbox">
+      <span>🔍</span>
+      <input class="addr-sinp" id="addrInp" placeholder="Москва, Тверская 1..." oninput="onAddrInput(this.value)" autocomplete="off">
+    </div>
+  </div>
+  <div class="addr-res" id="addrRes"></div>
+</div>
+
+<!-- PICKUP SHEET -->
+<div class="sheet-overlay" id="pickupSheet" onclick="closePickup(event)">
+  <div class="sheet">
+    <div class="sheet-head">
+      <span class="sheet-title">🏪 Самовывоз</span>
+      <button class="sheet-close" onclick="closePickup()">✕</button>
+    </div>
+    <div id="pickupList"><div class="spin-wrap"><div class="spin"></div></div></div>
+  </div>
+</div>
+
+<!-- ITEM MODAL -->
+<div class="item-overlay" id="itemOverlay" onclick="closeItem(event)">
+  <div class="item-sheet">
+    <div class="item-img" id="iImg"></div>
+    <div class="item-body">
+      <div class="item-name" id="iName"></div>
+      <div class="item-desc" id="iDesc"></div>
+      <div class="item-w" id="iW"></div>
+      <div id="iOptsW" style="display:none">
+        <div class="item-opts-title" id="iOptsT"></div>
+        <div class="item-opts" id="iOpts"></div>
+      </div>
+      <div class="item-add-row">
+        <div class="mqc">
+          <button class="mqb" onclick="mqAdj(-1)">−</button>
+          <span class="mqn" id="mqN">1</span>
+          <button class="mqb" onclick="mqAdj(1)">+</button>
+        </div>
+        <button class="item-add-btn" onclick="addFromModal()">
+          <span>В корзину</span><span id="iPrice"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <!-- TOPBAR (только на главной) -->
+  <div class="topbar" id="topbar">
+    <div class="topbar-inner">
+      <div class="logo">Еда</div>
+      <button class="addr-btn" onclick="openAddr()">
+        <span>📍</span>
+        <span class="addr-text" id="addrTxt">Загрузка...</span>
+        <span style="opacity:.4;font-size:10px">▾</span>
+      </button>
+      <button class="profile-btn" onclick="goTo('profile')">
+        <span id="topAvatar">👤</span>
+      </button>
+    </div>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" id="tabDel" onclick="selTab('delivery',this)">Доставка</button>
+    <button class="tab-btn" id="tabPick" onclick="selTab('pickup',this)">Самовывоз</button>
+  </div>
+
+  <div class="content" id="content">
+
+    <!-- CATALOG -->
+    <div class="screen active" id="screen-catalog">
+      <div class="srch-wrap">
+        <div class="srch-box"><span>🔍</span><input class="srch-inp" placeholder="Ресторан или блюдо" oninput="filterR(this.value)"></div>
+      </div>
+      <div class="banners">
+        <div class="banner b1" onclick="filterCat(null,'Бургеры')"><span class="bn-ico">🔥</span><div class="bn-txt">Бесплатная<br>доставка</div></div>
+        <div class="banner b2" onclick="filterCat(null,'Суши')"><span class="bn-ico">⚡</span><div class="bn-txt">30 минут<br>или скидка</div></div>
+        <div class="banner b3" onclick="filterCat(null,'Пицца')"><span class="bn-ico">🎁</span><div class="bn-txt">Акции<br>и скидки</div></div>
+      </div>
+      <div class="cats" id="catsList"></div>
+      <div style="padding:0 16px 8px;font-size:18px;font-weight:800">Рестораны <span id="restsCount" style="font-size:13px;color:var(--gt);font-weight:600"></span></div>
+      <div class="rests" id="restsList"><div class="spin-wrap"><div class="spin"></div></div></div>
+      <div style="height:20px"></div>
+    </div>
+
+    <!-- MENU -->
+    <div class="screen" id="screen-menu">
+      <div class="menu-hero">
+        <div class="menu-hero-img" id="mhImg">🍽️</div>
+        <button class="menu-back-btn" onclick="goTo('catalog')">←</button>
+      </div>
+      <div class="menu-info">
+        <div class="menu-nm" id="mhName"></div>
+        <div class="menu-meta" id="mhMeta"></div>
+      </div>
+      <div class="mcats" id="menuCats"></div>
+      <div id="menuItems"></div>
+      <div style="height:80px"></div>
+    </div>
+
+    <!-- CART -->
+    <div class="screen" id="screen-cart">
+      <div class="scr-hdr"><button class="back-btn" onclick="goTo('catalog')">←</button><span class="scr-title">Корзина</span></div>
+      <div class="cart-empty" id="cartEmpty">
+        <div class="ce-ico">🛒</div><div class="ce-t">Корзина пустая</div>
+        <div class="ce-s">Добавьте блюда из ресторана</div>
+        <button class="cart-go" onclick="goTo('catalog')">К ресторанам</button>
+      </div>
+      <div id="cartFilled" style="display:none">
+        <div class="cart-body">
+          <div class="cart-rlbl" id="cRestLbl"></div>
+          <div class="ci-list" id="cList"></div>
+          <div class="promo-row"><span>🏷️</span><input class="promo-inp" placeholder="Промокод" id="promoInp"><button class="promo-apply" onclick="applyPromo()">Применить</button></div>
+          <div class="sum-box">
+            <div class="sr"><span class="sl">Товары</span><span class="sv" id="sItems">0 ₽</span></div>
+            <div class="sr"><span class="sl">Доставка</span><span class="sv sfree" id="sDel">Бесплатно</span></div>
+            <div class="sr"><span class="sl">Сервисный сбор (5%)</span><span class="sv" id="sFee">0 ₽</span></div>
+            <div class="sdiv"></div>
+            <div class="sr st-row"><span class="sl">Итого</span><span class="sv" id="sTotal">0 ₽</span></div>
+          </div>
+          <button class="co-btn" onclick="goTo('checkout')"><span>Оформить заказ</span><span id="coBtnT">0 ₽</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHECKOUT -->
+    <div class="screen" id="screen-checkout">
+      <div class="scr-hdr"><button class="back-btn" onclick="goTo('cart')">←</button><span class="scr-title">Оформление</span></div>
+      <div class="co-sec">
+        <div class="co-title">📦 Доставка</div>
+        <div class="co-row" onclick="openAddr()">
+          <div class="co-icon">📍</div>
+          <div class="co-body"><div class="co-l">Адрес</div><div class="co-v" id="coAddr">—</div></div>
+          <div style="color:var(--gt)">Изменить ›</div>
+        </div>
+        <!-- Мини-карта -->
+        <div class="map-box" onclick="openAddr()" id="coMapBox">
+          <img id="coMapImg" src="" onerror="this.style.display='none'" alt="">
+          <div class="map-pin">📍</div>
+          <div class="map-hint" id="coMapHint">Нажмите чтобы изменить адрес</div>
+        </div>
+        <div class="co-row">
+          <div class="co-icon">⏱️</div>
+          <div class="co-body"><div class="co-l">Время</div><div class="co-v" id="coTime">~30 мин</div></div>
+        </div>
+      </div>
+      <div class="co-sec">
+        <div class="co-title">💳 Оплата</div>
+        <div class="pay-opts" id="payOpts">
+          <div class="pay-opt sel" onclick="selPay(this,'sbp','sbp')"><div class="po-i">⚡</div><div class="po-n">СБП</div></div>
+          <div class="pay-opt" onclick="selPay(this,'card','card')"><div class="po-i">💳</div><div class="po-n">Карта</div></div>
+          <div class="pay-opt" onclick="selPay(this,'cash','cash')"><div class="po-i">💵</div><div class="po-n">Наличные</div></div>
+        </div>
+      </div>
+      <div class="co-sec">
+        <div class="co-title">🏷️ Промокод</div>
+        <div class="co-promo">
+          <input id="coPromoInp" placeholder="Введите код" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
+          <button onclick="applyCoPromo()">Применить</button>
+        </div>
+        <div class="co-promo-ok" id="coPromoOk">✅ Промокод применён!</div>
+        <div class="co-promo-err" id="coPromoErr">❌ Промокод не найден</div>
+      </div>
+      <div class="co-sec">
+        <div class="co-title">📝 Комментарий</div>
+        <input id="coComment" style="width:100%;border:1px solid var(--gb);border-radius:10px;padding:10px 12px;font-size:14px;outline:none;background:var(--bg)" placeholder="Этаж, домофон, пожелания...">
+      </div>
+      <div class="co-sec">
+        <div class="co-title">🧾 Состав</div>
+        <div id="coItems"></div>
+        <div class="sdiv"></div>
+        <div class="sr st-row" style="margin-top:10px"><span class="sl">Итого</span><span class="sv" id="coTotal">0 ₽</span></div>
+      </div>
+      <button class="place-btn" id="placeBtn" onclick="placeOrder()">Заказать · <span id="placeBtnT">0 ₽</span></button>
+    </div>
+
+    <!-- ORDER -->
+    <div class="screen" id="screen-order">
+      <div class="ord-wrap">
+        <div class="ord-ico">✅</div>
+        <div class="ord-t">Заказ принят!</div>
+        <div class="ord-s">Ресторан начал готовить</div>
+        <div class="ord-nr"><div class="onl">Номер заказа</div><div class="onv" id="orderNr">—</div></div>
+        <div class="track-box">
+          <div class="ts"><div class="ts-dot td-done" id="s1">✓</div><div class="ts-line"></div><div class="ts-body"><div class="ts-lbl">Заказ принят</div><div class="ts-tm" id="s1t"></div></div></div>
+          <div class="ts"><div class="ts-dot td-act" id="s2">🍳</div><div class="ts-line"></div><div class="ts-body"><div class="ts-lbl">Ресторан готовит</div><div class="ts-tm">~20 мин</div></div></div>
+          <div class="ts"><div class="ts-dot td-pend" id="s3">🛵</div><div class="ts-line"></div><div class="ts-body"><div class="ts-lbl">Курьер в пути</div><div class="ts-tm" id="s3t"></div></div></div>
+          <div class="ts"><div class="ts-dot td-pend" id="s4">🎉</div><div class="ts-body"><div class="ts-lbl">Доставлено</div><div class="ts-tm" id="s4t"></div></div></div>
+        </div>
+        <button class="back-main" onclick="goTo('catalog');clearCart()">На главную</button>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="screen" id="screen-profile">
+      <div class="prof-head">
+        <div class="ph-row">
+          <button class="back-btn" onclick="goTo('catalog')">←</button>
+          <div class="ph-av" id="profAv">👤</div>
+          <div><div class="ph-nm" id="profNm">...</div><div class="ph-uid" id="profUid"></div></div>
+        </div>
+        <div class="prof-plus"><span class="pp-ic">⭐</span><span class="pp-tx">Яндекс Плюс</span><span class="pp-st" id="plusSt">—</span></div>
+      </div>
+      <div class="prof-body">
+        <div class="prof-sec">
+          <div class="pmi" onclick="goTo('orders')"><div class="pmi-ic">📦</div><div class="pmi-bd"><div class="pmi-tx">Мои заказы</div><div class="pmi-sb" id="piOrd">История</div></div><span class="pmi-ar">›</span></div>
+          <div class="pmi" onclick="goTo('addresses')"><div class="pmi-ic">📍</div><div class="pmi-bd"><div class="pmi-tx">Адреса доставки</div><div class="pmi-sb" id="piAddr">Мои адреса</div></div><span class="pmi-ar">›</span></div>
+          <div class="pmi" onclick="goTo('payments')"><div class="pmi-ic">💳</div><div class="pmi-bd"><div class="pmi-tx">Способы оплаты</div><div class="pmi-sb">Карты и СБП</div></div><span class="pmi-ar">›</span></div>
+        </div>
+        <div class="prof-sec">
+          <div class="pmi" onclick="goTo('promos')"><div class="pmi-ic">🏷️</div><div class="pmi-bd"><div class="pmi-tx">Промокоды</div><div class="pmi-sb" id="piPromo">Скидки и бонусы</div></div><span class="pmi-ar">›</span></div>
+          <div class="pmi" onclick="goTo('support')"><div class="pmi-ic">💬</div><div class="pmi-bd"><div class="pmi-tx">Поддержка</div><div class="pmi-sb">Задать вопрос</div></div><span class="pmi-ar">›</span></div>
+        </div>
+      </div>
+      <div style="height:20px"></div>
+    </div>
+
+    <div class="screen" id="screen-orders">
+      <div class="scr-hdr"><button class="back-btn" onclick="goTo('profile')">←</button><span class="scr-title">Мои заказы</span></div>
+      <div id="ordersC"></div>
+    </div>
+
+    <div class="screen" id="screen-addresses">
+      <div class="scr-hdr"><button class="back-btn" onclick="goTo('profile')">←</button><span class="scr-title">Адреса доставки</span></div>
+      <div style="height:12px"></div>
+      <div id="addressesC"></div>
+    </div>
+
+    <div class="screen" id="screen-payments">
+      <div class="scr-hdr"><button class="back-btn" onclick="goTo('profile')">←</button><span class="scr-title">Оплата</span></div>
+      <div style="height:12px"></div>
+      <div id="paymentsC"></div>
+    </div>
+
+    <div class="screen" id="screen-promos">
+      <div class="scr-hdr"><button class="back-btn" onclick="goTo('profile')">←</button><span class="scr-title">Промокоды</span></div>
+      <div style="height:12px"></div>
+      <div id="promosC"></div>
+    </div>
+
+    <!-- SUPPORT: только здесь показывается чат -->
+    <div class="screen" id="screen-support">
+      <div class="scr-hdr" style="position:relative;top:auto;flex-shrink:0"><button class="back-btn" onclick="goTo('profile')">←</button><span class="scr-title">Поддержка</span></div>
+      <div class="sup-chat" id="supChat">
+        <div class="sm sm-b">Привет! Помогу с вопросами по заказу. Чем могу помочь?</div>
+      </div>
+      <div class="sup-row">
+        <input class="sup-inp" id="supInp" placeholder="Напишите..." onkeydown="if(event.key==='Enter')sendSup()">
+        <button class="sup-send" onclick="sendSup()">➤</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <div class="bnav" id="bnav">
+    <button class="nb active" id="nb-catalog" onclick="goTo('catalog')"><span class="nb-ic">🏠</span><span class="nb-lbl">Главная</span></button>
+    <button class="nb" id="nb-cart" onclick="goTo('cart')"><span class="nb-ic">🛒<span class="cbadge" id="cBadge"></span></span><span class="nb-lbl">Корзина</span></button>
+    <button class="nb" id="nb-profile" onclick="goTo('profile')"><span class="nb-ic">👤</span><span class="nb-lbl">Профиль</span></button>
+  </div>
+</div>
+
+<script>
+<script>
+// ══════════════════════════════════════════════════════════
+// КОНФИГ — берём всё из URL параметров которые бот передаёт
+// ══════════════════════════════════════════════════════════
+const _p      = new URLSearchParams(location.search);
+const TOKEN   = _p.get('token')           || '';
+const DEV_ID  = _p.get('device_id')       || '9B57D76B-908D-4504-915D-381D08676F44';
+const AM_UUID = _p.get('appmetrica_uuid') || '';   // отдельный uuid из бота
+const PX      = (_p.get('proxy')          || 'http://localhost:8888').replace(/\/$/,'');
+const CHAT_ID = _p.get('chat_id')         || '';   // бот передаёт chat_id для lookup в accounts
+const IMG     = 'https://eda.yandex.ru';
+const SES     = crypto.randomUUID().toUpperCase().replace(/-/g,'');
+
+let LAT = 55.7558, LON = 37.6176;
+let ADDR = {short:'Москва', full:'Москва', city:'Москва', street:'', house:'', country:'Россия'};
+let shipType = 'delivery';
+let cart = {}, curRest = null, curScreen = 'catalog';
+let mItem = null, mQty = 1, mOpt = null;
+let payId = 'sbp', payType = 'sbp';
+let ALL_RESTS = [], RESTS = [], addrTimer = null;
+
+const CATS = [
+  {e:'🍔',n:'Бургеры'},{e:'🍣',n:'Суши'},{e:'🍕',n:'Пицца'},
+  {e:'🍗',n:'Курица'},{e:'🥗',n:'Здоровое'},{e:'🍜',n:'Азия'},
+  {e:'🌮',n:'Фастфуд'},{e:'🍦',n:'Десерты'},{e:'🥤',n:'Напитки'},
+  {e:'🛒',n:'Продукты'}
+];
+
+// ══════════════════════════════════════════════════════════
+// ГЕОЛОКАЦИЯ — Telegram WebApp + браузерный фолбэк
+// Координаты синхронизируем с LAT/LON сразу при получении
+// ══════════════════════════════════════════════════════════
+function requestUserLocation() {
+  const tg = window.Telegram?.WebApp;
+  // Метод requestLocation — TMA SDK 7.0+
+  if (tg && typeof tg.requestLocation === 'function') {
+    tg.requestLocation(data => {
+      if (data?.latitude) {
+        LAT = data.latitude;
+        LON = data.longitude;
+        console.log('[GEO] Telegram:', LAT, LON);
+      }
+    });
+  } else if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => { LAT = pos.coords.latitude; LON = pos.coords.longitude; console.log('[GEO] Browser:', LAT, LON); },
+      err => console.warn('[GEO]', err.message),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }
+}
+
+// Обновляем геолокацию при старте и каждые 2 мин
+requestUserLocation();
+setInterval(requestUserLocation, 120_000);
+
+// ══════════════════════════════════════════════════════════
+// API — POST и GET через наш прокси
+// Ключевое: бэкенд сам подтягивает device_id, appmetrica_uuid,
+// cookies из accounts по X-Chat-Id.
+// Координаты передаём через X-User-Coords: lat,lon
+// ══════════════════════════════════════════════════════════
+function _headers(extra = {}) {
+  const h = {
+    'Content-Type':   'application/json',
+    'X-Bearer':       TOKEN,
+    'X-Device-Id':    DEV_ID,
+    'X-Client-Session': SES,
+    'X-Chat-Id':      CHAT_ID,   // бэкенд достанет device_id/uuid/cookies из accounts
+  };
+  // Координаты — всегда передаём текущие
+  if (LAT && LON) {
+    h['X-User-Coords'] = `${LAT},${LON}`;
+  }
+  return Object.assign(h, extra);
+}
+
+async function POST(path, body = {}) {
+  if (!TOKEN) return null;
+  try {
+    const r = await fetch(PX + '/proxy' + path, {
+      method: 'POST',
+      headers: _headers(),
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { console.warn('[POST]', r.status, path); return null; }
+    return r.json();
+  } catch(e) { console.error('[POST]', path, e); return null; }
+}
+
+async function POST_RAW(path, body = {}) {
+  // Возвращает { status, data } — для обработки ошибок (промокоды, заказ)
+  if (!TOKEN) return { status: 401, data: null };
+  try {
+    const r = await fetch(PX + '/proxy' + path, {
+      method: 'POST',
+      headers: _headers(),
+      body: JSON.stringify(body)
+    });
+    let data = null;
+    try { data = await r.json(); } catch(_){}
+    return { status: r.status, data };
+  } catch(e) { console.error('[POST_RAW]', path, e); return { status: 502, data: null }; }
+}
+
+async function POST_WITH_IDEMPOTENCY(path, body = {}, idempotencyToken) {
+  if (!TOKEN) return null;
+  try {
+    const r = await fetch(PX + '/proxy' + path, {
+      method: 'POST',
+      headers: _headers({ 'X-Idempotency-Token': idempotencyToken }),
+      body: JSON.stringify(body)
+    });
+    let data = null;
+    try { data = await r.json(); } catch(_){}
+    return { status: r.status, data };
+  } catch(e) { console.error('[POST_IDEM]', path, e); return { status: 502, data: null }; }
+}
+
+async function GET(path) {
+  if (!TOKEN) return null;
+  try {
+    // Через /proxy-get: передаём chat_id и координаты в теле
+    const r = await fetch(PX + '/proxy-get', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        path,
+        bearer:    TOKEN,
+        device_id: DEV_ID,
+        appmetrica_uuid: AM_UUID,
+        session:   SES,
+        chat_id:   CHAT_ID,
+        lat:       LAT,
+        lon:       LON
+      })
+    });
+    if (!r.ok) { console.warn('[GET]', r.status, path); return null; }
+    return r.json();
+  } catch(e) { console.error('[GET]', path, e); return null; }
+}
+
+function iurl(uri, w, h) {
+  if (!uri) return '';
+  if (uri.startsWith('http')) return uri;
+  return IMG + uri.replace('{w}', w||300).replace('{h}', h||200);
+}
+function addrObj() {
+  return {
+    location: { longitude: LON, latitude: LAT },
+    house: ADDR.house || '',
+    short_text: ADDR.short,
+    full_text: ADDR.full,
+    city: ADDR.city || '',
+    street: ADDR.street || '',
+    country: ADDR.country || 'Россия',
+    type: { id: 0 }
+  };
+}
+
+// ══════════════════════════════════════════════════════════
+// СТАРТ
+// ══════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  document.getElementById('catsList').innerHTML = CATS.map((c,i)=>
+    `<button class="cat-btn ${i===0?'active':''}" onclick="filterCat(this,'${c.n}')">
+      <span class="cat-ic">${c.e}</span><span class="cat-nm">${c.n}</span>
+    </button>`).join('');
+
+  resetAddrResults();
+
+  if (TOKEN) {
+    loadLaunch();
+    loadRests();
+  } else {
+    document.getElementById('restsList').innerHTML =
+      '<div class="empty"><div class="e-ic">🔐</div><div class="e-t">Войдите через бота</div><div class="e-s">Откройте меню через Telegram бота</div></div>';
+    document.getElementById('addrTxt').textContent='Укажите адрес';
+  }
+  setTimeout(()=>{const l=document.getElementById('loading');l.style.opacity='0';setTimeout(()=>l.style.display='none',400);},800);
+});
+
+// ══════════════════════════════════════════════════════════
+// LAUNCH — профиль + плюс подписка
+// ══════════════════════════════════════════════════════════
+async function loadLaunch() {
+  const d = await POST('/eats/v1/launch/v2/native', {
+    experiments: {
+      consumer: 'eda_ab_service',
+      args: [
+        { name: 'application', type: 'string', value: 'eda_ios_app' },
+        { name: 'version', type: 'application_version', value: '8.94.0' },
+        { name: 'device_id', type: 'string', value: DEV_ID },
+        { name: 'is_watch_paired', type: 'boolean', value: true }
+      ]
+    }
+  });
+  if (d?.profile) {
+    const p = d.profile;
+    document.getElementById('profNm').textContent = p.name || 'Пользователь';
+    document.getElementById('profUid').textContent = p.passport_uid ? 'UID: '+p.passport_uid : '';
+    const av = p.picture_url || p.avatar_url || '';
+    if (av) {
+      document.getElementById('profAv').innerHTML = `<img src="${av}" onerror="this.parentElement.textContent='👤'">`;
+      document.getElementById('topAvatar').innerHTML = `<img src="${av}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.parentElement.textContent='👤'">`;
+    }
+  } else {
+    document.getElementById('profNm').textContent = 'Пользователь';
+  }
+  document.getElementById('addrTxt').textContent = ADDR.short;
+
+  // Плюс
+  const plus = await GET(`/eats/v1/persey/info?latitude=${LAT}&longitude=${LON}&currency=RUB`);
+  const el = document.getElementById('plusSt');
+  const active = plus?.subscription_status === 'active' || plus?.subscription_status === 'trial';
+  el.textContent = active ? '✓ Активен' : 'Не активен';
+  if (active) { el.style.background='#e8f8ee'; el.style.color='#029154'; }
+}
+
+// ══════════════════════════════════════════════════════════
+// РЕСТОРАНЫ
+// ══════════════════════════════════════════════════════════
+async function loadRests() {
+  document.getElementById('restsList').innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
+  document.getElementById('addrTxt').textContent = ADDR.short;
+  document.getElementById('restsCount').textContent = '';
+
+  const d = await POST('/eats/v1/layout-constructor/v1/layout', {
+    filters_v2: { filters: [] },
+    sort: 'default',
+    is_bottomsheet: false,
+    selected_state: 'online',
+    location: { longitude: LON, latitude: LAT },
+    shipping_type: shipType
+  });
+
+  const ps = d?.data ? parsePlaces(d.data) : [];
+  if (ps.length) {
+    ALL_RESTS = ps; RESTS = ps;
+    document.getElementById('restsCount').textContent = '('+ps.length+')';
+    renderRests(ps);
+  } else {
+    document.getElementById('restsList').innerHTML =
+      '<div class="empty"><div class="e-ic">😔</div><div class="e-t">Нет ресторанов</div><div class="e-s">По этому адресу нет доставки.<br>Попробуйте другой адрес.</div></div>';
+  }
+}
+
+function parsePlaces(data) {
+  const secs = [
+    ...(data.places_v2_lists||[]),
+    ...(data.places_v2_medium_carousels||[]),
+    ...(data.places_v2_ultima_list||[]),
+    ...(data.mini_places_carousels||[]),
+    ...(data.places_v2_large_carousels||[]),
+  ];
+  const seen = new Set(), res = [];
+  for (const s of secs) {
+    for (const p of (s.payload?.places || s.places || [])) {
+      if (!p.slug || seen.has(p.slug)) continue;
+      seen.add(p.slug);
+      const name = typeof p.name==='object' ? (p.name.value||p.name.text||'') : (p.name||'—');
+      let time = '';
+      for (const m of (p.left_meta||[])) if(m.type==='info'){time=m.payload?.text?.value||m.payload?.text?.text||'';break;}
+      let tagsStr = '';
+      for (const m of (p.right_meta||[])) if(m.type==='info'){tagsStr=m.payload?.text?.value||m.payload?.text?.text||'';break;}
+      const tags = tagsStr.split(/[,·]/).map(t=>t.trim()).filter(t=>t&&t.length<30);
+      const free = (p.chips||[]).some(c=>{const t=c.payload?.prefix?.text?.value||c.payload?.text?.value||'';return t.toLowerCase().includes('бесплатн');});
+      const rm = p.features?.rating?.text?.value || '';
+      const rating = (rm.match(/[\d.]+/)||[''])[0];
+      const pic = p.picture?.image || p.logo || p.picture_url || '';
+      const closed = p.is_closed || p.selected_state==='offline' || false;
+      const minOrder = p.features?.min_order?.text?.value || '';
+      res.push({slug:p.slug, name, pic, time, tags, free, rating, closed, minOrder});
+    }
+  }
+  return res;
+}
+
+function filterCat(btn, cat) {
+  if (btn) { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+  const q = cat.toLowerCase();
+  const f = ALL_RESTS.filter(r=>r.tags.some(t=>t.toLowerCase().includes(q))||r.name.toLowerCase().includes(q));
+  RESTS = f.length ? f : ALL_RESTS; renderRests(RESTS);
+}
+function filterR(q) {
+  if (!q){RESTS=ALL_RESTS;renderRests(RESTS);return;}
+  q = q.toLowerCase();
+  RESTS = ALL_RESTS.filter(r=>r.name.toLowerCase().includes(q)||r.tags.some(t=>t.toLowerCase().includes(q)));
+  renderRests(RESTS);
+}
+function renderRests(list) {
+  const el = document.getElementById('restsList');
+  if (!list.length){el.innerHTML='<div class="empty"><div class="e-ic">🔍</div><div class="e-t">Ничего не найдено</div></div>';return;}
+  el.innerHTML = list.map(r=>{
+    const pu = iurl(r.pic, 600, 300);
+    return `<div class="rest-card" onclick="openRest('${r.slug}')">
+      <div class="rc-img">
+        ${pu?`<img src="${pu}" loading="lazy" onerror="this.style.display='none'">`:r.name[0]||'🍽️'}
+        ${r.free?'<div class="rc-badge">Бесплатно</div>':''}
+        ${r.closed?'<div class="rc-closed">Закрыто</div>':''}
+      </div>
+      <div class="rc-info">
+        <div class="rc-name">${r.name}</div>
+        <div class="rc-meta">
+          ${r.rating?`<span class="rc-star">★ ${r.rating}</span>`:''}
+          ${r.time?`<span class="rc-time">⏱ ${r.time}</span>`:''}
+          ${r.free?'<span class="rc-free">Бесплатная доставка</span>':''}
+          ${r.minOrder?`<span class="rc-time">от ${r.minOrder}</span>`:''}
+        </div>
+        ${r.tags.length?`<div class="rc-tags">${r.tags.slice(0,4).map(t=>`<span class="rc-tag">${t}</span>`).join('')}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// САМОВЫВОЗ
+// ══════════════════════════════════════════════════════════
+function selTab(type, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if (type==='pickup') { openPickup(); return; }
+  shipType='delivery'; ALL_RESTS=[]; RESTS=[]; loadRests();
+}
+async function openPickup() {
+  document.getElementById('pickupSheet').classList.add('open');
+  const el = document.getElementById('pickupList');
+  el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
+  const d = await POST('/eats/v1/layout-constructor/v1/layout', {
+    filters_v2:{filters:[]}, sort:'default', is_bottomsheet:false,
+    selected_state:'online', location:{longitude:LON, latitude:LAT}, shipping_type:'pickup'
+  });
+  const places = d?.data ? parsePlaces(d.data) : [];
+  if (!places.length){el.innerHTML='<div class="empty"><div class="e-ic">📦</div><div class="e-t">Нет точек самовывоза</div></div>';return;}
+  el.innerHTML = places.map(p=>
+    `<div class="pickup-item" onclick="closePickup();openRest('${p.slug}','pickup')">
+      <div class="pi-name">${p.name}</div>
+      ${p.time?`<div class="pi-ready">⏱ Готовность через ${p.time}</div>`:''}
+      ${p.tags.length?`<div class="pi-addr">${p.tags.slice(0,3).join(' · ')}</div>`:''}
+    </div>`).join('');
+  document.getElementById('tabPick').classList.remove('active');
+  document.getElementById('tabDel').classList.add('active');
+}
+function closePickup(e) {
+  if (e && e.target!==document.getElementById('pickupSheet')) return;
+  document.getElementById('pickupSheet').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════════════════
+// МЕНЮ
+// ══════════════════════════════════════════════════════════
+async function openRest(slug, sType) {
+  curRest = ALL_RESTS.find(r=>r.slug===slug) || {slug,name:slug,pic:'',time:'',tags:[],free:false,rating:''};
+  goTo('menu');
+  document.getElementById('mhName').textContent = curRest.name;
+  const pu = iurl(curRest.pic, 800, 400);
+  document.getElementById('mhImg').innerHTML = pu ? `<img src="${pu}" onerror="this.innerHTML='🍽️'">` : curRest.name[0]||'🍽️';
+  document.getElementById('mhMeta').innerHTML =
+    `${curRest.free?'<span class="m-bdg mb-g">Бесплатная доставка</span>':''}
+     ${curRest.time?`<span class="m-bdg mb-y">⏱ ${curRest.time}</span>`:''}
+     ${curRest.rating?`<span class="m-bdg mb-y">★ ${curRest.rating}</span>`:''}`;
+  document.getElementById('menuCats').innerHTML = '';
+  document.getElementById('menuItems').innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
+
+  const st = sType || shipType || 'delivery';
+  const d = await GET(`/api/v2/menu/retrieve/${slug}?shippingType=${st}&longitude=${LON}&latitude=${LAT}&is_ad=false`);
+
+  if (!d?.payload?.categories) {
+    document.getElementById('menuItems').innerHTML =
+      `<div class="empty"><div class="e-ic">😔</div><div class="e-t">Меню недоступно</div><div class="e-s">Ошибка загрузки меню.</div></div>`;
+    console.error('[MENU] No data for', slug, d);
+    return;
+  }
+  const cats = d.payload.categories
+    .filter(c=>c.available!==false)
+    .map(c=>({
+      n: c.name,
+      items: (c.items||[]).filter(i=>i.available!==false).map(i=>({
+        id: i.id||i.item_id,
+        n: i.name, desc: i.description||'', p: i.price||0,
+        img: i.picture?.uri ? iurl(i.picture.uri, 400, 400) : '',
+        w: i.weightInGrams ? i.weightInGrams+' г' : '',
+        opts: (i.optionsGroups||[]).map(g=>({
+          g: g.name, req: g.required,
+          i: (g.options||[]).map(o=>({id:o.id,n:o.name,p:o.price||0}))
+        })).filter(g=>g.i.length>0)
+      }))
+    })).filter(c=>c.items.length>0);
+
+  if (!cats.length) {
+    document.getElementById('menuItems').innerHTML='<div class="empty"><div class="e-ic">🍽️</div><div class="e-t">Меню пустое</div></div>';
+    return;
+  }
+  curRest.cats = cats;
+  document.getElementById('menuCats').innerHTML = cats.map((c,i)=>
+    `<button class="mcat ${i===0?'active':''}" onclick="scrollCat(${i},this)">${c.n}</button>`).join('');
+  renderMenu();
+}
+
+function renderMenu() {
+  document.getElementById('menuItems').innerHTML =
+    curRest.cats.map((c,ci)=>`
+      <div class="msec" id="ms${ci}">
+        <div class="msec-title">${c.n}</div>
+        <div class="mi-list">${c.items.map(i=>renderMI(i)).join('')}</div>
+      </div>`).join('');
+}
+function renderMI(item) {
+  const q = getQ(item.id);
+  return `<div class="mi" onclick='openItem(${JSON.stringify(item)})'>
+    <div class="mi-img">${item.img?`<img src="${item.img}" loading="lazy" onerror="this.parentElement.innerHTML='🍽️'">`:''}</div>
+    <div class="mi-body">
+      <div class="mi-name">${item.n}</div>
+      ${item.desc?`<div class="mi-desc">${item.desc}</div>`:''}
+      ${item.w?`<div class="mi-w">${item.w}</div>`:''}
+      <div class="mi-foot">
+        <div class="mi-price">${item.p} ₽</div>
+        ${q>0
+          ?`<div class="qc"><button class="qb" onclick="event.stopPropagation();adjQ('${item.id}',-1)">−</button><span class="qn">${q}</span><button class="qb" onclick="event.stopPropagation();adjQ('${item.id}',1)">+</button></div>`
+          :`<button class="add-btn" onclick='event.stopPropagation();quickAdd(${JSON.stringify(item)})'>+</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+function scrollCat(i,btn) {
+  document.querySelectorAll('.mcat').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ms'+i)?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ══════════════════════════════════════════════════════════
+// ITEM MODAL
+// ══════════════════════════════════════════════════════════
+function openItem(item) {
+  mItem=item; mQty=1; mOpt=null;
+  document.getElementById('iImg').innerHTML =
+    (item.img?`<img src="${item.img}"`:'<span style="font-size:80px">🍽️</span>') +
+    `<button class="item-close" onclick="closeItem()">✕</button>`;
+  document.getElementById('iName').textContent = item.n;
+  document.getElementById('iDesc').textContent = item.desc || '';
+  document.getElementById('iW').textContent = item.w || '';
+  document.getElementById('mqN').textContent = '1';
+  if (item.opts?.length) {
+    const g = item.opts[0];
+    document.getElementById('iOptsT').textContent = g.g;
+    document.getElementById('iOpts').innerHTML = g.i.map((o,i)=>
+      `<div class="io ${i===0?'sel':''}" onclick='pickOpt(this,${JSON.stringify(o)})'>
+        <span class="ion">${o.n}</span>
+        <span class="iop">${o.p>0?'+'+o.p+' ₽':'бесплатно'}</span>
+      </div>`).join('');
+    mOpt = g.i[0]; document.getElementById('iOptsW').style.display='block';
+  } else document.getElementById('iOptsW').style.display='none';
+  updIPrice();
+  document.getElementById('itemOverlay').classList.add('open');
+}
+function pickOpt(el,opt) {
+  document.querySelectorAll('.io').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel'); mOpt=opt; updIPrice();
+}
+function updIPrice() {
+  if (!mItem) return;
+  const p = mItem.p + (mOpt?.p>0 ? mOpt.p : 0);
+  document.getElementById('iPrice').textContent = (p*mQty)+' ₽';
+}
+function mqAdj(d) { mQty=Math.max(1,mQty+d); document.getElementById('mqN').textContent=mQty; updIPrice(); }
+function addFromModal() {
+  if (!mItem||!curRest) return;
+  for(let i=0;i<mQty;i++) addToCart(mItem, mOpt?.n||'', mOpt?.p||0);
+  closeItem(); toast(mItem.n+' добавлен ✓');
+}
+function closeItem(e) {
+  if (e&&e.target!==document.getElementById('itemOverlay')) return;
+  document.getElementById('itemOverlay').classList.remove('open'); mItem=null;
+}
+function quickAdd(item) {
+  if (item.opts?.length){openItem(item);return;}
+  addToCart(item,'',0); toast(item.n+' ✓'); renderMenu();
+}
+
+// ══════════════════════════════════════════════════════════
+// КОРЗИНА
+// ══════════════════════════════════════════════════════════
+function addToCart(item, on, op) {
+  if (!cart.items) cart={slug:curRest.slug, rn:curRest.name, items:[]};
+  if (cart.slug!==curRest.slug) {
+    if (!confirm(`Очистить корзину от "${cart.rn}"?`)) return;
+    cart={slug:curRest.slug, rn:curRest.name, items:[]};
+  }
+  const key = item.id+'_'+on;
+  const ex = cart.items.find(i=>i.key===key);
+  if (ex) ex.qty++;
+  else cart.items.push({key, iid:item.id, n:item.n, p:item.p+op, img:item.img||'', on, qty:1});
+  updBadge();
+}
+function adjQ(iid, d) {
+  if (!cart.items) return;
+  const i = cart.items.findIndex(x=>x.iid==iid); if(i<0) return;
+  cart.items[i].qty += d;
+  if (cart.items[i].qty<=0) cart.items.splice(i,1);
+  if (!cart.items.length) cart={};
+  updBadge();
+  if (curScreen==='menu'&&curRest?.cats) renderMenu();
+  if (curScreen==='cart') renderCart();
+}
+function getQ(iid){return cart.items?cart.items.filter(i=>i.iid==iid).reduce((s,i)=>s+i.qty,0):0;}
+function getTotal(){return cart.items?cart.items.reduce((s,i)=>s+i.p*i.qty,0):0;}
+function getCount(){return cart.items?cart.items.reduce((s,i)=>s+i.qty,0):0;}
+function updBadge(){const c=getCount();document.getElementById('cBadge').textContent=c>0?c:'';}
+function clearCart(){cart={};updBadge();}
+
+function renderCart() {
+  if (!cart.items?.length) {
+    document.getElementById('cartEmpty').style.display='flex';
+    document.getElementById('cartFilled').style.display='none'; return;
+  }
+  document.getElementById('cartEmpty').style.display='none';
+  document.getElementById('cartFilled').style.display='block';
+  document.getElementById('cRestLbl').textContent='📦 '+(cart.rn||'');
+  document.getElementById('cList').innerHTML = cart.items.map(ci=>`
+    <div class="ci">
+      <div class="ci-img">${ci.img?`<img src="${ci.img}" onerror="this.parentElement.innerHTML='🍽️'">`:''}</div>
+      <div class="ci-body"><div class="ci-name">${ci.n}</div>${ci.on?`<div class="ci-opt">${ci.on}</div>`:''}</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <div style="font-size:14px;font-weight:800">${ci.p*ci.qty} ₽</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="cqb" onclick="adjQ('${ci.iid}',-1)">−</button>
+          <span class="cqn">${ci.qty}</span>
+          <button class="cqb" onclick="adjQ('${ci.iid}',1)">+</button>
+        </div>
+      </div>
+    </div>`).join('');
+  const sub=getTotal(), fee=Math.round(sub*.05), tot=sub+fee;
+  document.getElementById('sItems').textContent = sub+' ₽';
+  document.getElementById('sFee').textContent   = fee+' ₽';
+  document.getElementById('sTotal').textContent = tot+' ₽';
+  document.getElementById('coBtnT').textContent = tot+' ₽';
+}
+
+// ══════════════════════════════════════════════════════════
+// ПРОМОКОД — правильный URL из HAR
+// ══════════════════════════════════════════════════════════
+async function applyPromo() {
+  const code = document.getElementById('promoInp').value.trim().toUpperCase();
+  if (!code){toast('❌ Введите промокод');return;}
+  toast('⏳ Проверяю...');
+  const { data } = await POST_RAW(
+    `/api/v2/cart/promocode?soft_multi=true&screen=checkout&shippingType=${shipType}&placeSlug=${cart.slug||''}&offline=false`,
+    { code }
+  );
+  if (data && data.status !== 'error') toast('✅ Применён!');
+  else toast('❌ '+(data?.err || data?.message || 'Промокод не найден'));
+}
+
+async function applyCoPromo() {
+  const inp  = document.getElementById('coPromoInp');
+  const code = inp.value.trim().toUpperCase();
+  if (!code) { toast('Введите код'); return; }
+  const ok  = document.getElementById('coPromoOk');
+  const err = document.getElementById('coPromoErr');
+  ok.style.display='none'; err.style.display='none';
+  inp.disabled = true;
+  toast('⏳ Проверяю промокод...');
+
+  const { data } = await POST_RAW(
+    `/api/v2/cart/promocode?soft_multi=true&screen=checkout&shippingType=${shipType}&placeSlug=${cart.slug||''}&offline=false`,
+    { code }
+  );
+  inp.disabled = false;
+
+  if (data && data.status !== 'error') {
+    ok.style.display = 'block';
+    if (data.discount) {
+      const sub=getTotal(), disc=data.discount, fee=Math.round((sub-disc)*.05), tot=sub-disc+fee;
+      document.getElementById('coTotal').textContent   = tot+' ₽';
+      document.getElementById('placeBtnT').textContent = tot+' ₽';
+      ok.textContent = `✅ Скидка ${disc} ₽ применена!`;
+    } else {
+      ok.textContent = '✅ Промокод применён!';
+    }
+    toast('✅ Промокод применён!');
+  } else {
+    err.style.display = 'block';
+    err.textContent = data?.err || data?.message || 'Промокод не найден';
+    toast('❌ '+(data?.err||'Промокод не найден'));
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// ОФОРМЛЕНИЕ
+// ══════════════════════════════════════════════════════════
+function updateCoMap() {
+  const zoom = 16;
+  const imgUrl = `https://static-maps.yandex.ru/1.x/?lang=ru_RU&ll=${LON},${LAT}&z=${zoom}&l=map&size=450,150&pt=${LON},${LAT},pm2rdm`;
+  const el = document.getElementById('coMapImg');
+  if (el) { el.src=imgUrl; el.style.display=''; }
+  const hint = document.getElementById('coMapHint');
+  if (hint) hint.textContent = ADDR.short || 'Нажмите чтобы изменить';
+}
+
+async function renderCO() {
+  const sub=getTotal(), fee=Math.round(sub*.05), tot=sub+fee;
+  document.getElementById('coTotal').textContent   = tot+' ₽';
+  document.getElementById('placeBtnT').textContent = tot+' ₽';
+  document.getElementById('coItems').innerHTML = (cart.items||[]).map(ci=>
+    `<div class="sr"><span class="sl">${ci.n}${ci.on?' ('+ci.on+')':''} × ${ci.qty}</span><span class="sv">${ci.p*ci.qty} ₽</span></div>`).join('');
+  document.getElementById('coAddr').textContent = ADDR.short;
+  document.getElementById('coPromoInp').value = '';
+  document.getElementById('coPromoOk').style.display='none';
+  document.getElementById('coPromoErr').style.display='none';
+  updateCoMap();
+
+  if (cart.slug) {
+    const d = await POST('/api/v2/cart/go-checkout', {
+      place_slug: cart.slug,
+      address: addrObj(),
+      plus_subscription_toggle_state: null
+    });
+    if (d?.address?.short_text) document.getElementById('coAddr').textContent = d.address.short_text;
+    if (d?.delivery_time) document.getElementById('coTime').textContent = '~'+d.delivery_time+' мин';
+    if (d?.payment_methods?.length) {
+      const icons = {sbp:'⚡',card:'💳',cash:'💵',wallet:'👛'};
+      let first = true;
+      document.getElementById('payOpts').innerHTML = d.payment_methods.slice(0,4).map(m=>{
+        const t=m.type||'card', id=m.payment_method_id||t;
+        const n=m.name||{sbp:'СБП',card:'Карта',cash:'Наличные'}[t]||t;
+        const sel=first?'sel':''; if(first){payId=id;payType=t;first=false;}
+        return `<div class="pay-opt ${sel}" onclick="selPay(this,'${id}','${t}')"><div class="po-i">${icons[t]||'💳'}</div><div class="po-n">${n}</div></div>`;
+      }).join('');
+    }
+  }
+}
+
+function selPay(el,id,type) {
+  document.querySelectorAll('.pay-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel'); payId=id; payType=type;
+}
+
+// ══════════════════════════════════════════════════════════
+// SBP ОПЛАТА — оверлей + поллинг
+// ══════════════════════════════════════════════════════════
+function showPayOverlay(text='Создаём заказ...') {
+  let ov = document.getElementById('sbp-overlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'sbp-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:-apple-system,sans-serif;padding:32px;';
+    ov.innerHTML = `
+      <div style="font-size:52px;margin-bottom:20px">💳</div>
+      <div id="sbp-ov-title" style="font-size:18px;font-weight:700;text-align:center;margin-bottom:8px">Оплата</div>
+      <div id="sbp-ov-text" style="font-size:14px;color:rgba(255,255,255,.75);text-align:center;line-height:1.5">${text}</div>
+      <div style="margin-top:28px;font-size:12px;color:rgba(255,255,255,.4)">Не закрывай приложение</div>
+      <button onclick="hidePayOverlay()" style="margin-top:24px;padding:12px 32px;border-radius:14px;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Отмена</button>`;
+    document.body.appendChild(ov);
+  } else {
+    ov.style.display = 'flex';
+    document.getElementById('sbp-ov-text').textContent = text;
+  }
+}
+function hidePayOverlay() {
+  const ov = document.getElementById('sbp-overlay');
+  if (ov) ov.style.display = 'none';
+}
+function updatePayOverlay(title, text) {
+  const t = document.getElementById('sbp-ov-title');
+  const tx = document.getElementById('sbp-ov-text');
+  if (t && title) t.textContent = title;
+  if (tx && text) tx.textContent = text;
+}
+
+function openSbpLink(url) {
+  const tg = window.Telegram?.WebApp;
+  if (tg && typeof tg.openLink === 'function') {
+    tg.openLink(url, { try_instant_view: false });
+  } else {
+    window.open(url, '_blank');
+  }
+}
+
+async function pollOrder(orderId, onSuccess, onFail) {
+  const MAX = 90; // ~3 мин
+  let n = 0;
+  let sbpOpened = false;
+
+  const tick = async () => {
+    if (n++ > MAX) { hidePayOverlay(); onFail('Время ожидания истекло'); return; }
+    try {
+      const { status, data } = await POST_RAW(
+        '/eats/v1/eats-payments/v1/order/tracking',
+        { order_id: orderId }
+      );
+      if (!data) { setTimeout(tick, 2000); return; }
+
+      // Обновляем текст оверлея из transparentPayment или order.description
+      const tp = data.transparentPayment;
+      if (tp?.screen) {
+        updatePayOverlay(tp.screen.title?.text, tp.screen.text?.text);
+      } else if (data.order?.title) {
+        updatePayOverlay(data.order.title, data.order.description);
+      }
+
+      const pmt = data.order?.payment || {};
+      const ps  = pmt.status;
+
+      // Успех
+      if (ps === 'paid' || ps === 'success' || ps === 'completed') {
+        hidePayOverlay(); onSuccess(data); return;
+      }
+      // СБП — открываем ссылку в банк
+      if ((ps === 'sbp_required' || ps === 'sbp') && !sbpOpened) {
+        const sbpUrl = pmt.payload?.url;
+        if (sbpUrl) {
+          sbpOpened = true;
+          updatePayOverlay('Подтвердите оплату', 'Открываем ваш банк...');
+          setTimeout(() => openSbpLink(sbpUrl), 500);
+        }
+      }
+      // Ошибка
+      if (ps === 'failed' || ps === 'cancelled' || ps === 'error') {
+        hidePayOverlay(); onFail(pmt.error_message || 'Оплата не прошла'); return;
+      }
+      setTimeout(tick, 2000);
+    } catch(e) {
+      setTimeout(tick, 3000);
+    }
+  };
+  tick();
+}
+
+// ══════════════════════════════════════════════════════════
+// ОФОРМИТЬ ЗАКАЗ
+// ══════════════════════════════════════════════════════════
+async function placeOrder() {
+  const btn = document.getElementById('placeBtn');
+  btn.disabled = true; btn.textContent = '⏳ Оформляю...';
+
+  // Idempotency token — защита от двойных заказов
+  const idem = crypto.randomUUID();
+
+  const payload = {
+    courier_options: [],
+    persons_quantity: 1,
+    request_id: crypto.randomUUID().replace(/-/g,'') + '.' + crypto.randomUUID().replace(/-/g,''),
+    location: { latitude: LAT, longitude: LON },
+    comment: document.getElementById('coComment').value || '',
+    payment: { recently_link_cards: false },
+    payment_method_id: payType==='sbp' ? 5 : payType==='cash' ? 1 : 2,
+    place_slug: cart.slug,
+    phone: '+70000000000',
+    extended_options: [{ type: 'delivery_options' }],
+    address: addrObj(),
+    payment_information: {
+      type: payType,
+      id: payId,
+      costForCustomer: String(getTotal())
+    }
+  };
+
+  showPayOverlay('Создаём заказ...');
+
+  const { status, data } = await POST_WITH_IDEMPOTENCY('/api/v1/orders', payload, idem);
+
+  if (!data?.order_nr) {
+    hidePayOverlay();
+    const msg = data?.message || data?.err || `Ошибка ${status}`;
+    toast('❌ '+msg);
+    btn.disabled=false; btn.textContent='Оформить';
+    return;
+  }
+
+  const orderId = data.order_nr;
+  console.log('[ORDER]', orderId);
+  clearCart();
+  btn.disabled=false; btn.textContent='Оформить';
+
+  // Запускаем поллинг оплаты
+  pollOrder(
+    orderId,
+    () => { // Успех
+      toast('✅ Заказ оплачен!');
+      trackOrder(orderId);
+    },
+    (err) => { // Ошибка
+      toast('❌ '+err);
+      trackOrder(orderId); // Всё равно показываем экран заказа
+    }
+  );
+}
+
+function trackOrder(nr) {
+  document.getElementById('orderNr').textContent = nr;
+  const fmt = d => d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+  document.getElementById('s1t').textContent = fmt(new Date());
+  goTo('order');
+  setTimeout(()=>{document.getElementById('s2').textContent='✓';document.getElementById('s2').className='ts-dot td-done';document.getElementById('s3').className='ts-dot td-act';document.getElementById('s3t').textContent='~10 мин';},8000);
+  setTimeout(()=>{document.getElementById('s3').textContent='✓';document.getElementById('s3').className='ts-dot td-done';document.getElementById('s4').className='ts-dot td-act';document.getElementById('s4t').textContent=fmt(new Date(Date.now()+5*60000));},18000);
+}
+
+// ══════════════════════════════════════════════════════════
+// АДРЕС
+// ══════════════════════════════════════════════════════════
+const CITIES = [
+  {n:'Москва',lat:55.7558,lon:37.6176},{n:'Санкт-Петербург',lat:59.9343,lon:30.3351},
+  {n:'Нижний Новгород',lat:56.3269,lon:44.0059},{n:'Екатеринбург',lat:56.8389,lon:60.6057},
+  {n:'Казань',lat:55.7887,lon:49.1221},{n:'Новосибирск',lat:54.9884,lon:82.9657},
+  {n:'Краснодар',lat:45.0355,lon:38.9753},{n:'Ростов-на-Дону',lat:47.2357,lon:39.7015},
+  {n:'Воронеж',lat:51.6683,lon:39.1922},{n:'Самара',lat:53.1959,lon:50.1801},
+  {n:'Уфа',lat:54.7353,lon:55.9587},{n:'Омск',lat:54.9885,lon:73.3242},
+  {n:'Красноярск',lat:56.0184,lon:92.8672},{n:'Волгоград',lat:48.7081,lon:44.5133},
+];
+
+function resetAddrResults() {
+  const el = document.getElementById('addrRes');
+  el.innerHTML = `
+    <div class="addr-ri" onclick="useGeo()">
+      <div class="ari-ic">🎯</div>
+      <div><div class="ari-main">Моё местоположение</div><div class="ari-sub">Определить автоматически</div></div>
+    </div>
+    <div style="padding:12px 16px 4px;font-size:12px;font-weight:700;color:var(--gt);text-transform:uppercase;letter-spacing:.5px">Популярные города</div>
+    ${CITIES.map(c=>`
+      <div class="addr-ri" onclick="setCity('${c.n}',${c.lat},${c.lon})">
+        <div class="ari-ic">🏙️</div>
+        <div><div class="ari-main">${c.n}</div><div class="ari-sub">Выбрать город</div></div>
+      </div>`).join('')}`;
+}
+
+function openAddr() {
+  document.getElementById('addrModal').classList.add('open');
+  setTimeout(()=>document.getElementById('addrInp').focus(), 350);
+}
+function closeAddr() {
+  document.getElementById('addrModal').classList.remove('open');
+  document.getElementById('addrInp').value='';
+  resetAddrResults();
+}
+function onAddrInput(v) {
+  clearTimeout(addrTimer);
+  if (v.length<2){resetAddrResults();return;}
+  addrTimer = setTimeout(()=>suggestAddr(v), 450);
+}
+
+async function suggestAddr(text) {
+  const el = document.getElementById('addrRes');
+  el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
+  const d = await POST('/eats/v1/eats-addresses/v1/suggest', {
+    text,
+    location: { latitude: LAT, longitude: LON },
+    locale: 'ru'
+  });
+  const geo = `<div class="addr-ri" onclick="useGeo()"><div class="ari-ic">🎯</div><div><div class="ari-main">Моё местоположение</div><div class="ari-sub">Определить автоматически</div></div></div>`;
+  const items = d?.suggests || d?.items || d?.results || [];
+  if (!items.length) {
+    el.innerHTML = geo + `<div style="text-align:center;padding:24px 16px;color:var(--gt)">Адрес не найден по запросу "<b>${text}</b>"<br><br><span style="font-size:12px">Попробуйте: "Москва Тверская 1"</span></div>` +
+      CITIES.slice(0,6).map(c=>`<div class="addr-ri" onclick="setCity('${c.n}',${c.lat},${c.lon})"><div class="ari-ic">🏙️</div><div><div class="ari-main">${c.n}</div></div></div>`).join('');
+    return;
+  }
+  el.innerHTML = geo + items.slice(0,12).map(s=>{
+    const title = s.title?.text||s.title||s.full_text||s.short_text||s.text||s.name||'';
+    const sub   = s.subtitle?.text||s.subtitle||s.description||'';
+    const lat   = s.point?.lat||s.point?.latitude||s.coordinates?.latitude||s.location?.latitude||0;
+    const lon   = s.point?.lon||s.point?.longitude||s.coordinates?.longitude||s.location?.longitude||0;
+    const comps = s.component||s.address_components||[];
+    const gc    = kind=>comps.find?.(c=>c.kind===kind||c.type===kind)?.name||'';
+    const city  = s.city||gc('locality')||gc('city')||'';
+    const street= s.street||gc('street')||'';
+    const house = s.house||gc('house')||gc('number')||'';
+    const ad    = {title:title||sub, sub:sub||title, lat, lon, city, street, house};
+    return `<div class="addr-ri" onclick='selAddr(${JSON.stringify(ad)})'>
+      <div class="ari-ic">📍</div>
+      <div>
+        <div class="ari-main">${title||sub}</div>
+        ${sub&&sub!==title?`<div class="ari-sub">${sub}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selAddr(data) {
+  if (typeof data==='string') data=JSON.parse(data);
+  const lat=parseFloat(data.lat), lon=parseFloat(data.lon);
+  if (lat&&lon){LAT=lat;LON=lon;}
+  ADDR = {short:data.title||data.sub||'Адрес', full:data.sub||data.title||'', city:data.city||'', street:data.street||'', house:data.house||'', country:'Россия'};
+  document.getElementById('addrTxt').textContent = ADDR.short;
+  const coAddrEl = document.getElementById('coAddr');
+  if (coAddrEl) coAddrEl.textContent = ADDR.short;
+  updateCoMap();
+  closeAddr(); toast('📍 '+ADDR.short);
+  ALL_RESTS=[]; RESTS=[];
+  if (curScreen==='checkout'){renderCO();return;}
+  loadRests();
+}
+function setCity(name,lat,lon) {
+  LAT=parseFloat(lat); LON=parseFloat(lon);
+  ADDR={short:name,full:name,city:name,street:'',house:'',country:'Россия'};
+  document.getElementById('addrTxt').textContent=name;
+  const coAddrEl=document.getElementById('coAddr');
+  if (coAddrEl) coAddrEl.textContent=name;
+  updateCoMap(); closeAddr(); toast('📍 '+name);
+  ALL_RESTS=[]; RESTS=[];
+  if (curScreen==='checkout'){renderCO();return;}
+  loadRests();
+}
+function useGeo() {
+  if (!navigator.geolocation){toast('Геолокация недоступна');return;}
+  toast('⏳ Определяю...');
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    LAT=pos.coords.latitude; LON=pos.coords.longitude;
+    const d=await POST('/eats/v1/eats-addresses/v1/geocode',{point:{lat:LAT,lon:LON},locale:'ru'});
+    const a=d?.address||{};
+    const short=a.short_text||a.title||`${LAT.toFixed(4)}, ${LON.toFixed(4)}`;
+    ADDR={short,full:a.full_text||short,city:a.city||'',street:a.street||'',house:a.house||'',country:'Россия'};
+    document.getElementById('addrTxt').textContent=short;
+    const coAddrEl2=document.getElementById('coAddr');
+    if (coAddrEl2) coAddrEl2.textContent=short;
+    updateCoMap(); closeAddr(); toast('📍 '+short);
+    ALL_RESTS=[]; RESTS=[];
+    if (curScreen==='checkout'){renderCO();return;}
+    loadRests();
+  },()=>toast('❌ Нет доступа к геолокации'));
+}
+
+// ══════════════════════════════════════════════════════════
+// ПРОФИЛЬ: ЗАКАЗЫ
+// ══════════════════════════════════════════════════════════
+async function loadOrders() {
+  const el=document.getElementById('ordersC');
+  el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
+  const d=await GET('/api/v1/user/orders?page=1&limit=20');
+  if (d?.orders?.length) {
+    el.innerHTML='<div class="ord-list">'+d.orders.map(o=>{
+      const dt=o.created_at?new Date(o.created_at).toLocaleDateString('ru',{day:'numeric',month:'long'}):'';
+      const st=o.status||'delivered';
+      const sc={delivered:'ob-ok',cancelled:'ob-no',pending:'ob-pend',cooking:'ob-pend'};
+      const sl={delivered:'Доставлен',cancelled:'Отменён',pending:'В обработке',cooking:'Готовится'};
+      const items=(o.items||[]).slice(0,2).map(i=>i.name||i.n||'').join(', ');
+      return `<div class="ord-card">
+        <div class="oc-head"><span class="oc-nr">№ ${o.order_nr||o.id||'—'}</span><span class="oc-dt">${dt}</span></div>
+        <div class="oc-rest">${o.place_name||''}</div>
+        ${items?`<div class="oc-items">${items}${(o.items||[]).length>2?'...':''}</div>`:''}
+        <div class="oc-foot"><span class="oc-tot">${o.total||o.cost||0} ₽</span><span class="ob ${sc[st]||'ob-ok'}">${sl[st]||'Доставлен'}</span></div>
+      </div>`;
+    }).join('')+'</div>';
+    document.getElementById('piOrd').textContent=d.orders.length+' заказов';
+  } else {
+    el.innerHTML='<div class="empty"><div class="e-ic">📦</div><div class="e-t">Заказов нет</div><div class="e-s">Сделайте первый заказ!</div></div>';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// ПРОФИЛЬ: АДРЕСА
+// ══════════════════════════════════════════════════════════
+async function loadAddresses() {
+  const el=document.getElementById('addressesC');
+  el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
+  const d=await GET('/eats/v1/eats-addresses/v1/addresses');
+  const addrs=d?.addresses||[];
+  let html=`<div class="addr-card" onclick="openAddr()">
+    <div class="ac-ic">📍</div>
+    <div class="ac-bd"><div class="ac-nm">Текущий адрес</div><div class="ac-fl">${ADDR.full||ADDR.short}</div></div>
+    <div style="color:var(--gt);font-size:12px;margin-left:auto;flex-shrink:0">Изменить</div>
+  </div>`;
+  if (addrs.length) {
+    html+=addrs.map(a=>{
+      const ic={home:'🏠',work:'🏢',other:'📍'}[a.type]||'📍';
+      const ad={title:a.short_text||a.full_text||'Адрес',sub:a.full_text||'',lat:a.coordinates?.latitude||LAT,lon:a.coordinates?.longitude||LON,city:a.city||'',street:a.street||'',house:a.house||''};
+      return `<div class="addr-card" onclick='selAddr(${JSON.stringify(ad)})'>
+        <div class="ac-ic">${ic}</div>
+        <div class="ac-bd"><div class="ac-nm">${a.title||a.short_text||'Адрес'}</div><div class="ac-fl">${a.full_text||''}</div></div>
+      </div>`;
+    }).join('');
+    document.getElementById('piAddr').textContent=addrs.length+' адресов';
+  }
+  el.innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════════
+// ПРОФИЛЬ: ОПЛАТА
+// ══════════════════════════════════════════════════════════
+async function loadPayments() {
+  const el=document.getElementById('paymentsC');
+  el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
+  const slug=cart.slug||(ALL_RESTS[0]?.slug)||'';
+  const d=slug?await POST('/api/v2/cart/go-checkout',{place_slug:slug,address:addrObj()}):null;
+  const icons={sbp:'⚡',card:'💳',cash:'💵',wallet:'👛'};
+  const cols={sbp:'#e8f8ee',card:'#eef2ff',cash:'#fff5d0',wallet:'#fef9ee'};
+  if (d?.payment_methods?.length) {
+    el.innerHTML=d.payment_methods.map(m=>{const t=m.type||'card';return`<div class="pay-card">
+      <div class="pc-ic" style="background:${cols[t]||'#f5f5f5'}">${icons[t]||'💳'}</div>
+      <div class="pc-bd"><div class="pc-nm">${m.name||t}</div>${m.account?`<div class="pc-sb">${m.account}</div>`:''}</div>
+    </div>`;}).join('');
+  } else {
+    el.innerHTML='<div class="pay-card"><div class="pc-ic" style="background:#e8f8ee">⚡</div><div class="pc-bd"><div class="pc-nm">СБП</div></div></div>'+
+      '<div class="pay-card"><div class="pc-ic" style="background:#eef2ff">💳</div><div class="pc-bd"><div class="pc-nm">Банковская карта</div></div></div>'+
+      '<div class="pay-card"><div class="pc-ic" style="background:#fff5d0">💵</div><div class="pc-bd"><div class="pc-nm">Наличные</div></div></div>';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// ПРОФИЛЬ: ПРОМОКОДЫ
+// ══════════════════════════════════════════════════════════
+async function loadPromos() {
+  const el=document.getElementById('promosC');
+  el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
+  const d=await POST('/api/v1/user/promocodes',{
+    cart_id: cart.id || '',
+    payment:{payment_method_id: payId||'sbp', type: payType||'sbp'}
+  });
+  if (d?.promocodes?.length) {
+    el.innerHTML=d.promocodes.map(p=>
+      `<div class="promo-card">
+        <div class="promo-code">${p.code||''}</div>
+        <div class="promo-desc">${p.description||p.title||''}</div>
+        ${p.discount?`<span class="promo-bdg">−${p.discount}</span>`:''}
+      </div>`).join('');
+    document.getElementById('piPromo').textContent=d.promocodes.length+' промокода(ов)';
+  } else {
+    el.innerHTML='<div class="empty"><div class="e-ic">🏷️</div><div class="e-t">Промокодов нет</div><div class="e-s">Введите промокод при оформлении заказа</div></div>';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// ПОДДЕРЖКА
+// ══════════════════════════════════════════════════════════
+function sendSup() {
+  const inp=document.getElementById('supInp');
+  const text=inp.value.trim(); if (!text) return;
+  const c=document.getElementById('supChat');
+  c.innerHTML+=`<div class="sm sm-u">${text}</div>`;
+  inp.value=''; c.scrollTop=c.scrollHeight;
+  const rs=['Спасибо за обращение! Передаю оператору.',
+    'Понял вас. Обычно отвечаем в течение 5 минут.',
+    'Ваш запрос зарегистрирован под #'+Math.floor(10000+Math.random()*90000),
+    'Рассмотрим вашу проблему как можно скорее!'];
+  setTimeout(()=>{
+    c.innerHTML+=`<div class="sm sm-b">${rs[Math.floor(Math.random()*rs.length)]}</div>`;
+    c.scrollTop=c.scrollHeight;
+  },1500);
+}
+
+// ══════════════════════════════════════════════════════════
+// НАВИГАЦИЯ
+// ══════════════════════════════════════════════════════════
+const PROF_SCREENS=new Set(['profile','orders','addresses','payments','promos','support']);
+const NO_NAV=new Set(['checkout','order']);
+const NO_TOPBAR=new Set(['menu','cart','checkout','order','profile','orders','addresses','payments','promos','support']);
+
+function goTo(screen) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+screen)?.classList.add('active');
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('nb-'+screen)?.classList.add('active');
+  if (PROF_SCREENS.has(screen)) document.getElementById('nb-profile')?.classList.add('active');
+  document.getElementById('topbar').style.display=NO_TOPBAR.has(screen)?'none':'block';
+  document.getElementById('tabs').style.display=NO_TOPBAR.has(screen)?'none':'flex';
+  document.getElementById('bnav').style.display=NO_NAV.has(screen)?'none':'flex';
+  if (screen==='cart') renderCart();
+  if (screen==='checkout') renderCO();
+  if (screen==='orders') loadOrders();
+  if (screen==='addresses') loadAddresses();
+  if (screen==='payments') loadPayments();
+  if (screen==='promos') loadPromos();
+  curScreen=screen;
+  document.getElementById('content').scrollTo(0,0);
+}
+
+let toastT;
+function toast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+goTo('catalog');
+</script>
+</body>
+</html>
