@@ -560,13 +560,16 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'SF Pro Display'
 </div>
 
 <script>
+<script>
 // ══════════════════════════════════════════════════════════
-// КОНФИГ
+// КОНФИГ — берём всё из URL параметров которые бот передаёт
 // ══════════════════════════════════════════════════════════
 const _p      = new URLSearchParams(location.search);
-const TOKEN   = _p.get('token')    || '';
-const DEV_ID  = _p.get('device_id')|| '9B57D76B-908D-4504-915D-381D08676F44';
-const PX      = (_p.get('proxy')   || 'http://localhost:8888').replace(/\/$/,'');
+const TOKEN   = _p.get('token')           || '';
+const DEV_ID  = _p.get('device_id')       || '9B57D76B-908D-4504-915D-381D08676F44';
+const AM_UUID = _p.get('appmetrica_uuid') || '';   // отдельный uuid из бота
+const PX      = (_p.get('proxy')          || 'http://localhost:8888').replace(/\/$/,'');
+const CHAT_ID = _p.get('chat_id')         || '';   // бот передаёт chat_id для lookup в accounts
 const IMG     = 'https://eda.yandex.ru';
 const SES     = crypto.randomUUID().toUpperCase().replace(/-/g,'');
 
@@ -586,59 +589,134 @@ const CATS = [
 ];
 
 // ══════════════════════════════════════════════════════════
-// API
-// POST → /proxy/path  (для POST запросов к Яндексу)
-// GET  → /proxy-get   (POST-обёртка! см. bot.py)
-//
-// Почему /proxy-get:
-//   Браузер делает CORS preflight для кастомных заголовков.
-//   ngrok иногда блокирует или кешируется по-другому.
-//   Решение: шлём POST без кастомных заголовков, токен
-//   кладём в JSON тело — прокси сам добавляет все заголовки.
+// ГЕОЛОКАЦИЯ — Telegram WebApp + браузерный фолбэк
+// Координаты синхронизируем с LAT/LON сразу при получении
 // ══════════════════════════════════════════════════════════
-async function POST(path, body={}) {
+function requestUserLocation() {
+  const tg = window.Telegram?.WebApp;
+  // Метод requestLocation — TMA SDK 7.0+
+  if (tg && typeof tg.requestLocation === 'function') {
+    tg.requestLocation(data => {
+      if (data?.latitude) {
+        LAT = data.latitude;
+        LON = data.longitude;
+        console.log('[GEO] Telegram:', LAT, LON);
+      }
+    });
+  } else if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => { LAT = pos.coords.latitude; LON = pos.coords.longitude; console.log('[GEO] Browser:', LAT, LON); },
+      err => console.warn('[GEO]', err.message),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }
+}
+
+// Обновляем геолокацию при старте и каждые 2 мин
+requestUserLocation();
+setInterval(requestUserLocation, 120_000);
+
+// ══════════════════════════════════════════════════════════
+// API — POST и GET через наш прокси
+// Ключевое: бэкенд сам подтягивает device_id, appmetrica_uuid,
+// cookies из accounts по X-Chat-Id.
+// Координаты передаём через X-User-Coords: lat,lon
+// ══════════════════════════════════════════════════════════
+function _headers(extra = {}) {
+  const h = {
+    'Content-Type':   'application/json',
+    'X-Bearer':       TOKEN,
+    'X-Device-Id':    DEV_ID,
+    'X-Client-Session': SES,
+    'X-Chat-Id':      CHAT_ID,   // бэкенд достанет device_id/uuid/cookies из accounts
+  };
+  // Координаты — всегда передаём текущие
+  if (LAT && LON) {
+    h['X-User-Coords'] = `${LAT},${LON}`;
+  }
+  return Object.assign(h, extra);
+}
+
+async function POST(path, body = {}) {
   if (!TOKEN) return null;
   try {
-    const r = await fetch(PX+'/proxy'+path, {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'X-Bearer':TOKEN,
-        'X-Device-Id':DEV_ID,
-        'X-Client-Session':SES,
-      },
+    const r = await fetch(PX + '/proxy' + path, {
+      method: 'POST',
+      headers: _headers(),
       body: JSON.stringify(body)
     });
-    if (!r.ok) {console.warn('[POST]',r.status,path); return null;}
+    if (!r.ok) { console.warn('[POST]', r.status, path); return null; }
     return r.json();
-  } catch(e) {console.error('[POST]',path,e); return null;}
+  } catch(e) { console.error('[POST]', path, e); return null; }
+}
+
+async function POST_RAW(path, body = {}) {
+  // Возвращает { status, data } — для обработки ошибок (промокоды, заказ)
+  if (!TOKEN) return { status: 401, data: null };
+  try {
+    const r = await fetch(PX + '/proxy' + path, {
+      method: 'POST',
+      headers: _headers(),
+      body: JSON.stringify(body)
+    });
+    let data = null;
+    try { data = await r.json(); } catch(_){}
+    return { status: r.status, data };
+  } catch(e) { console.error('[POST_RAW]', path, e); return { status: 502, data: null }; }
+}
+
+async function POST_WITH_IDEMPOTENCY(path, body = {}, idempotencyToken) {
+  if (!TOKEN) return null;
+  try {
+    const r = await fetch(PX + '/proxy' + path, {
+      method: 'POST',
+      headers: _headers({ 'X-Idempotency-Token': idempotencyToken }),
+      body: JSON.stringify(body)
+    });
+    let data = null;
+    try { data = await r.json(); } catch(_){}
+    return { status: r.status, data };
+  } catch(e) { console.error('[POST_IDEM]', path, e); return { status: 502, data: null }; }
 }
 
 async function GET(path) {
-  // Используем /proxy-get чтобы обойти CORS preflight проблему с GET+заголовки
   if (!TOKEN) return null;
   try {
-    const r = await fetch(PX+'/proxy-get', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({path, bearer:TOKEN, device_id:DEV_ID, session:SES})
+    // Через /proxy-get: передаём chat_id и координаты в теле
+    const r = await fetch(PX + '/proxy-get', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        path,
+        bearer:    TOKEN,
+        device_id: DEV_ID,
+        appmetrica_uuid: AM_UUID,
+        session:   SES,
+        chat_id:   CHAT_ID,
+        lat:       LAT,
+        lon:       LON
+      })
     });
-    if (!r.ok) {console.warn('[GET]',r.status,path); return null;}
+    if (!r.ok) { console.warn('[GET]', r.status, path); return null; }
     return r.json();
-  } catch(e) {console.error('[GET]',path,e); return null;}
+  } catch(e) { console.error('[GET]', path, e); return null; }
 }
 
-function iurl(uri,w,h) {
+function iurl(uri, w, h) {
   if (!uri) return '';
   if (uri.startsWith('http')) return uri;
-  return IMG+uri.replace('{w}',w||300).replace('{h}',h||200);
+  return IMG + uri.replace('{w}', w||300).replace('{h}', h||200);
 }
 function addrObj() {
   return {
-    location:{longitude:LON,latitude:LAT},
-    house:ADDR.house||'', short_text:ADDR.short,
-    full_text:ADDR.full, city:ADDR.city||'',
-    street:ADDR.street||'', country:ADDR.country||'Россия', type:{id:0}
+    location: { longitude: LON, latitude: LAT },
+    house: ADDR.house || '',
+    short_text: ADDR.short,
+    full_text: ADDR.full,
+    city: ADDR.city || '',
+    street: ADDR.street || '',
+    country: ADDR.country || 'Россия',
+    type: { id: 0 }
   };
 }
 
@@ -651,7 +729,7 @@ window.addEventListener('load', () => {
       <span class="cat-ic">${c.e}</span><span class="cat-nm">${c.n}</span>
     </button>`).join('');
 
-  resetAddrResults(); // показать список городов сразу
+  resetAddrResults();
 
   if (TOKEN) {
     loadLaunch();
@@ -665,30 +743,40 @@ window.addEventListener('load', () => {
 });
 
 // ══════════════════════════════════════════════════════════
-// LAUNCH
+// LAUNCH — профиль + плюс подписка
 // ══════════════════════════════════════════════════════════
 async function loadLaunch() {
-  const d = await POST('/eats/v1/launch/v2/native', {experiments:{}});
+  const d = await POST('/eats/v1/launch/v2/native', {
+    experiments: {
+      consumer: 'eda_ab_service',
+      args: [
+        { name: 'application', type: 'string', value: 'eda_ios_app' },
+        { name: 'version', type: 'application_version', value: '8.94.0' },
+        { name: 'device_id', type: 'string', value: DEV_ID },
+        { name: 'is_watch_paired', type: 'boolean', value: true }
+      ]
+    }
+  });
   if (d?.profile) {
-    const p=d.profile;
-    document.getElementById('profNm').textContent = p.name||'Пользователь';
-    document.getElementById('profUid').textContent = p.passport_uid?'UID: '+p.passport_uid:'';
-    const av = p.picture_url||p.avatar_url||'';
+    const p = d.profile;
+    document.getElementById('profNm').textContent = p.name || 'Пользователь';
+    document.getElementById('profUid').textContent = p.passport_uid ? 'UID: '+p.passport_uid : '';
+    const av = p.picture_url || p.avatar_url || '';
     if (av) {
       document.getElementById('profAv').innerHTML = `<img src="${av}" onerror="this.parentElement.textContent='👤'">`;
       document.getElementById('topAvatar').innerHTML = `<img src="${av}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.parentElement.textContent='👤'">`;
     }
   } else {
-    document.getElementById('profNm').textContent='Пользователь';
+    document.getElementById('profNm').textContent = 'Пользователь';
   }
   document.getElementById('addrTxt').textContent = ADDR.short;
 
   // Плюс
   const plus = await GET(`/eats/v1/persey/info?latitude=${LAT}&longitude=${LON}&currency=RUB`);
   const el = document.getElementById('plusSt');
-  const active = plus?.subscription_status==='active'||plus?.subscription_status==='trial';
-  el.textContent = active?'✓ Активен':'Не активен';
-  if (active) {el.style.background='#e8f8ee';el.style.color='#029154';}
+  const active = plus?.subscription_status === 'active' || plus?.subscription_status === 'trial';
+  el.textContent = active ? '✓ Активен' : 'Не активен';
+  if (active) { el.style.background='#e8f8ee'; el.style.color='#029154'; }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -696,75 +784,77 @@ async function loadLaunch() {
 // ══════════════════════════════════════════════════════════
 async function loadRests() {
   document.getElementById('restsList').innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-  document.getElementById('addrTxt').textContent=ADDR.short;
-  document.getElementById('restsCount').textContent='';
+  document.getElementById('addrTxt').textContent = ADDR.short;
+  document.getElementById('restsCount').textContent = '';
 
   const d = await POST('/eats/v1/layout-constructor/v1/layout', {
-    filters_v2:{filters:[]}, sort:'default', is_bottomsheet:false,
-    selected_state:'online',
-    location:{longitude:LON, latitude:LAT},
-    shipping_type:shipType
+    filters_v2: { filters: [] },
+    sort: 'default',
+    is_bottomsheet: false,
+    selected_state: 'online',
+    location: { longitude: LON, latitude: LAT },
+    shipping_type: shipType
   });
 
   const ps = d?.data ? parsePlaces(d.data) : [];
   if (ps.length) {
-    ALL_RESTS=ps; RESTS=ps;
-    document.getElementById('restsCount').textContent='('+ps.length+')';
+    ALL_RESTS = ps; RESTS = ps;
+    document.getElementById('restsCount').textContent = '('+ps.length+')';
     renderRests(ps);
   } else {
-    document.getElementById('restsList').innerHTML=
+    document.getElementById('restsList').innerHTML =
       '<div class="empty"><div class="e-ic">😔</div><div class="e-t">Нет ресторанов</div><div class="e-s">По этому адресу нет доставки.<br>Попробуйте другой адрес.</div></div>';
   }
 }
 
 function parsePlaces(data) {
-  const secs=[
+  const secs = [
     ...(data.places_v2_lists||[]),
     ...(data.places_v2_medium_carousels||[]),
     ...(data.places_v2_ultima_list||[]),
     ...(data.mini_places_carousels||[]),
     ...(data.places_v2_large_carousels||[]),
   ];
-  const seen=new Set(), res=[];
+  const seen = new Set(), res = [];
   for (const s of secs) {
-    for (const p of (s.payload?.places||s.places||[])) {
-      if (!p.slug||seen.has(p.slug)) continue;
+    for (const p of (s.payload?.places || s.places || [])) {
+      if (!p.slug || seen.has(p.slug)) continue;
       seen.add(p.slug);
-      const name = typeof p.name==='object'?(p.name.value||p.name.text||''):(p.name||'—');
-      let time='';
+      const name = typeof p.name==='object' ? (p.name.value||p.name.text||'') : (p.name||'—');
+      let time = '';
       for (const m of (p.left_meta||[])) if(m.type==='info'){time=m.payload?.text?.value||m.payload?.text?.text||'';break;}
-      let tagsStr='';
+      let tagsStr = '';
       for (const m of (p.right_meta||[])) if(m.type==='info'){tagsStr=m.payload?.text?.value||m.payload?.text?.text||'';break;}
-      const tags=tagsStr.split(/[,·]/).map(t=>t.trim()).filter(t=>t&&t.length<30);
-      const free=(p.chips||[]).some(c=>{const t=c.payload?.prefix?.text?.value||c.payload?.text?.value||'';return t.toLowerCase().includes('бесплатн');});
-      const rm=p.features?.rating?.text?.value||'';
-      const rating=(rm.match(/[\d.]+/)||[''])[0];
-      const pic=p.picture?.image||p.logo||p.picture_url||'';
-      const closed=p.is_closed||p.selected_state==='offline'||false;
-      const minOrder=p.features?.min_order?.text?.value||'';
-      res.push({slug:p.slug,name,pic,time,tags,free,rating,closed,minOrder});
+      const tags = tagsStr.split(/[,·]/).map(t=>t.trim()).filter(t=>t&&t.length<30);
+      const free = (p.chips||[]).some(c=>{const t=c.payload?.prefix?.text?.value||c.payload?.text?.value||'';return t.toLowerCase().includes('бесплатн');});
+      const rm = p.features?.rating?.text?.value || '';
+      const rating = (rm.match(/[\d.]+/)||[''])[0];
+      const pic = p.picture?.image || p.logo || p.picture_url || '';
+      const closed = p.is_closed || p.selected_state==='offline' || false;
+      const minOrder = p.features?.min_order?.text?.value || '';
+      res.push({slug:p.slug, name, pic, time, tags, free, rating, closed, minOrder});
     }
   }
   return res;
 }
 
 function filterCat(btn, cat) {
-  if (btn) {document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
-  const q=cat.toLowerCase();
-  const f=ALL_RESTS.filter(r=>r.tags.some(t=>t.toLowerCase().includes(q))||r.name.toLowerCase().includes(q));
-  RESTS=f.length?f:ALL_RESTS; renderRests(RESTS);
+  if (btn) { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+  const q = cat.toLowerCase();
+  const f = ALL_RESTS.filter(r=>r.tags.some(t=>t.toLowerCase().includes(q))||r.name.toLowerCase().includes(q));
+  RESTS = f.length ? f : ALL_RESTS; renderRests(RESTS);
 }
 function filterR(q) {
   if (!q){RESTS=ALL_RESTS;renderRests(RESTS);return;}
-  q=q.toLowerCase();
-  RESTS=ALL_RESTS.filter(r=>r.name.toLowerCase().includes(q)||r.tags.some(t=>t.toLowerCase().includes(q)));
+  q = q.toLowerCase();
+  RESTS = ALL_RESTS.filter(r=>r.name.toLowerCase().includes(q)||r.tags.some(t=>t.toLowerCase().includes(q)));
   renderRests(RESTS);
 }
 function renderRests(list) {
-  const el=document.getElementById('restsList');
+  const el = document.getElementById('restsList');
   if (!list.length){el.innerHTML='<div class="empty"><div class="e-ic">🔍</div><div class="e-t">Ничего не найдено</div></div>';return;}
-  el.innerHTML=list.map(r=>{
-    const pu=iurl(r.pic,600,300);
+  el.innerHTML = list.map(r=>{
+    const pu = iurl(r.pic, 600, 300);
     return `<div class="rest-card" onclick="openRest('${r.slug}')">
       <div class="rc-img">
         ${pu?`<img src="${pu}" loading="lazy" onerror="this.style.display='none'">`:r.name[0]||'🍽️'}
@@ -791,27 +881,25 @@ function renderRests(list) {
 function selTab(type, btn) {
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if (type==='pickup') {openPickup(); return;}
+  if (type==='pickup') { openPickup(); return; }
   shipType='delivery'; ALL_RESTS=[]; RESTS=[]; loadRests();
 }
 async function openPickup() {
   document.getElementById('pickupSheet').classList.add('open');
-  const el=document.getElementById('pickupList');
-  el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-  const d=await POST('/eats/v1/layout-constructor/v1/layout',{
-    filters_v2:{filters:[]},sort:'default',is_bottomsheet:false,
-    selected_state:'online',location:{longitude:LON,latitude:LAT},
-    shipping_type:'pickup'
+  const el = document.getElementById('pickupList');
+  el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
+  const d = await POST('/eats/v1/layout-constructor/v1/layout', {
+    filters_v2:{filters:[]}, sort:'default', is_bottomsheet:false,
+    selected_state:'online', location:{longitude:LON, latitude:LAT}, shipping_type:'pickup'
   });
-  const places=d?.data?parsePlaces(d.data):[];
+  const places = d?.data ? parsePlaces(d.data) : [];
   if (!places.length){el.innerHTML='<div class="empty"><div class="e-ic">📦</div><div class="e-t">Нет точек самовывоза</div></div>';return;}
-  el.innerHTML=places.map(p=>
+  el.innerHTML = places.map(p=>
     `<div class="pickup-item" onclick="closePickup();openRest('${p.slug}','pickup')">
       <div class="pi-name">${p.name}</div>
       ${p.time?`<div class="pi-ready">⏱ Готовность через ${p.time}</div>`:''}
       ${p.tags.length?`<div class="pi-addr">${p.tags.slice(0,3).join(' · ')}</div>`:''}
     </div>`).join('');
-  // Возвращаем таб на доставку
   document.getElementById('tabPick').classList.remove('active');
   document.getElementById('tabDel').classList.add('active');
 }
@@ -821,44 +909,42 @@ function closePickup(e) {
 }
 
 // ══════════════════════════════════════════════════════════
-// МЕНЮ — через GET /api/v2/menu/retrieve/{slug}
+// МЕНЮ
 // ══════════════════════════════════════════════════════════
 async function openRest(slug, sType) {
-  curRest=ALL_RESTS.find(r=>r.slug===slug)||{slug,name:slug,pic:'',time:'',tags:[],free:false,rating:''};
+  curRest = ALL_RESTS.find(r=>r.slug===slug) || {slug,name:slug,pic:'',time:'',tags:[],free:false,rating:''};
   goTo('menu');
-  document.getElementById('mhName').textContent=curRest.name;
-  const pu=iurl(curRest.pic,800,400);
-  document.getElementById('mhImg').innerHTML=pu?`<img src="${pu}" onerror="this.innerHTML='🍽️'">`:curRest.name[0]||'🍽️';
-  document.getElementById('mhMeta').innerHTML=
+  document.getElementById('mhName').textContent = curRest.name;
+  const pu = iurl(curRest.pic, 800, 400);
+  document.getElementById('mhImg').innerHTML = pu ? `<img src="${pu}" onerror="this.innerHTML='🍽️'">` : curRest.name[0]||'🍽️';
+  document.getElementById('mhMeta').innerHTML =
     `${curRest.free?'<span class="m-bdg mb-g">Бесплатная доставка</span>':''}
      ${curRest.time?`<span class="m-bdg mb-y">⏱ ${curRest.time}</span>`:''}
      ${curRest.rating?`<span class="m-bdg mb-y">★ ${curRest.rating}</span>`:''}`;
-  document.getElementById('menuCats').innerHTML='';
-  document.getElementById('menuItems').innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
+  document.getElementById('menuCats').innerHTML = '';
+  document.getElementById('menuItems').innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
 
-  const st=sType||shipType||'delivery';
-  // ИСПОЛЬЗУЕМ GET через /proxy-get
-  const d=await GET(`/api/v2/menu/retrieve/${slug}?shippingType=${st}&longitude=${LON}&latitude=${LAT}&is_ad=false`);
+  const st = sType || shipType || 'delivery';
+  const d = await GET(`/api/v2/menu/retrieve/${slug}?shippingType=${st}&longitude=${LON}&latitude=${LAT}&is_ad=false`);
 
   if (!d?.payload?.categories) {
-    document.getElementById('menuItems').innerHTML=
-      `<div class="empty"><div class="e-ic">😔</div><div class="e-t">Меню недоступно</div>
-       <div class="e-s">Ошибка загрузки меню.<br>Прокси: ${PX}</div></div>`;
+    document.getElementById('menuItems').innerHTML =
+      `<div class="empty"><div class="e-ic">😔</div><div class="e-t">Меню недоступно</div><div class="e-s">Ошибка загрузки меню.</div></div>`;
     console.error('[MENU] No data for', slug, d);
     return;
   }
-  const cats=d.payload.categories
+  const cats = d.payload.categories
     .filter(c=>c.available!==false)
     .map(c=>({
-      n:c.name,
-      items:(c.items||[]).filter(i=>i.available!==false).map(i=>({
-        id:i.id||i.item_id,
-        n:i.name, desc:i.description||'', p:i.price||0,
-        img:i.picture?.uri?iurl(i.picture.uri,400,400):'',
-        w:i.weightInGrams?i.weightInGrams+' г':'',
-        opts:(i.optionsGroups||[]).map(g=>({
-          g:g.name,req:g.required,
-          i:(g.options||[]).map(o=>({id:o.id,n:o.name,p:o.price||0}))
+      n: c.name,
+      items: (c.items||[]).filter(i=>i.available!==false).map(i=>({
+        id: i.id||i.item_id,
+        n: i.name, desc: i.description||'', p: i.price||0,
+        img: i.picture?.uri ? iurl(i.picture.uri, 400, 400) : '',
+        w: i.weightInGrams ? i.weightInGrams+' г' : '',
+        opts: (i.optionsGroups||[]).map(g=>({
+          g: g.name, req: g.required,
+          i: (g.options||[]).map(o=>({id:o.id,n:o.name,p:o.price||0}))
         })).filter(g=>g.i.length>0)
       }))
     })).filter(c=>c.items.length>0);
@@ -867,14 +953,14 @@ async function openRest(slug, sType) {
     document.getElementById('menuItems').innerHTML='<div class="empty"><div class="e-ic">🍽️</div><div class="e-t">Меню пустое</div></div>';
     return;
   }
-  curRest.cats=cats;
-  document.getElementById('menuCats').innerHTML=cats.map((c,i)=>
+  curRest.cats = cats;
+  document.getElementById('menuCats').innerHTML = cats.map((c,i)=>
     `<button class="mcat ${i===0?'active':''}" onclick="scrollCat(${i},this)">${c.n}</button>`).join('');
   renderMenu();
 }
 
 function renderMenu() {
-  document.getElementById('menuItems').innerHTML=
+  document.getElementById('menuItems').innerHTML =
     curRest.cats.map((c,ci)=>`
       <div class="msec" id="ms${ci}">
         <div class="msec-title">${c.n}</div>
@@ -882,7 +968,7 @@ function renderMenu() {
       </div>`).join('');
 }
 function renderMI(item) {
-  const q=getQ(item.id);
+  const q = getQ(item.id);
   return `<div class="mi" onclick='openItem(${JSON.stringify(item)})'>
     <div class="mi-img">${item.img?`<img src="${item.img}" loading="lazy" onerror="this.parentElement.innerHTML='🍽️'">`:''}</div>
     <div class="mi-body">
@@ -909,22 +995,22 @@ function scrollCat(i,btn) {
 // ══════════════════════════════════════════════════════════
 function openItem(item) {
   mItem=item; mQty=1; mOpt=null;
-  document.getElementById('iImg').innerHTML=
-    (item.img?`<img src="${item.img}"`:'<span style="font-size:80px">🍽️</span>')+
+  document.getElementById('iImg').innerHTML =
+    (item.img?`<img src="${item.img}"`:'<span style="font-size:80px">🍽️</span>') +
     `<button class="item-close" onclick="closeItem()">✕</button>`;
-  document.getElementById('iName').textContent=item.n;
-  document.getElementById('iDesc').textContent=item.desc||'';
-  document.getElementById('iW').textContent=item.w||'';
-  document.getElementById('mqN').textContent='1';
+  document.getElementById('iName').textContent = item.n;
+  document.getElementById('iDesc').textContent = item.desc || '';
+  document.getElementById('iW').textContent = item.w || '';
+  document.getElementById('mqN').textContent = '1';
   if (item.opts?.length) {
-    const g=item.opts[0];
-    document.getElementById('iOptsT').textContent=g.g;
-    document.getElementById('iOpts').innerHTML=g.i.map((o,i)=>
+    const g = item.opts[0];
+    document.getElementById('iOptsT').textContent = g.g;
+    document.getElementById('iOpts').innerHTML = g.i.map((o,i)=>
       `<div class="io ${i===0?'sel':''}" onclick='pickOpt(this,${JSON.stringify(o)})'>
         <span class="ion">${o.n}</span>
         <span class="iop">${o.p>0?'+'+o.p+' ₽':'бесплатно'}</span>
       </div>`).join('');
-    mOpt=g.i[0]; document.getElementById('iOptsW').style.display='block';
+    mOpt = g.i[0]; document.getElementById('iOptsW').style.display='block';
   } else document.getElementById('iOptsW').style.display='none';
   updIPrice();
   document.getElementById('itemOverlay').classList.add('open');
@@ -935,13 +1021,13 @@ function pickOpt(el,opt) {
 }
 function updIPrice() {
   if (!mItem) return;
-  const p=mItem.p+(mOpt?.p>0?mOpt.p:0);
-  document.getElementById('iPrice').textContent=(p*mQty)+' ₽';
+  const p = mItem.p + (mOpt?.p>0 ? mOpt.p : 0);
+  document.getElementById('iPrice').textContent = (p*mQty)+' ₽';
 }
-function mqAdj(d) {mQty=Math.max(1,mQty+d);document.getElementById('mqN').textContent=mQty;updIPrice();}
+function mqAdj(d) { mQty=Math.max(1,mQty+d); document.getElementById('mqN').textContent=mQty; updIPrice(); }
 function addFromModal() {
   if (!mItem||!curRest) return;
-  for(let i=0;i<mQty;i++) addToCart(mItem,mOpt?.n||'',mOpt?.p||0);
+  for(let i=0;i<mQty;i++) addToCart(mItem, mOpt?.n||'', mOpt?.p||0);
   closeItem(); toast(mItem.n+' добавлен ✓');
 }
 function closeItem(e) {
@@ -956,22 +1042,22 @@ function quickAdd(item) {
 // ══════════════════════════════════════════════════════════
 // КОРЗИНА
 // ══════════════════════════════════════════════════════════
-function addToCart(item,on,op) {
-  if (!cart.items) cart={slug:curRest.slug,rn:curRest.name,items:[]};
+function addToCart(item, on, op) {
+  if (!cart.items) cart={slug:curRest.slug, rn:curRest.name, items:[]};
   if (cart.slug!==curRest.slug) {
     if (!confirm(`Очистить корзину от "${cart.rn}"?`)) return;
-    cart={slug:curRest.slug,rn:curRest.name,items:[]};
+    cart={slug:curRest.slug, rn:curRest.name, items:[]};
   }
-  const key=item.id+'_'+on;
-  const ex=cart.items.find(i=>i.key===key);
+  const key = item.id+'_'+on;
+  const ex = cart.items.find(i=>i.key===key);
   if (ex) ex.qty++;
-  else cart.items.push({key,iid:item.id,n:item.n,p:item.p+op,img:item.img||'',on,qty:1});
+  else cart.items.push({key, iid:item.id, n:item.n, p:item.p+op, img:item.img||'', on, qty:1});
   updBadge();
 }
-function adjQ(iid,d) {
+function adjQ(iid, d) {
   if (!cart.items) return;
-  const i=cart.items.findIndex(x=>x.iid==iid); if(i<0)return;
-  cart.items[i].qty+=d;
+  const i = cart.items.findIndex(x=>x.iid==iid); if(i<0) return;
+  cart.items[i].qty += d;
   if (cart.items[i].qty<=0) cart.items.splice(i,1);
   if (!cart.items.length) cart={};
   updBadge();
@@ -992,7 +1078,7 @@ function renderCart() {
   document.getElementById('cartEmpty').style.display='none';
   document.getElementById('cartFilled').style.display='block';
   document.getElementById('cRestLbl').textContent='📦 '+(cart.rn||'');
-  document.getElementById('cList').innerHTML=cart.items.map(ci=>`
+  document.getElementById('cList').innerHTML = cart.items.map(ci=>`
     <div class="ci">
       <div class="ci-img">${ci.img?`<img src="${ci.img}" onerror="this.parentElement.innerHTML='🍽️'">`:''}</div>
       <div class="ci-body"><div class="ci-name">${ci.n}</div>${ci.on?`<div class="ci-opt">${ci.on}</div>`:''}</div>
@@ -1005,45 +1091,59 @@ function renderCart() {
         </div>
       </div>
     </div>`).join('');
-  const sub=getTotal(),fee=Math.round(sub*.05),tot=sub+fee;
-  document.getElementById('sItems').textContent=sub+' ₽';
-  document.getElementById('sFee').textContent=fee+' ₽';
-  document.getElementById('sTotal').textContent=tot+' ₽';
-  document.getElementById('coBtnT').textContent=tot+' ₽';
+  const sub=getTotal(), fee=Math.round(sub*.05), tot=sub+fee;
+  document.getElementById('sItems').textContent = sub+' ₽';
+  document.getElementById('sFee').textContent   = fee+' ₽';
+  document.getElementById('sTotal').textContent = tot+' ₽';
+  document.getElementById('coBtnT').textContent = tot+' ₽';
 }
+
+// ══════════════════════════════════════════════════════════
+// ПРОМОКОД — правильный URL из HAR
+// ══════════════════════════════════════════════════════════
 async function applyPromo() {
-  const code=document.getElementById('promoInp').value.trim().toUpperCase();
-  if (!code) {toast('❌ Введите промокод');return;}
+  const code = document.getElementById('promoInp').value.trim().toUpperCase();
+  if (!code){toast('❌ Введите промокод');return;}
   toast('⏳ Проверяю...');
-  const d=await POST(`/api/v2/cart/promocode?shippingType=${shipType}&placeSlug=${cart.slug||''}`,
-    {code,place_slug:cart.slug||'',location:{latitude:LAT,longitude:LON}});
-  toast(d&&(d.discount||d.applied)?'✅ Применён!':'❌ Промокод не найден');
+  const { data } = await POST_RAW(
+    `/api/v2/cart/promocode?soft_multi=true&screen=checkout&shippingType=${shipType}&placeSlug=${cart.slug||''}&offline=false`,
+    { code }
+  );
+  if (data && data.status !== 'error') toast('✅ Применён!');
+  else toast('❌ '+(data?.err || data?.message || 'Промокод не найден'));
 }
 
 async function applyCoPromo() {
-  const inp = document.getElementById('coPromoInp');
+  const inp  = document.getElementById('coPromoInp');
   const code = inp.value.trim().toUpperCase();
   if (!code) { toast('Введите код'); return; }
-  const ok = document.getElementById('coPromoOk');
+  const ok  = document.getElementById('coPromoOk');
   const err = document.getElementById('coPromoErr');
   ok.style.display='none'; err.style.display='none';
   inp.disabled = true;
   toast('⏳ Проверяю промокод...');
-  const d = await POST(`/api/v2/cart/promocode?shippingType=${shipType}&placeSlug=${cart.slug||''}`,
-    {code, place_slug:cart.slug||'', location:{latitude:LAT,longitude:LON}});
+
+  const { data } = await POST_RAW(
+    `/api/v2/cart/promocode?soft_multi=true&screen=checkout&shippingType=${shipType}&placeSlug=${cart.slug||''}&offline=false`,
+    { code }
+  );
   inp.disabled = false;
-  if (d && (d.discount || d.applied || d.promocode)) {
-    ok.style.display='block';
-    if (d.discount) {
-      const sub=getTotal(), disc=d.discount, fee=Math.round((sub-disc)*.05), tot=sub-disc+fee;
-      document.getElementById('coTotal').textContent=tot+' ₽';
-      document.getElementById('placeBtnT').textContent=tot+' ₽';
+
+  if (data && data.status !== 'error') {
+    ok.style.display = 'block';
+    if (data.discount) {
+      const sub=getTotal(), disc=data.discount, fee=Math.round((sub-disc)*.05), tot=sub-disc+fee;
+      document.getElementById('coTotal').textContent   = tot+' ₽';
+      document.getElementById('placeBtnT').textContent = tot+' ₽';
       ok.textContent = `✅ Скидка ${disc} ₽ применена!`;
+    } else {
+      ok.textContent = '✅ Промокод применён!';
     }
     toast('✅ Промокод применён!');
   } else {
-    err.style.display='block';
-    toast('❌ Промокод не найден');
+    err.style.display = 'block';
+    err.textContent = data?.err || data?.message || 'Промокод не найден';
+    toast('❌ '+(data?.err||'Промокод не найден'));
   }
 }
 
@@ -1051,40 +1151,39 @@ async function applyCoPromo() {
 // ОФОРМЛЕНИЕ
 // ══════════════════════════════════════════════════════════
 function updateCoMap() {
-  // Статичная карта Яндекс через наш прокси не нужна — используем бесплатный tile
   const zoom = 16;
   const imgUrl = `https://static-maps.yandex.ru/1.x/?lang=ru_RU&ll=${LON},${LAT}&z=${zoom}&l=map&size=450,150&pt=${LON},${LAT},pm2rdm`;
   const el = document.getElementById('coMapImg');
-  if (el) { el.src = imgUrl; el.style.display = ''; }
+  if (el) { el.src=imgUrl; el.style.display=''; }
   const hint = document.getElementById('coMapHint');
   if (hint) hint.textContent = ADDR.short || 'Нажмите чтобы изменить';
 }
 
 async function renderCO() {
-  const sub=getTotal(),fee=Math.round(sub*.05),tot=sub+fee;
-  document.getElementById('coTotal').textContent=tot+' ₽';
-  document.getElementById('placeBtnT').textContent=tot+' ₽';
-  document.getElementById('coItems').innerHTML=(cart.items||[]).map(ci=>
+  const sub=getTotal(), fee=Math.round(sub*.05), tot=sub+fee;
+  document.getElementById('coTotal').textContent   = tot+' ₽';
+  document.getElementById('placeBtnT').textContent = tot+' ₽';
+  document.getElementById('coItems').innerHTML = (cart.items||[]).map(ci=>
     `<div class="sr"><span class="sl">${ci.n}${ci.on?' ('+ci.on+')':''} × ${ci.qty}</span><span class="sv">${ci.p*ci.qty} ₽</span></div>`).join('');
-  document.getElementById('coAddr').textContent=ADDR.short;
-  // Сбрасываем промокод
-  document.getElementById('coPromoInp').value='';
+  document.getElementById('coAddr').textContent = ADDR.short;
+  document.getElementById('coPromoInp').value = '';
   document.getElementById('coPromoOk').style.display='none';
   document.getElementById('coPromoErr').style.display='none';
-  // Обновляем карту
   updateCoMap();
 
   if (cart.slug) {
-    const d=await POST('/api/v2/cart/go-checkout',{place_slug:cart.slug,address:addrObj()});
-    if (d?.address?.short_text) {
-      document.getElementById('coAddr').textContent=d.address.short_text;
-    }
-    if (d?.delivery_time) document.getElementById('coTime').textContent='~'+d.delivery_time+' мин';
+    const d = await POST('/api/v2/cart/go-checkout', {
+      place_slug: cart.slug,
+      address: addrObj(),
+      plus_subscription_toggle_state: null
+    });
+    if (d?.address?.short_text) document.getElementById('coAddr').textContent = d.address.short_text;
+    if (d?.delivery_time) document.getElementById('coTime').textContent = '~'+d.delivery_time+' мин';
     if (d?.payment_methods?.length) {
-      const icons={sbp:'⚡',card:'💳',cash:'💵',wallet:'👛'};
-      let first=true;
-      document.getElementById('payOpts').innerHTML=d.payment_methods.slice(0,4).map(m=>{
-        const t=m.type||'card',id=m.payment_method_id||t;
+      const icons = {sbp:'⚡',card:'💳',cash:'💵',wallet:'👛'};
+      let first = true;
+      document.getElementById('payOpts').innerHTML = d.payment_methods.slice(0,4).map(m=>{
+        const t=m.type||'card', id=m.payment_method_id||t;
         const n=m.name||{sbp:'СБП',card:'Карта',cash:'Наличные'}[t]||t;
         const sel=first?'sel':''; if(first){payId=id;payType=t;first=false;}
         return `<div class="pay-opt ${sel}" onclick="selPay(this,'${id}','${t}')"><div class="po-i">${icons[t]||'💳'}</div><div class="po-n">${n}</div></div>`;
@@ -1092,44 +1191,174 @@ async function renderCO() {
     }
   }
 }
+
 function selPay(el,id,type) {
   document.querySelectorAll('.pay-opt').forEach(o=>o.classList.remove('sel'));
   el.classList.add('sel'); payId=id; payType=type;
 }
-async function placeOrder() {
-  const btn=document.getElementById('placeBtn');
-  btn.disabled=true; btn.textContent='⏳ Оформляю...';
-  let nr=null;
-  if (cart.slug) {
-    const d=await POST('/api/v1/orders',{
-      persons_quantity:1,
-      location:{latitude:LAT,longitude:LON},
-      comment:document.getElementById('coComment').value||'',
-      payment:{recently_link_cards:false},
-      payment_method_id:payType==='sbp'?5:payType==='cash'?1:2,
-      place_slug:cart.slug, phone:'+70000000000',
-      address:addrObj(),
-      payment_information:{type:payType,id:payId,costForCustomer:String(getTotal())}
-    });
-    if (d?.order_nr) nr=d.order_nr;
+
+// ══════════════════════════════════════════════════════════
+// SBP ОПЛАТА — оверлей + поллинг
+// ══════════════════════════════════════════════════════════
+function showPayOverlay(text='Создаём заказ...') {
+  let ov = document.getElementById('sbp-overlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'sbp-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:-apple-system,sans-serif;padding:32px;';
+    ov.innerHTML = `
+      <div style="font-size:52px;margin-bottom:20px">💳</div>
+      <div id="sbp-ov-title" style="font-size:18px;font-weight:700;text-align:center;margin-bottom:8px">Оплата</div>
+      <div id="sbp-ov-text" style="font-size:14px;color:rgba(255,255,255,.75);text-align:center;line-height:1.5">${text}</div>
+      <div style="margin-top:28px;font-size:12px;color:rgba(255,255,255,.4)">Не закрывай приложение</div>
+      <button onclick="hidePayOverlay()" style="margin-top:24px;padding:12px 32px;border-radius:14px;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Отмена</button>`;
+    document.body.appendChild(ov);
+  } else {
+    ov.style.display = 'flex';
+    document.getElementById('sbp-ov-text').textContent = text;
   }
-  if (!nr) {
-    const d=new Date();
-    nr=`${String(d.getDate()).padStart(2,'0')}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getFullYear()).slice(-2)}-${Math.floor(1000000+Math.random()*9000000)}`;
-  }
-  clearCart(); trackOrder(nr); btn.disabled=false;
 }
+function hidePayOverlay() {
+  const ov = document.getElementById('sbp-overlay');
+  if (ov) ov.style.display = 'none';
+}
+function updatePayOverlay(title, text) {
+  const t = document.getElementById('sbp-ov-title');
+  const tx = document.getElementById('sbp-ov-text');
+  if (t && title) t.textContent = title;
+  if (tx && text) tx.textContent = text;
+}
+
+function openSbpLink(url) {
+  const tg = window.Telegram?.WebApp;
+  if (tg && typeof tg.openLink === 'function') {
+    tg.openLink(url, { try_instant_view: false });
+  } else {
+    window.open(url, '_blank');
+  }
+}
+
+async function pollOrder(orderId, onSuccess, onFail) {
+  const MAX = 90; // ~3 мин
+  let n = 0;
+  let sbpOpened = false;
+
+  const tick = async () => {
+    if (n++ > MAX) { hidePayOverlay(); onFail('Время ожидания истекло'); return; }
+    try {
+      const { status, data } = await POST_RAW(
+        '/eats/v1/eats-payments/v1/order/tracking',
+        { order_id: orderId }
+      );
+      if (!data) { setTimeout(tick, 2000); return; }
+
+      // Обновляем текст оверлея из transparentPayment или order.description
+      const tp = data.transparentPayment;
+      if (tp?.screen) {
+        updatePayOverlay(tp.screen.title?.text, tp.screen.text?.text);
+      } else if (data.order?.title) {
+        updatePayOverlay(data.order.title, data.order.description);
+      }
+
+      const pmt = data.order?.payment || {};
+      const ps  = pmt.status;
+
+      // Успех
+      if (ps === 'paid' || ps === 'success' || ps === 'completed') {
+        hidePayOverlay(); onSuccess(data); return;
+      }
+      // СБП — открываем ссылку в банк
+      if ((ps === 'sbp_required' || ps === 'sbp') && !sbpOpened) {
+        const sbpUrl = pmt.payload?.url;
+        if (sbpUrl) {
+          sbpOpened = true;
+          updatePayOverlay('Подтвердите оплату', 'Открываем ваш банк...');
+          setTimeout(() => openSbpLink(sbpUrl), 500);
+        }
+      }
+      // Ошибка
+      if (ps === 'failed' || ps === 'cancelled' || ps === 'error') {
+        hidePayOverlay(); onFail(pmt.error_message || 'Оплата не прошла'); return;
+      }
+      setTimeout(tick, 2000);
+    } catch(e) {
+      setTimeout(tick, 3000);
+    }
+  };
+  tick();
+}
+
+// ══════════════════════════════════════════════════════════
+// ОФОРМИТЬ ЗАКАЗ
+// ══════════════════════════════════════════════════════════
+async function placeOrder() {
+  const btn = document.getElementById('placeBtn');
+  btn.disabled = true; btn.textContent = '⏳ Оформляю...';
+
+  // Idempotency token — защита от двойных заказов
+  const idem = crypto.randomUUID();
+
+  const payload = {
+    courier_options: [],
+    persons_quantity: 1,
+    request_id: crypto.randomUUID().replace(/-/g,'') + '.' + crypto.randomUUID().replace(/-/g,''),
+    location: { latitude: LAT, longitude: LON },
+    comment: document.getElementById('coComment').value || '',
+    payment: { recently_link_cards: false },
+    payment_method_id: payType==='sbp' ? 5 : payType==='cash' ? 1 : 2,
+    place_slug: cart.slug,
+    phone: '+70000000000',
+    extended_options: [{ type: 'delivery_options' }],
+    address: addrObj(),
+    payment_information: {
+      type: payType,
+      id: payId,
+      costForCustomer: String(getTotal())
+    }
+  };
+
+  showPayOverlay('Создаём заказ...');
+
+  const { status, data } = await POST_WITH_IDEMPOTENCY('/api/v1/orders', payload, idem);
+
+  if (!data?.order_nr) {
+    hidePayOverlay();
+    const msg = data?.message || data?.err || `Ошибка ${status}`;
+    toast('❌ '+msg);
+    btn.disabled=false; btn.textContent='Оформить';
+    return;
+  }
+
+  const orderId = data.order_nr;
+  console.log('[ORDER]', orderId);
+  clearCart();
+  btn.disabled=false; btn.textContent='Оформить';
+
+  // Запускаем поллинг оплаты
+  pollOrder(
+    orderId,
+    () => { // Успех
+      toast('✅ Заказ оплачен!');
+      trackOrder(orderId);
+    },
+    (err) => { // Ошибка
+      toast('❌ '+err);
+      trackOrder(orderId); // Всё равно показываем экран заказа
+    }
+  );
+}
+
 function trackOrder(nr) {
-  document.getElementById('orderNr').textContent=nr;
-  const fmt=d=>d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
-  document.getElementById('s1t').textContent=fmt(new Date());
+  document.getElementById('orderNr').textContent = nr;
+  const fmt = d => d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+  document.getElementById('s1t').textContent = fmt(new Date());
   goTo('order');
   setTimeout(()=>{document.getElementById('s2').textContent='✓';document.getElementById('s2').className='ts-dot td-done';document.getElementById('s3').className='ts-dot td-act';document.getElementById('s3t').textContent='~10 мин';},8000);
   setTimeout(()=>{document.getElementById('s3').textContent='✓';document.getElementById('s3').className='ts-dot td-done';document.getElementById('s4').className='ts-dot td-act';document.getElementById('s4t').textContent=fmt(new Date(Date.now()+5*60000));},18000);
 }
 
 // ══════════════════════════════════════════════════════════
-// АДРЕС — поиск через POST /eats/v1/eats-addresses/v1/suggest
+// АДРЕС
 // ══════════════════════════════════════════════════════════
 const CITIES = [
   {n:'Москва',lat:55.7558,lon:37.6176},{n:'Санкт-Петербург',lat:59.9343,lon:30.3351},
@@ -1142,8 +1371,8 @@ const CITIES = [
 ];
 
 function resetAddrResults() {
-  const el=document.getElementById('addrRes');
-  el.innerHTML=`
+  const el = document.getElementById('addrRes');
+  el.innerHTML = `
     <div class="addr-ri" onclick="useGeo()">
       <div class="ari-ic">🎯</div>
       <div><div class="ari-main">Моё местоположение</div><div class="ari-sub">Определить автоматически</div></div>
@@ -1158,7 +1387,7 @@ function resetAddrResults() {
 
 function openAddr() {
   document.getElementById('addrModal').classList.add('open');
-  setTimeout(()=>document.getElementById('addrInp').focus(),350);
+  setTimeout(()=>document.getElementById('addrInp').focus(), 350);
 }
 function closeAddr() {
   document.getElementById('addrModal').classList.remove('open');
@@ -1168,47 +1397,35 @@ function closeAddr() {
 function onAddrInput(v) {
   clearTimeout(addrTimer);
   if (v.length<2){resetAddrResults();return;}
-  addrTimer=setTimeout(()=>suggestAddr(v),450);
+  addrTimer = setTimeout(()=>suggestAddr(v), 450);
 }
 
 async function suggestAddr(text) {
-  const el=document.getElementById('addrRes');
-  el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-
-  // POST /eats/v1/eats-addresses/v1/suggest — без фильтра types чтобы искать по всей РФ
-  const d=await POST('/eats/v1/eats-addresses/v1/suggest', {
+  const el = document.getElementById('addrRes');
+  el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
+  const d = await POST('/eats/v1/eats-addresses/v1/suggest', {
     text,
-    location:{latitude:LAT, longitude:LON},
-    locale:'ru'
+    location: { latitude: LAT, longitude: LON },
+    locale: 'ru'
   });
-
-  const geo=`<div class="addr-ri" onclick="useGeo()"><div class="ari-ic">🎯</div><div><div class="ari-main">Моё местоположение</div><div class="ari-sub">Определить автоматически</div></div></div>`;
-
-  // Поддержка разных форматов ответа Яндекс API
-  const items=d?.suggests||d?.items||d?.results||[];
-
-  console.log('[SUGGEST] resp:', JSON.stringify(d).slice(0,300));
-
+  const geo = `<div class="addr-ri" onclick="useGeo()"><div class="ari-ic">🎯</div><div><div class="ari-main">Моё местоположение</div><div class="ari-sub">Определить автоматически</div></div></div>`;
+  const items = d?.suggests || d?.items || d?.results || [];
   if (!items.length) {
-    el.innerHTML=geo+`<div style="text-align:center;padding:24px 16px;color:var(--gt)">
-      Адрес не найден по запросу "<b>${text}</b>"<br><br>
-      <span style="font-size:12px">Попробуйте: "Москва Тверская 1" или выберите город ниже</span></div>`+
+    el.innerHTML = geo + `<div style="text-align:center;padding:24px 16px;color:var(--gt)">Адрес не найден по запросу "<b>${text}</b>"<br><br><span style="font-size:12px">Попробуйте: "Москва Тверская 1"</span></div>` +
       CITIES.slice(0,6).map(c=>`<div class="addr-ri" onclick="setCity('${c.n}',${c.lat},${c.lon})"><div class="ari-ic">🏙️</div><div><div class="ari-main">${c.n}</div></div></div>`).join('');
     return;
   }
-
-  el.innerHTML=geo+items.slice(0,12).map(s=>{
-    const title=s.title?.text||s.title||s.full_text||s.short_text||s.text||s.name||'';
-    const sub=s.subtitle?.text||s.subtitle||s.description||'';
-    const lat=s.point?.lat||s.point?.latitude||s.coordinates?.latitude||s.location?.latitude||0;
-    const lon=s.point?.lon||s.point?.longitude||s.coordinates?.longitude||s.location?.longitude||0;
-    // Парсим компоненты
-    const comps=s.component||s.address_components||[];
-    const gc=kind=>comps.find?.(c=>c.kind===kind||c.type===kind)?.name||'';
-    const city=s.city||gc('locality')||gc('city')||'';
-    const street=s.street||gc('street')||'';
-    const house=s.house||gc('house')||gc('number')||'';
-    const ad={title:title||sub,sub:sub||title,lat,lon,city,street,house};
+  el.innerHTML = geo + items.slice(0,12).map(s=>{
+    const title = s.title?.text||s.title||s.full_text||s.short_text||s.text||s.name||'';
+    const sub   = s.subtitle?.text||s.subtitle||s.description||'';
+    const lat   = s.point?.lat||s.point?.latitude||s.coordinates?.latitude||s.location?.latitude||0;
+    const lon   = s.point?.lon||s.point?.longitude||s.coordinates?.longitude||s.location?.longitude||0;
+    const comps = s.component||s.address_components||[];
+    const gc    = kind=>comps.find?.(c=>c.kind===kind||c.type===kind)?.name||'';
+    const city  = s.city||gc('locality')||gc('city')||'';
+    const street= s.street||gc('street')||'';
+    const house = s.house||gc('house')||gc('number')||'';
+    const ad    = {title:title||sub, sub:sub||title, lat, lon, city, street, house};
     return `<div class="addr-ri" onclick='selAddr(${JSON.stringify(ad)})'>
       <div class="ari-ic">📍</div>
       <div>
@@ -1222,21 +1439,15 @@ async function suggestAddr(text) {
 function selAddr(data) {
   if (typeof data==='string') data=JSON.parse(data);
   const lat=parseFloat(data.lat), lon=parseFloat(data.lon);
-  if (lat&&lon) {LAT=lat;LON=lon;}
-  ADDR={
-    short:data.title||data.sub||'Адрес',
-    full:data.sub||data.title||'',
-    city:data.city||'', street:data.street||'',
-    house:data.house||'', country:'Россия'
-  };
-  document.getElementById('addrTxt').textContent=ADDR.short;
-  const coAddrEl=document.getElementById('coAddr');
-  if (coAddrEl) coAddrEl.textContent=ADDR.short;
+  if (lat&&lon){LAT=lat;LON=lon;}
+  ADDR = {short:data.title||data.sub||'Адрес', full:data.sub||data.title||'', city:data.city||'', street:data.street||'', house:data.house||'', country:'Россия'};
+  document.getElementById('addrTxt').textContent = ADDR.short;
+  const coAddrEl = document.getElementById('coAddr');
+  if (coAddrEl) coAddrEl.textContent = ADDR.short;
   updateCoMap();
-  closeAddr();
-  toast('📍 '+ADDR.short);
+  closeAddr(); toast('📍 '+ADDR.short);
   ALL_RESTS=[]; RESTS=[];
-  if (curScreen==='checkout') { renderCO(); return; }
+  if (curScreen==='checkout'){renderCO();return;}
   loadRests();
 }
 function setCity(name,lat,lon) {
@@ -1245,10 +1456,9 @@ function setCity(name,lat,lon) {
   document.getElementById('addrTxt').textContent=name;
   const coAddrEl=document.getElementById('coAddr');
   if (coAddrEl) coAddrEl.textContent=name;
-  updateCoMap();
-  closeAddr(); toast('📍 '+name);
+  updateCoMap(); closeAddr(); toast('📍 '+name);
   ALL_RESTS=[]; RESTS=[];
-  if (curScreen==='checkout') { renderCO(); return; }
+  if (curScreen==='checkout'){renderCO();return;}
   loadRests();
 }
 function useGeo() {
@@ -1263,10 +1473,9 @@ function useGeo() {
     document.getElementById('addrTxt').textContent=short;
     const coAddrEl2=document.getElementById('coAddr');
     if (coAddrEl2) coAddrEl2.textContent=short;
-    updateCoMap();
-    closeAddr(); toast('📍 '+short);
+    updateCoMap(); closeAddr(); toast('📍 '+short);
     ALL_RESTS=[]; RESTS=[];
-    if (curScreen==='checkout') { renderCO(); return; }
+    if (curScreen==='checkout'){renderCO();return;}
     loadRests();
   },()=>toast('❌ Нет доступа к геолокации'));
 }
@@ -1314,9 +1523,7 @@ async function loadAddresses() {
   if (addrs.length) {
     html+=addrs.map(a=>{
       const ic={home:'🏠',work:'🏢',other:'📍'}[a.type]||'📍';
-      const ad={title:a.short_text||a.full_text||'Адрес',sub:a.full_text||'',
-        lat:a.coordinates?.latitude||LAT,lon:a.coordinates?.longitude||LON,
-        city:a.city||'',street:a.street||'',house:a.house||''};
+      const ad={title:a.short_text||a.full_text||'Адрес',sub:a.full_text||'',lat:a.coordinates?.latitude||LAT,lon:a.coordinates?.longitude||LON,city:a.city||'',street:a.street||'',house:a.house||''};
       return `<div class="addr-card" onclick='selAddr(${JSON.stringify(ad)})'>
         <div class="ac-ic">${ic}</div>
         <div class="ac-bd"><div class="ac-nm">${a.title||a.short_text||'Адрес'}</div><div class="ac-fl">${a.full_text||''}</div></div>
@@ -1355,7 +1562,10 @@ async function loadPayments() {
 async function loadPromos() {
   const el=document.getElementById('promosC');
   el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-  const d=await POST('/api/v1/user/promocodes',{payment:{payment_method_id:payId||'sbp',type:payType||'sbp'}});
+  const d=await POST('/api/v1/user/promocodes',{
+    cart_id: cart.id || '',
+    payment:{payment_method_id: payId||'sbp', type: payType||'sbp'}
+  });
   if (d?.promocodes?.length) {
     el.innerHTML=d.promocodes.map(p=>
       `<div class="promo-card">
@@ -1398,22 +1608,18 @@ const NO_TOPBAR=new Set(['menu','cart','checkout','order','profile','orders','ad
 function goTo(screen) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+screen)?.classList.add('active');
-
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('nb-'+screen)?.classList.add('active');
   if (PROF_SCREENS.has(screen)) document.getElementById('nb-profile')?.classList.add('active');
-
   document.getElementById('topbar').style.display=NO_TOPBAR.has(screen)?'none':'block';
   document.getElementById('tabs').style.display=NO_TOPBAR.has(screen)?'none':'flex';
   document.getElementById('bnav').style.display=NO_NAV.has(screen)?'none':'flex';
-
   if (screen==='cart') renderCart();
   if (screen==='checkout') renderCO();
   if (screen==='orders') loadOrders();
   if (screen==='addresses') loadAddresses();
   if (screen==='payments') loadPayments();
   if (screen==='promos') loadPromos();
-
   curScreen=screen;
   document.getElementById('content').scrollTo(0,0);
 }
