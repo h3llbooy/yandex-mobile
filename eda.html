@@ -362,6 +362,11 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
       <div class="pay-nm">Наличными курьеру</div>
       <div class="pay-chk"></div>
     </div>
+    <div class="pay-m" data-m="card" data-mid="2" onclick="selPay(this)">
+      <div class="pay-ico">💳</div>
+      <div class="pay-nm" id="cart-card-nm">Карта (добавьте в профиле)</div>
+      <div class="pay-chk"></div>
+    </div>
   </div>
 
   <div class="gap"></div>
@@ -547,6 +552,14 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
         </div>
         <div class="pay-screen-chk"></div>
       </div>
+      <div class="pay-screen-item" id="pm-card" onclick="setGlobalPay('card',2,this)">
+        <div class="pay-screen-ico">💳</div>
+        <div class="pay-screen-name">
+          <div class="pay-screen-title">Карта</div>
+          <div class="pay-screen-sub" id="card-sub">Добавить карту</div>
+        </div>
+        <div class="pay-screen-chk"></div>
+      </div>
     </div>
     <div style="padding:12px 16px;font-size:13px;color:var(--sec)">
       Выбранный способ будет использоваться по умолчанию при оформлении заказа.
@@ -601,6 +614,7 @@ const S = {
   address: null,
   payMethod: 'sbp',
   payMethodId: 5,
+  savedCardId: '',      // ID привязанной карты (заполняется после снифа)
   persons: 2,
   promo: '',
   promoDisc: 0,
@@ -658,10 +672,12 @@ function emoji(cats=[]) {
 // ═══════════════════════════════════════════════════════════════
 function hdrs(extra={}) {
   const h = {
-    'X-Bearer': TOKEN,
-    'X-Device-Id': DEVICE_ID,
-    'X-Appmetrica-Uuid': AM_UUID,
-    'X-Chat-Id': CHAT_ID,
+    'X-Bearer':               TOKEN,
+    'X-Device-Id':            DEVICE_ID,
+    'X-Appmetrica-Uuid':      AM_UUID,
+    'X-Chat-Id':              CHAT_ID,
+    // Обходим страницу предупреждения ngrok
+    'ngrok-skip-browser-warning': '1',
   };
   if (S.lat && S.lon) h['X-User-Coords'] = `${S.lat},${S.lon}`;
   return {...h, ...extra};
@@ -687,24 +703,26 @@ async function post(path, body={}, extra={}) {
   return api(path, {method:'POST', headers:{'Content-Type':'application/json',...extra}, body});
 }
 
-// Suggest через наш прокси (который использует SOCKS5)
+// Suggest через наш прокси (который использует мобильный прокси)
 async function suggest(text) {
   if (!PROXY) return {};
   try {
     const r = await fetch(PROXY + '/proxy-suggest', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST',
+      headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'1'},
       body: JSON.stringify({text, lat: S.lat||55.7558, lon: S.lon||37.6176})
     });
     return r.json().catch(()=>({}));
   } catch(e) { return {}; }
 }
 
-// Geocode через наш прокси (который использует SOCKS5)
+// Geocode через наш прокси
 async function geocode(text) {
   if (!PROXY) return {};
   try {
     const r = await fetch(PROXY + '/proxy-geocode', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST',
+      headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'1'},
       body: JSON.stringify({text})
     });
     return r.json().catch(()=>({}));
@@ -1096,6 +1114,8 @@ function selPay(el) {
   el.querySelector('.pay-chk').innerHTML='<svg width="10" height="8" fill="none"><path d="M1 4l3 3L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   S.payMethod   = el.dataset.m;
   S.payMethodId = parseInt(el.dataset.mid);
+  // Синхронизируем экран оплаты
+  syncPayScreen();
 }
 
 function setGlobalPay(method, mid, el) {
@@ -1103,13 +1123,16 @@ function setGlobalPay(method, mid, el) {
   S.payMethodId = mid;
   document.querySelectorAll('.pay-screen-item').forEach(m=>m.classList.remove('sel'));
   el.classList.add('sel');
-  showToast(method === 'sbp' ? 'СБП выбран как основной' : 'Наличные выбраны как основной');
+  const labels = {sbp:'СБП выбран', cash:'Наличные выбраны', card:'Карта выбрана'};
+  showToast(labels[method] || 'Выбрано');
+  // Синхронизируем и корзину
+  syncCartPayMethods();
 }
 
 function syncPayScreen() {
   document.querySelectorAll('.pay-screen-item').forEach(m=>m.classList.remove('sel'));
-  const selId = S.payMethod === 'sbp' ? 'pm-sbp' : 'pm-cash';
-  $(selId)?.classList.add('sel');
+  const ids = {sbp:'pm-sbp', cash:'pm-cash', card:'pm-card'};
+  $(ids[S.payMethod] || 'pm-sbp')?.classList.add('sel');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1166,8 +1189,8 @@ async function placeOrder() {
       ...(a.uri?{uri:a.uri}:{})
     },
     payment_information: {
-      type: S.payMethod==='sbp' ? 'sbp' : 'cash',
-      id:   S.payMethod==='sbp' ? 'sbp_qr' : 'cash',
+      type: S.payMethod==='sbp' ? 'sbp' : (S.payMethod==='card' ? 'card' : 'cash'),
+      id:   S.payMethod==='sbp' ? 'sbp_qr' : (S.payMethod==='card' ? (S.savedCardId||'card') : 'cash'),
       costForCustomer: t.total.toFixed(2)
     },
     without_callback: true,
@@ -1384,34 +1407,35 @@ function useAddress(strData) {
 // PROFILE
 // ═══════════════════════════════════════════════════════════════
 async function loadProfile() {
-  const tgUser = tg?.initDataUnsafe?.user;
-  let name = tgUser?.first_name || '';
-  let uid  = '';
+  // Бот передаёт name и uid прямо в URL — не нужны 403-ящие /eats/ вызовы
+  const urlName = decodeURIComponent(P.get('name') || '');
+  const urlUid  = P.get('uid') || '';
+  const tgUser  = tg?.initDataUnsafe?.user;
+  let name = urlName || tgUser?.first_name || '';
+  let uid  = urlUid || '';
 
-  // Используем api/v2/user/info — он не требует client_id whitelist
-  try {
-    const d = await api('api/v2/user/info');
-    if (d && !d.error) {
-      name = d.name||d.display_name||d.first_name||name;
-      uid  = String(d.passport_uid||d.uid||'');
-    }
-  } catch(e){}
+  // Сразу рисуем если имя уже есть
+  if (name) _renderProfile(name, uid);
 
-  // Фоллбэк на eats/v1/user/v1/user-info
-  if (!name) {
+  // Доп. проверка через /proxy-account (работает без whitelist)
+  if (PROXY && CHAT_ID) {
     try {
-      const d2 = await api('eats/v1/user/v1/user-info');
-      const p = d2?.user||d2;
-      name = p?.name||p?.display_name||p?.first_name||name;
-      uid  = String(p?.passport_uid||p?.uid||uid);
+      const r = await fetch(`${PROXY}/proxy-account?chat_id=${CHAT_ID}`, {
+        headers: {'ngrok-skip-browser-warning':'1', 'X-Chat-Id': CHAT_ID}
+      });
+      const d = await r.json().catch(()=>({}));
+      if (d.name) name = d.name;
+      if (d.uid)  uid  = d.uid;
     } catch(e){}
   }
+  _renderProfile(name, uid);
+}
 
+function _renderProfile(name, uid) {
   const initials = name ? name[0].toUpperCase() : '?';
   $('prf-ava').textContent  = initials;
-  $('prf-name').textContent = name||'Пользователь';
-  $('prf-uid').textContent  = uid ? `UID: ${uid}` : '';
-
+  $('prf-name').textContent = name || 'Пользователь';
+  $('prf-uid').textContent  = uid  ? `UID: ${uid}` : '';
   const badges = [];
   if (PLUS_TOKEN) badges.push('<span class="prf-badge b">⭐ Яндекс Плюс</span>');
   if (BANK_TOKEN) badges.push('<span class="prf-badge g">💳 Яндекс Банк</span>');
