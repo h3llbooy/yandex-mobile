@@ -560,18 +560,16 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'SF Pro Display'
 </div>
 
 <script>
-<script>
 // ══════════════════════════════════════════════════════════
-// КОНФИГ — берём всё из URL параметров которые бот передаёт
+// КОНФИГ — параметры из URL (бот генерирует ссылку с ними)
 // ══════════════════════════════════════════════════════════
 const _p      = new URLSearchParams(location.search);
 const TOKEN   = _p.get('token')           || '';
-const DEV_ID  = _p.get('device_id')       || '9B57D76B-908D-4504-915D-381D08676F44';
-const AM_UUID = _p.get('appmetrica_uuid') || '';   // отдельный uuid из бота
+const DEV_ID  = _p.get('device_id')       || '';
+const AM_UUID = _p.get('appmetrica_uuid') || '';
 const PX      = (_p.get('proxy')          || 'http://localhost:8888').replace(/\/$/,'');
-const CHAT_ID = _p.get('chat_id')         || '';   // бот передаёт chat_id для lookup в accounts
+const CHAT_ID = _p.get('chat_id')         || '';
 const IMG     = 'https://eda.yandex.ru';
-const SES     = crypto.randomUUID().toUpperCase().replace(/-/g,'');
 
 let LAT = 55.7558, LON = 37.6176;
 let ADDR = {short:'Москва', full:'Москва', city:'Москва', street:'', house:'', country:'Россия'};
@@ -580,6 +578,7 @@ let cart = {}, curRest = null, curScreen = 'catalog';
 let mItem = null, mQty = 1, mOpt = null;
 let payId = 'sbp', payType = 'sbp';
 let ALL_RESTS = [], RESTS = [], addrTimer = null;
+let cartId = null; // реальный cart_id от Яндекса
 
 const CATS = [
   {e:'🍔',n:'Бургеры'},{e:'🍣',n:'Суши'},{e:'🍕',n:'Пицца'},
@@ -589,117 +588,72 @@ const CATS = [
 ];
 
 // ══════════════════════════════════════════════════════════
-// ГЕОЛОКАЦИЯ — Telegram WebApp + браузерный фолбэк
-// Координаты синхронизируем с LAT/LON сразу при получении
+// ГЕОЛОКАЦИЯ — Telegram WebApp + фолбэк
 // ══════════════════════════════════════════════════════════
 function requestUserLocation() {
   const tg = window.Telegram?.WebApp;
-  // Метод requestLocation — TMA SDK 7.0+
   if (tg && typeof tg.requestLocation === 'function') {
     tg.requestLocation(data => {
-      if (data?.latitude) {
-        LAT = data.latitude;
-        LON = data.longitude;
-        console.log('[GEO] Telegram:', LAT, LON);
-      }
+      if (data?.latitude) { LAT = data.latitude; LON = data.longitude; }
     });
   } else if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      pos => { LAT = pos.coords.latitude; LON = pos.coords.longitude; console.log('[GEO] Browser:', LAT, LON); },
-      err => console.warn('[GEO]', err.message),
-      { enableHighAccuracy: true, timeout: 8000 }
+      pos => { LAT = pos.coords.latitude; LON = pos.coords.longitude; },
+      () => {}, { enableHighAccuracy: true, timeout: 8000 }
     );
   }
 }
-
-// Обновляем геолокацию при старте и каждые 2 мин
 requestUserLocation();
 setInterval(requestUserLocation, 120_000);
 
 // ══════════════════════════════════════════════════════════
-// API — POST и GET через наш прокси
-// Ключевое: бэкенд сам подтягивает device_id, appmetrica_uuid,
-// cookies из accounts по X-Chat-Id.
-// Координаты передаём через X-User-Coords: lat,lon
+// API — все запросы через наш прокси на боте
+// Бот по X-Chat-Id подтягивает device_id, cookies, bearer
 // ══════════════════════════════════════════════════════════
-function _headers(extra = {}) {
-  const h = {
+function _hdrs(extra = {}) {
+  return Object.assign({
     'Content-Type':   'application/json',
     'X-Bearer':       TOKEN,
     'X-Device-Id':    DEV_ID,
-    'X-Client-Session': SES,
-    'X-Chat-Id':      CHAT_ID,   // бэкенд достанет device_id/uuid/cookies из accounts
-  };
-  // Координаты — всегда передаём текущие
-  if (LAT && LON) {
-    h['X-User-Coords'] = `${LAT},${LON}`;
-  }
-  return Object.assign(h, extra);
+    'X-Chat-Id':      CHAT_ID,
+    'X-User-Coords':  `${LAT},${LON}`,
+  }, extra);
 }
 
 async function POST(path, body = {}) {
   if (!TOKEN) return null;
   try {
     const r = await fetch(PX + '/proxy' + path, {
-      method: 'POST',
-      headers: _headers(),
-      body: JSON.stringify(body)
+      method: 'POST', headers: _hdrs(), body: JSON.stringify(body)
     });
     if (!r.ok) { console.warn('[POST]', r.status, path); return null; }
     return r.json();
-  } catch(e) { console.error('[POST]', path, e); return null; }
+  } catch(e) { console.error('[POST]', e); return null; }
 }
 
-async function POST_RAW(path, body = {}) {
-  // Возвращает { status, data } — для обработки ошибок (промокоды, заказ)
+async function POST_RAW(path, body = {}, extraHdrs = {}) {
   if (!TOKEN) return { status: 401, data: null };
   try {
     const r = await fetch(PX + '/proxy' + path, {
-      method: 'POST',
-      headers: _headers(),
-      body: JSON.stringify(body)
+      method: 'POST', headers: _hdrs(extraHdrs), body: JSON.stringify(body)
     });
     let data = null;
     try { data = await r.json(); } catch(_){}
     return { status: r.status, data };
-  } catch(e) { console.error('[POST_RAW]', path, e); return { status: 502, data: null }; }
-}
-
-async function POST_WITH_IDEMPOTENCY(path, body = {}, idempotencyToken) {
-  if (!TOKEN) return null;
-  try {
-    const r = await fetch(PX + '/proxy' + path, {
-      method: 'POST',
-      headers: _headers({ 'X-Idempotency-Token': idempotencyToken }),
-      body: JSON.stringify(body)
-    });
-    let data = null;
-    try { data = await r.json(); } catch(_){}
-    return { status: r.status, data };
-  } catch(e) { console.error('[POST_IDEM]', path, e); return { status: 502, data: null }; }
+  } catch(e) { return { status: 502, data: null }; }
 }
 
 async function GET(path) {
   if (!TOKEN) return null;
   try {
-    // Через /proxy-get: передаём chat_id и координаты в теле
     const r = await fetch(PX + '/proxy-get', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        path,
-        bearer:    TOKEN,
-        device_id: DEV_ID,
-        appmetrica_uuid: AM_UUID,
-        session:   SES,
-        chat_id:   CHAT_ID,
-        lat:       LAT,
-        lon:       LON
-      })
+      body: JSON.stringify({ path, bearer: TOKEN, device_id: DEV_ID, chat_id: CHAT_ID, lat: LAT, lon: LON })
     });
-    if (!r.ok) { console.warn('[GET]', r.status, path); return null; }
+    if (!r.ok) return null;
     return r.json();
-  } catch(e) { console.error('[GET]', path, e); return null; }
+  } catch(e) { return null; }
 }
 
 function iurl(uri, w, h) {
@@ -710,12 +664,9 @@ function iurl(uri, w, h) {
 function addrObj() {
   return {
     location: { longitude: LON, latitude: LAT },
-    house: ADDR.house || '',
-    short_text: ADDR.short,
-    full_text: ADDR.full,
-    city: ADDR.city || '',
-    street: ADDR.street || '',
-    country: ADDR.country || 'Россия',
+    house: ADDR.house || '', short_text: ADDR.short,
+    full_text: ADDR.full, city: ADDR.city || '',
+    street: ADDR.street || '', country: ADDR.country || 'Россия',
     type: { id: 0 }
   };
 }
@@ -728,32 +679,33 @@ window.addEventListener('load', () => {
     `<button class="cat-btn ${i===0?'active':''}" onclick="filterCat(this,'${c.n}')">
       <span class="cat-ic">${c.e}</span><span class="cat-nm">${c.n}</span>
     </button>`).join('');
-
   resetAddrResults();
-
   if (TOKEN) {
     loadLaunch();
     loadRests();
   } else {
     document.getElementById('restsList').innerHTML =
       '<div class="empty"><div class="e-ic">🔐</div><div class="e-t">Войдите через бота</div><div class="e-s">Откройте меню через Telegram бота</div></div>';
-    document.getElementById('addrTxt').textContent='Укажите адрес';
+    document.getElementById('addrTxt').textContent = 'Укажите адрес';
   }
   setTimeout(()=>{const l=document.getElementById('loading');l.style.opacity='0';setTimeout(()=>l.style.display='none',400);},800);
 });
 
 // ══════════════════════════════════════════════════════════
-// LAUNCH — профиль + плюс подписка
+// LAUNCH — профиль юзера
+// Точное тело из HAR: experiments с ios параметрами
 // ══════════════════════════════════════════════════════════
 async function loadLaunch() {
   const d = await POST('/eats/v1/launch/v2/native', {
     experiments: {
       consumer: 'eda_ab_service',
       args: [
-        { name: 'application', type: 'string', value: 'eda_ios_app' },
-        { name: 'version', type: 'application_version', value: '8.94.0' },
-        { name: 'device_id', type: 'string', value: DEV_ID },
-        { name: 'is_watch_paired', type: 'boolean', value: true }
+        { name: 'version',     type: 'application_version', value: '8.94.0' },
+        { name: 'platform',    type: 'string',  value: 'ios_app' },
+        { name: 'application', type: 'application', value: 'eda_ios_app' },
+        { name: 'device_id',   type: 'string',  value: DEV_ID },
+        { name: 'host',        type: 'string',  value: 'eda.yandex.ru' },
+        { name: 'location',    type: 'point',   value: [LON, LAT] }
       ]
     }
   });
@@ -771,8 +723,8 @@ async function loadLaunch() {
   }
   document.getElementById('addrTxt').textContent = ADDR.short;
 
-  // Плюс
-  const plus = await GET(`/eats/v1/persey/info?latitude=${LAT}&longitude=${LON}&currency=RUB`);
+  // Яндекс Плюс
+  const plus = await GET(`/eats/v1/eats-plus/v1/status?latitude=${LAT}&longitude=${LON}`);
   const el = document.getElementById('plusSt');
   const active = plus?.subscription_status === 'active' || plus?.subscription_status === 'trial';
   el.textContent = active ? '✓ Активен' : 'Не активен';
@@ -780,20 +732,17 @@ async function loadLaunch() {
 }
 
 // ══════════════════════════════════════════════════════════
-// РЕСТОРАНЫ
+// РЕСТОРАНЫ — layout-constructor из HAR
 // ══════════════════════════════════════════════════════════
 async function loadRests() {
-  document.getElementById('restsList').innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
+  document.getElementById('restsList').innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
   document.getElementById('addrTxt').textContent = ADDR.short;
   document.getElementById('restsCount').textContent = '';
 
+  // Точное тело из HAR — просто region_id + location
   const d = await POST('/eats/v1/layout-constructor/v1/layout', {
-    filters_v2: { filters: [] },
-    sort: 'default',
-    is_bottomsheet: false,
-    selected_state: 'online',
-    location: { longitude: LON, latitude: LAT },
-    shipping_type: shipType
+    location: { latitude: LAT, longitude: LON },
+    filters: [{ type: shipType, slug: shipType }]
   });
 
   const ps = d?.data ? parsePlaces(d.data) : [];
@@ -889,8 +838,8 @@ async function openPickup() {
   const el = document.getElementById('pickupList');
   el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
   const d = await POST('/eats/v1/layout-constructor/v1/layout', {
-    filters_v2:{filters:[]}, sort:'default', is_bottomsheet:false,
-    selected_state:'online', location:{longitude:LON, latitude:LAT}, shipping_type:'pickup'
+    location: { latitude: LAT, longitude: LON },
+    filters: [{ type: 'pickup', slug: 'pickup' }]
   });
   const places = d?.data ? parsePlaces(d.data) : [];
   if (!places.length){el.innerHTML='<div class="empty"><div class="e-ic">📦</div><div class="e-t">Нет точек самовывоза</div></div>';return;}
@@ -909,10 +858,10 @@ function closePickup(e) {
 }
 
 // ══════════════════════════════════════════════════════════
-// МЕНЮ
+// МЕНЮ — /api/v2/catalog + /api/v2/menu/retrieve из HAR
 // ══════════════════════════════════════════════════════════
 async function openRest(slug, sType) {
-  curRest = ALL_RESTS.find(r=>r.slug===slug) || {slug,name:slug,pic:'',time:'',tags:[],free:false,rating:''};
+  curRest = ALL_RESTS.find(r=>r.slug===slug) || {slug, name:slug, pic:'', time:'', tags:[], free:false, rating:''};
   goTo('menu');
   document.getElementById('mhName').textContent = curRest.name;
   const pu = iurl(curRest.pic, 800, 400);
@@ -925,14 +874,30 @@ async function openRest(slug, sType) {
   document.getElementById('menuItems').innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
 
   const st = sType || shipType || 'delivery';
-  const d = await GET(`/api/v2/menu/retrieve/${slug}?shippingType=${st}&longitude=${LON}&latitude=${LAT}&is_ad=false`);
+
+  // Сначала catalog (как в HAR) — получаем доп инфо о месте
+  const catalog = await GET(`/api/v2/catalog/${slug}?latitude=${LAT}&longitude=${LON}&shippingType=${st}`);
+  if (catalog?.payload?.foundPlace?.place) {
+    const pl = catalog.payload.foundPlace.place;
+    if (pl.name) { curRest.name = pl.name; document.getElementById('mhName').textContent = pl.name; }
+    if (pl.picture?.uri) {
+      const pu2 = iurl(pl.picture.uri, 800, 400);
+      document.getElementById('mhImg').innerHTML = `<img src="${pu2}" onerror="this.innerHTML='🍽️'">`;
+    }
+  }
+
+  // Затем меню
+  const d = await GET(`/api/v2/menu/retrieve/${slug}?latitude=${LAT}&longitude=${LON}&shippingType=${st}&is_ad=false`);
 
   if (!d?.payload?.categories) {
     document.getElementById('menuItems').innerHTML =
-      `<div class="empty"><div class="e-ic">😔</div><div class="e-t">Меню недоступно</div><div class="e-s">Ошибка загрузки меню.</div></div>`;
-    console.error('[MENU] No data for', slug, d);
+      `<div class="empty"><div class="e-ic">😔</div><div class="e-t">Меню недоступно</div><div class="e-s">Попробуйте другой адрес.</div></div>`;
     return;
   }
+
+  // Загружаем корзину с сервера чтобы знать cartId
+  loadServerCart(slug, st);
+
   const cats = d.payload.categories
     .filter(c=>c.available!==false)
     .map(c=>({
@@ -943,20 +908,32 @@ async function openRest(slug, sType) {
         img: i.picture?.uri ? iurl(i.picture.uri, 400, 400) : '',
         w: i.weightInGrams ? i.weightInGrams+' г' : '',
         opts: (i.optionsGroups||[]).map(g=>({
-          g: g.name, req: g.required,
-          i: (g.options||[]).map(o=>({id:o.id,n:o.name,p:o.price||0}))
+          g: g.name, req: g.required, gid: g.id,
+          i: (g.options||[]).map(o=>({id:o.id, n:o.name, p:o.price||0}))
         })).filter(g=>g.i.length>0)
       }))
     })).filter(c=>c.items.length>0);
 
   if (!cats.length) {
-    document.getElementById('menuItems').innerHTML='<div class="empty"><div class="e-ic">🍽️</div><div class="e-t">Меню пустое</div></div>';
+    document.getElementById('menuItems').innerHTML = '<div class="empty"><div class="e-ic">🍽️</div><div class="e-t">Меню пустое</div></div>';
     return;
   }
   curRest.cats = cats;
   document.getElementById('menuCats').innerHTML = cats.map((c,i)=>
     `<button class="mcat ${i===0?'active':''}" onclick="scrollCat(${i},this)">${c.n}</button>`).join('');
   renderMenu();
+}
+
+// Загружаем корзину с сервера — получаем cartId
+async function loadServerCart(slug, st) {
+  const mc = await POST(`/eats/v1/cart/v2/multi-carts?longitude=${LON}&latitude=${LAT}&screen=menu&shippingType=${st}`,
+    { need_items_icons: true });
+  if (mc?.carts?.length) {
+    const myCart = mc.carts.find(c=>c.place_slug===slug);
+    if (myCart) cartId = myCart.cart_id;
+  }
+  const fc = await POST(`/eats/v1/cart/v2/full-carts?longitude=${LON}&latitude=${LAT}&screen=menu&shippingType=${st}`, {});
+  if (fc?.cart?.id) cartId = fc.cart.id;
 }
 
 function renderMenu() {
@@ -996,7 +973,7 @@ function scrollCat(i,btn) {
 function openItem(item) {
   mItem=item; mQty=1; mOpt=null;
   document.getElementById('iImg').innerHTML =
-    (item.img?`<img src="${item.img}"`:'<span style="font-size:80px">🍽️</span>') +
+    (item.img?`<img src="${item.img}">`:'<span style="font-size:80px">🍽️</span>') +
     `<button class="item-close" onclick="closeItem()">✕</button>`;
   document.getElementById('iName').textContent = item.n;
   document.getElementById('iDesc').textContent = item.desc || '';
@@ -1027,7 +1004,7 @@ function updIPrice() {
 function mqAdj(d) { mQty=Math.max(1,mQty+d); document.getElementById('mqN').textContent=mQty; updIPrice(); }
 function addFromModal() {
   if (!mItem||!curRest) return;
-  for(let i=0;i<mQty;i++) addToCart(mItem, mOpt?.n||'', mOpt?.p||0);
+  for(let i=0;i<mQty;i++) addToCartAPI(mItem, mOpt, mQty);
   closeItem(); toast(mItem.n+' добавлен ✓');
 }
 function closeItem(e) {
@@ -1036,17 +1013,44 @@ function closeItem(e) {
 }
 function quickAdd(item) {
   if (item.opts?.length){openItem(item);return;}
-  addToCart(item,'',0); toast(item.n+' ✓'); renderMenu();
+  addToCartAPI(item, null, 1); toast(item.n+' ✓'); renderMenu();
 }
 
 // ══════════════════════════════════════════════════════════
-// КОРЗИНА
+// КОРЗИНА — добавление через API /api/v1/cart как в HAR
+// POST /api/v1/cart?soft_multi=true&longitude=...&latitude=...&screen=menu&shippingType=...
+// Body: {quantity, place_slug, place_business, item_id, item_options}
 // ══════════════════════════════════════════════════════════
-function addToCart(item, on, op) {
+async function addToCartAPI(item, opt, qty) {
+  if (!curRest) return;
+  // Локальная корзина
+  addToCartLocal(item, opt?.n||'', opt?.p||0);
+
+  // API запрос — как в реальном приложении
+  const body = {
+    quantity: qty,
+    place_slug: curRest.slug,
+    place_business: 'restaurant',
+    item_id: item.id,
+    item_options: opt ? [{
+      group_id: item.opts?.[0]?.gid || 0,
+      group_options: [opt.id],
+      modifiers: [{ option_id: opt.id, quantity: 1 }]
+    }] : []
+  };
+  const { data } = await POST_RAW(
+    `/api/v1/cart?soft_multi=true&longitude=${LON}&latitude=${LAT}&screen=menu&shippingType=${shipType}`,
+    body
+  );
+  if (data?.cart?.id) cartId = data.cart.id;
+}
+
+function addToCartLocal(item, on, op) {
   if (!cart.items) cart={slug:curRest.slug, rn:curRest.name, items:[]};
   if (cart.slug!==curRest.slug) {
     if (!confirm(`Очистить корзину от "${cart.rn}"?`)) return;
     cart={slug:curRest.slug, rn:curRest.name, items:[]};
+    cartId = null;
   }
   const key = item.id+'_'+on;
   const ex = cart.items.find(i=>i.key===key);
@@ -1054,12 +1058,15 @@ function addToCart(item, on, op) {
   else cart.items.push({key, iid:item.id, n:item.n, p:item.p+op, img:item.img||'', on, qty:1});
   updBadge();
 }
+
+function addToCart(item, on, op) { addToCartLocal(item, on, op); }
+
 function adjQ(iid, d) {
   if (!cart.items) return;
   const i = cart.items.findIndex(x=>x.iid==iid); if(i<0) return;
   cart.items[i].qty += d;
   if (cart.items[i].qty<=0) cart.items.splice(i,1);
-  if (!cart.items.length) cart={};
+  if (!cart.items.length) { cart={}; cartId=null; }
   updBadge();
   if (curScreen==='menu'&&curRest?.cats) renderMenu();
   if (curScreen==='cart') renderCart();
@@ -1068,7 +1075,7 @@ function getQ(iid){return cart.items?cart.items.filter(i=>i.iid==iid).reduce((s,
 function getTotal(){return cart.items?cart.items.reduce((s,i)=>s+i.p*i.qty,0):0;}
 function getCount(){return cart.items?cart.items.reduce((s,i)=>s+i.qty,0):0;}
 function updBadge(){const c=getCount();document.getElementById('cBadge').textContent=c>0?c:'';}
-function clearCart(){cart={};updBadge();}
+function clearCart(){cart={};cartId=null;updBadge();}
 
 function renderCart() {
   if (!cart.items?.length) {
@@ -1099,18 +1106,20 @@ function renderCart() {
 }
 
 // ══════════════════════════════════════════════════════════
-// ПРОМОКОД — правильный URL из HAR
+// ПРОМОКОД — точный URL из HAR
+// POST /api/v2/cart/promocode?placeSlug=...&soft_multi=true&shippingType=...
+// Body: {code}
 // ══════════════════════════════════════════════════════════
 async function applyPromo() {
   const code = document.getElementById('promoInp').value.trim().toUpperCase();
   if (!code){toast('❌ Введите промокод');return;}
   toast('⏳ Проверяю...');
   const { data } = await POST_RAW(
-    `/api/v2/cart/promocode?soft_multi=true&screen=checkout&shippingType=${shipType}&placeSlug=${cart.slug||''}&offline=false`,
+    `/api/v2/cart/promocode?placeSlug=${cart.slug||''}&soft_multi=true&shippingType=${shipType}`,
     { code }
   );
-  if (data && data.status !== 'error') toast('✅ Применён!');
-  else toast('❌ '+(data?.err || data?.message || 'Промокод не найден'));
+  if (data?.status === 'error') toast('❌ '+(data.err||'Промокод не найден'));
+  else toast('✅ Промокод применён!');
 }
 
 async function applyCoPromo() {
@@ -1121,29 +1130,29 @@ async function applyCoPromo() {
   const err = document.getElementById('coPromoErr');
   ok.style.display='none'; err.style.display='none';
   inp.disabled = true;
-  toast('⏳ Проверяю промокод...');
+  toast('⏳ Проверяю...');
 
   const { data } = await POST_RAW(
-    `/api/v2/cart/promocode?soft_multi=true&screen=checkout&shippingType=${shipType}&placeSlug=${cart.slug||''}&offline=false`,
+    `/api/v2/cart/promocode?placeSlug=${cart.slug||''}&soft_multi=true&shippingType=${shipType}`,
     { code }
   );
   inp.disabled = false;
 
-  if (data && data.status !== 'error') {
+  if (data?.status === 'error') {
+    err.style.display = 'block';
+    err.textContent = '❌ '+(data.err || 'Промокод не найден');
+    toast('❌ '+(data.err||'Промокод не найден'));
+  } else {
     ok.style.display = 'block';
-    if (data.discount) {
+    if (data?.discount) {
       const sub=getTotal(), disc=data.discount, fee=Math.round((sub-disc)*.05), tot=sub-disc+fee;
       document.getElementById('coTotal').textContent   = tot+' ₽';
       document.getElementById('placeBtnT').textContent = tot+' ₽';
       ok.textContent = `✅ Скидка ${disc} ₽ применена!`;
     } else {
-      ok.textContent = '✅ Промокод применён!';
+      ok.textContent = '✅ Промокод принят!';
     }
     toast('✅ Промокод применён!');
-  } else {
-    err.style.display = 'block';
-    err.textContent = data?.err || data?.message || 'Промокод не найден';
-    toast('❌ '+(data?.err||'Промокод не найден'));
   }
 }
 
@@ -1151,10 +1160,8 @@ async function applyCoPromo() {
 // ОФОРМЛЕНИЕ
 // ══════════════════════════════════════════════════════════
 function updateCoMap() {
-  const zoom = 16;
-  const imgUrl = `https://static-maps.yandex.ru/1.x/?lang=ru_RU&ll=${LON},${LAT}&z=${zoom}&l=map&size=450,150&pt=${LON},${LAT},pm2rdm`;
   const el = document.getElementById('coMapImg');
-  if (el) { el.src=imgUrl; el.style.display=''; }
+  if (el) { el.src=`https://static-maps.yandex.ru/1.x/?lang=ru_RU&ll=${LON},${LAT}&z=16&l=map&size=450,150&pt=${LON},${LAT},pm2rdm`; el.style.display=''; }
   const hint = document.getElementById('coMapHint');
   if (hint) hint.textContent = ADDR.short || 'Нажмите чтобы изменить';
 }
@@ -1172,10 +1179,10 @@ async function renderCO() {
   updateCoMap();
 
   if (cart.slug) {
-    const d = await POST('/api/v2/cart/go-checkout', {
-      place_slug: cart.slug,
+    // go-checkout — точный URL из HAR с координатами в query
+    const d = await POST(`/api/v2/cart/go-checkout?longitude=${LON}&latitude=${LAT}`, {
       address: addrObj(),
-      plus_subscription_toggle_state: null
+      place_slug: cart.slug
     });
     if (d?.address?.short_text) document.getElementById('coAddr').textContent = d.address.short_text;
     if (d?.delivery_time) document.getElementById('coTime').textContent = '~'+d.delivery_time+' мин';
@@ -1205,13 +1212,13 @@ function showPayOverlay(text='Создаём заказ...') {
   if (!ov) {
     ov = document.createElement('div');
     ov.id = 'sbp-overlay';
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:-apple-system,sans-serif;padding:32px;';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:-apple-system,sans-serif;padding:32px;';
     ov.innerHTML = `
       <div style="font-size:52px;margin-bottom:20px">💳</div>
       <div id="sbp-ov-title" style="font-size:18px;font-weight:700;text-align:center;margin-bottom:8px">Оплата</div>
-      <div id="sbp-ov-text" style="font-size:14px;color:rgba(255,255,255,.75);text-align:center;line-height:1.5">${text}</div>
+      <div id="sbp-ov-text" style="font-size:14px;color:rgba(255,255,255,.7);text-align:center;line-height:1.5">${text}</div>
       <div style="margin-top:28px;font-size:12px;color:rgba(255,255,255,.4)">Не закрывай приложение</div>
-      <button onclick="hidePayOverlay()" style="margin-top:24px;padding:12px 32px;border-radius:14px;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Отмена</button>`;
+      <button onclick="hidePayOverlay()" style="margin-top:24px;padding:12px 32px;border-radius:14px;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:14px;font-weight:600;cursor:pointer">Отмена</button>`;
     document.body.appendChild(ov);
   } else {
     ov.style.display = 'flex';
@@ -1228,123 +1235,111 @@ function updatePayOverlay(title, text) {
   if (t && title) t.textContent = title;
   if (tx && text) tx.textContent = text;
 }
-
 function openSbpLink(url) {
   const tg = window.Telegram?.WebApp;
-  if (tg && typeof tg.openLink === 'function') {
-    tg.openLink(url, { try_instant_view: false });
-  } else {
-    window.open(url, '_blank');
-  }
+  if (tg && typeof tg.openLink === 'function') tg.openLink(url, { try_instant_view: false });
+  else window.open(url, '_blank');
 }
 
 async function pollOrder(orderId, onSuccess, onFail) {
-  const MAX = 90; // ~3 мин
-  let n = 0;
-  let sbpOpened = false;
-
+  const MAX = 90;
+  let n = 0, sbpOpened = false;
   const tick = async () => {
     if (n++ > MAX) { hidePayOverlay(); onFail('Время ожидания истекло'); return; }
-    try {
-      const { status, data } = await POST_RAW(
-        '/eats/v1/eats-payments/v1/order/tracking',
-        { order_id: orderId }
-      );
-      if (!data) { setTimeout(tick, 2000); return; }
+    const { data } = await POST_RAW('/eats/v1/eats-payments/v1/order/tracking', { order_id: orderId });
+    if (!data) { setTimeout(tick, 2000); return; }
 
-      // Обновляем текст оверлея из transparentPayment или order.description
-      const tp = data.transparentPayment;
-      if (tp?.screen) {
-        updatePayOverlay(tp.screen.title?.text, tp.screen.text?.text);
-      } else if (data.order?.title) {
-        updatePayOverlay(data.order.title, data.order.description);
-      }
-
-      const pmt = data.order?.payment || {};
-      const ps  = pmt.status;
-
-      // Успех
-      if (ps === 'paid' || ps === 'success' || ps === 'completed') {
-        hidePayOverlay(); onSuccess(data); return;
-      }
-      // СБП — открываем ссылку в банк
-      if ((ps === 'sbp_required' || ps === 'sbp') && !sbpOpened) {
-        const sbpUrl = pmt.payload?.url;
-        if (sbpUrl) {
-          sbpOpened = true;
-          updatePayOverlay('Подтвердите оплату', 'Открываем ваш банк...');
-          setTimeout(() => openSbpLink(sbpUrl), 500);
-        }
-      }
-      // Ошибка
-      if (ps === 'failed' || ps === 'cancelled' || ps === 'error') {
-        hidePayOverlay(); onFail(pmt.error_message || 'Оплата не прошла'); return;
-      }
-      setTimeout(tick, 2000);
-    } catch(e) {
-      setTimeout(tick, 3000);
+    // Текст из transparentPayment — как в реальном ответе из HAR
+    const tp = data.transparentPayment;
+    if (tp?.screen) {
+      updatePayOverlay(tp.screen.title?.text, tp.screen.text?.text);
+    } else if (data.order?.title) {
+      updatePayOverlay(data.order.title, data.order.description);
     }
+
+    const pmt = data.order?.payment || {};
+    const ps  = pmt.status;
+
+    if (ps === 'paid' || ps === 'success' || ps === 'completed') {
+      hidePayOverlay(); onSuccess(data); return;
+    }
+    if ((ps === 'sbp_required' || ps === 'sbp') && !sbpOpened) {
+      const sbpUrl = pmt.payload?.url;
+      if (sbpUrl) {
+        sbpOpened = true;
+        updatePayOverlay('Подтвердите оплату', 'Открываем ваш банк...');
+        setTimeout(() => openSbpLink(sbpUrl), 500);
+      }
+    }
+    if (ps === 'failed' || ps === 'cancelled' || ps === 'error') {
+      hidePayOverlay(); onFail(pmt.error_message || 'Оплата не прошла'); return;
+    }
+    // check_after из ответа — реальный интервал
+    const delay = (data.meta?.check_after || 2) * 1000;
+    setTimeout(tick, delay);
   };
   tick();
 }
 
 // ══════════════════════════════════════════════════════════
 // ОФОРМИТЬ ЗАКАЗ
+// Из HAR: POST /api/v1/orders/pickup для самовывоза
+//         POST /api/v1/orders для доставки
 // ══════════════════════════════════════════════════════════
 async function placeOrder() {
   const btn = document.getElementById('placeBtn');
   btn.disabled = true; btn.textContent = '⏳ Оформляю...';
 
-  // Idempotency token — защита от двойных заказов
-  const idem = crypto.randomUUID();
+  const reqId = crypto.randomUUID().replace(/-/g,'') + '.' + crypto.randomUUID().replace(/-/g,'');
+  const idem  = crypto.randomUUID();
 
+  // Payload из HAR
   const payload = {
-    courier_options: [],
-    persons_quantity: 1,
-    request_id: crypto.randomUUID().replace(/-/g,'') + '.' + crypto.randomUUID().replace(/-/g,''),
-    location: { latitude: LAT, longitude: LON },
-    comment: document.getElementById('coComment').value || '',
-    payment: { recently_link_cards: false },
     payment_method_id: payType==='sbp' ? 5 : payType==='cash' ? 1 : 2,
-    place_slug: cart.slug,
     phone: '+70000000000',
-    extended_options: [{ type: 'delivery_options' }],
-    address: addrObj(),
+    change_on: 0,
+    persons_quantity: 1,
     payment_information: {
       type: payType,
+      costForCustomer: String(getTotal())+'.00',
       id: payId,
-      costForCustomer: String(getTotal())
-    }
+      currency: 'RUB'
+    },
+    extended_options: [],
+    payment: { recently_link_cards: false },
+    place_slug: cart.slug,
+    request_id: reqId,
+    comment: document.getElementById('coComment').value || '',
   };
+
+  // Для доставки добавляем адрес и location
+  if (shipType === 'delivery') {
+    payload.location = { latitude: LAT, longitude: LON };
+    payload.address  = addrObj();
+  }
+
+  // Endpoint зависит от типа доставки (из HAR)
+  const endpoint = shipType === 'pickup' ? '/api/v1/orders/pickup' : '/api/v1/orders';
 
   showPayOverlay('Создаём заказ...');
 
-  const { status, data } = await POST_WITH_IDEMPOTENCY('/api/v1/orders', payload, idem);
+  const { status, data } = await POST_RAW(endpoint, payload, { 'X-Idempotency-Token': idem });
+
+  btn.disabled=false; btn.textContent='Оформить';
 
   if (!data?.order_nr) {
     hidePayOverlay();
-    const msg = data?.message || data?.err || `Ошибка ${status}`;
-    toast('❌ '+msg);
-    btn.disabled=false; btn.textContent='Оформить';
+    toast('❌ '+(data?.message||data?.err||`Ошибка ${status}`));
     return;
   }
 
   const orderId = data.order_nr;
-  console.log('[ORDER]', orderId);
   clearCart();
-  btn.disabled=false; btn.textContent='Оформить';
 
-  // Запускаем поллинг оплаты
   pollOrder(
     orderId,
-    () => { // Успех
-      toast('✅ Заказ оплачен!');
-      trackOrder(orderId);
-    },
-    (err) => { // Ошибка
-      toast('❌ '+err);
-      trackOrder(orderId); // Всё равно показываем экран заказа
-    }
+    () => { toast('✅ Заказ оплачен!'); trackOrder(orderId); },
+    (err) => { toast('❌ '+err); trackOrder(orderId); }
   );
 }
 
@@ -1358,7 +1353,7 @@ function trackOrder(nr) {
 }
 
 // ══════════════════════════════════════════════════════════
-// АДРЕС
+// АДРЕС — persuggest из HAR вместо eats-addresses
 // ══════════════════════════════════════════════════════════
 const CITIES = [
   {n:'Москва',lat:55.7558,lon:37.6176},{n:'Санкт-Петербург',lat:59.9343,lon:30.3351},
@@ -1367,7 +1362,6 @@ const CITIES = [
   {n:'Краснодар',lat:45.0355,lon:38.9753},{n:'Ростов-на-Дону',lat:47.2357,lon:39.7015},
   {n:'Воронеж',lat:51.6683,lon:39.1922},{n:'Самара',lat:53.1959,lon:50.1801},
   {n:'Уфа',lat:54.7353,lon:55.9587},{n:'Омск',lat:54.9885,lon:73.3242},
-  {n:'Красноярск',lat:56.0184,lon:92.8672},{n:'Волгоград',lat:48.7081,lon:44.5133},
 ];
 
 function resetAddrResults() {
@@ -1397,35 +1391,41 @@ function closeAddr() {
 function onAddrInput(v) {
   clearTimeout(addrTimer);
   if (v.length<2){resetAddrResults();return;}
-  addrTimer = setTimeout(()=>suggestAddr(v), 450);
+  addrTimer = setTimeout(()=>suggestAddr(v), 400);
 }
 
 async function suggestAddr(text) {
   const el = document.getElementById('addrRes');
   el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
-  const d = await POST('/eats/v1/eats-addresses/v1/suggest', {
-    text,
-    location: { latitude: LAT, longitude: LON },
-    locale: 'ru'
+
+  // Из HAR — persuggest/v1/suggest (POST)
+  const d = await POST('/eats/v1/persuggest/v1/suggest', {
+    action: 'user_input',
+    type: 'a',
+    part: text,
+    state: {
+      current_mode: 'eats',
+      location: [LON, LAT],
+      bbox: [LON-1, LAT-0.5, LON+1, LAT+0.5]
+    }
   });
+
   const geo = `<div class="addr-ri" onclick="useGeo()"><div class="ari-ic">🎯</div><div><div class="ari-main">Моё местоположение</div><div class="ari-sub">Определить автоматически</div></div></div>`;
-  const items = d?.suggests || d?.items || d?.results || [];
+
+  const items = d?.results || d?.suggests || d?.items || [];
   if (!items.length) {
-    el.innerHTML = geo + `<div style="text-align:center;padding:24px 16px;color:var(--gt)">Адрес не найден по запросу "<b>${text}</b>"<br><br><span style="font-size:12px">Попробуйте: "Москва Тверская 1"</span></div>` +
+    el.innerHTML = geo + `<div style="text-align:center;padding:24px 16px;color:var(--gt)">Не найдено по "<b>${text}</b>"<br><br><span style="font-size:12px">Попробуйте: "Тверская 1 Москва"</span></div>` +
       CITIES.slice(0,6).map(c=>`<div class="addr-ri" onclick="setCity('${c.n}',${c.lat},${c.lon})"><div class="ari-ic">🏙️</div><div><div class="ari-main">${c.n}</div></div></div>`).join('');
     return;
   }
+
   el.innerHTML = geo + items.slice(0,12).map(s=>{
-    const title = s.title?.text||s.title||s.full_text||s.short_text||s.text||s.name||'';
-    const sub   = s.subtitle?.text||s.subtitle||s.description||'';
-    const lat   = s.point?.lat||s.point?.latitude||s.coordinates?.latitude||s.location?.latitude||0;
-    const lon   = s.point?.lon||s.point?.longitude||s.coordinates?.longitude||s.location?.longitude||0;
-    const comps = s.component||s.address_components||[];
-    const gc    = kind=>comps.find?.(c=>c.kind===kind||c.type===kind)?.name||'';
-    const city  = s.city||gc('locality')||gc('city')||'';
-    const street= s.street||gc('street')||'';
-    const house = s.house||gc('house')||gc('number')||'';
-    const ad    = {title:title||sub, sub:sub||title, lat, lon, city, street, house};
+    // persuggest возвращает: title, subtitle, point: {lat, lon}
+    const title = s.title?.text || s.title || s.name || s.text || '';
+    const sub   = s.subtitle?.text || s.subtitle || s.description || '';
+    const lat   = s.point?.lat || s.coordinates?.latitude || 0;
+    const lon   = s.point?.lon || s.coordinates?.longitude || 0;
+    const ad    = { title: title||sub, sub: sub||title, lat, lon, city: s.city||'', street: s.street||'', house: s.house||'' };
     return `<div class="addr-ri" onclick='selAddr(${JSON.stringify(ad)})'>
       <div class="ari-ic">📍</div>
       <div>
@@ -1444,15 +1444,14 @@ function selAddr(data) {
   document.getElementById('addrTxt').textContent = ADDR.short;
   const coAddrEl = document.getElementById('coAddr');
   if (coAddrEl) coAddrEl.textContent = ADDR.short;
-  updateCoMap();
-  closeAddr(); toast('📍 '+ADDR.short);
+  updateCoMap(); closeAddr(); toast('📍 '+ADDR.short);
   ALL_RESTS=[]; RESTS=[];
   if (curScreen==='checkout'){renderCO();return;}
   loadRests();
 }
-function setCity(name,lat,lon) {
+function setCity(name, lat, lon) {
   LAT=parseFloat(lat); LON=parseFloat(lon);
-  ADDR={short:name,full:name,city:name,street:'',house:'',country:'Россия'};
+  ADDR={short:name, full:name, city:name, street:'', house:'', country:'Россия'};
   document.getElementById('addrTxt').textContent=name;
   const coAddrEl=document.getElementById('coAddr');
   if (coAddrEl) coAddrEl.textContent=name;
@@ -1466,10 +1465,17 @@ function useGeo() {
   toast('⏳ Определяю...');
   navigator.geolocation.getCurrentPosition(async pos=>{
     LAT=pos.coords.latitude; LON=pos.coords.longitude;
-    const d=await POST('/eats/v1/eats-addresses/v1/geocode',{point:{lat:LAT,lon:LON},locale:'ru'});
-    const a=d?.address||{};
-    const short=a.short_text||a.title||`${LAT.toFixed(4)}, ${LON.toFixed(4)}`;
-    ADDR={short,full:a.full_text||short,city:a.city||'',street:a.street||'',house:a.house||'',country:'Россия'};
+    // finalsuggest с pin_drop для геолокации — из HAR
+    const d=await POST('/eats/v1/persuggest/v1/finalsuggest', {
+      action: 'pin_drop',
+      state: { current_mode: 'eats' },
+      position: [LON, LAT],
+      sticky: false,
+      type: 'a'
+    });
+    const a=d?.result||d?.address||{};
+    const short=a.short_text||a.title||a.name||`${LAT.toFixed(4)}, ${LON.toFixed(4)}`;
+    ADDR={short, full:a.full_text||a.subtitle||short, city:a.city||'', street:a.street||'', house:a.house||'', country:'Россия'};
     document.getElementById('addrTxt').textContent=short;
     const coAddrEl2=document.getElementById('coAddr');
     if (coAddrEl2) coAddrEl2.textContent=short;
@@ -1481,24 +1487,25 @@ function useGeo() {
 }
 
 // ══════════════════════════════════════════════════════════
-// ПРОФИЛЬ: ЗАКАЗЫ
+// ПРОФИЛЬ: ЗАКАЗЫ — правильный endpoint из HAR
+// POST /eats/v1/orders-info/v1/orders
 // ══════════════════════════════════════════════════════════
 async function loadOrders() {
   const el=document.getElementById('ordersC');
   el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-  const d=await GET('/api/v1/user/orders?page=1&limit=20');
+  const d=await POST('/eats/v1/orders-info/v1/orders', { goods_items_limit: 6 });
   if (d?.orders?.length) {
     el.innerHTML='<div class="ord-list">'+d.orders.map(o=>{
-      const dt=o.created_at?new Date(o.created_at).toLocaleDateString('ru',{day:'numeric',month:'long'}):'';
-      const st=o.status||'delivered';
-      const sc={delivered:'ob-ok',cancelled:'ob-no',pending:'ob-pend',cooking:'ob-pend'};
-      const sl={delivered:'Доставлен',cancelled:'Отменён',pending:'В обработке',cooking:'Готовится'};
-      const items=(o.items||[]).slice(0,2).map(i=>i.name||i.n||'').join(', ');
+      const gen = o.widgets?.general || {};
+      const dt  = gen.date || '';
+      const st  = gen.status?.text || 'Доставлен';
+      const stColor = gen.status?.color?.[0]?.value || '#029154';
+      const items = (o.widgets?.goods?.items||[]).slice(0,2).map(i=>i.title||'').join(', ');
       return `<div class="ord-card">
-        <div class="oc-head"><span class="oc-nr">№ ${o.order_nr||o.id||'—'}</span><span class="oc-dt">${dt}</span></div>
-        <div class="oc-rest">${o.place_name||''}</div>
-        ${items?`<div class="oc-items">${items}${(o.items||[]).length>2?'...':''}</div>`:''}
-        <div class="oc-foot"><span class="oc-tot">${o.total||o.cost||0} ₽</span><span class="ob ${sc[st]||'ob-ok'}">${sl[st]||'Доставлен'}</span></div>
+        <div class="oc-head"><span class="oc-nr">№ ${o.order_nr||'—'}</span><span class="oc-dt">${dt}</span></div>
+        <div class="oc-rest">${gen.name||''}</div>
+        ${items?`<div class="oc-items">${items}${(o.widgets?.goods?.items||[]).length>2?'...':''}</div>`:''}
+        <div class="oc-foot"><span class="oc-tot">${gen.cost_value||''} ₽</span><span class="ob" style="background:${stColor}22;color:${stColor}">${st}</span></div>
       </div>`;
     }).join('')+'</div>';
     document.getElementById('piOrd').textContent=d.orders.length+' заказов';
@@ -1507,9 +1514,7 @@ async function loadOrders() {
   }
 }
 
-// ══════════════════════════════════════════════════════════
-// ПРОФИЛЬ: АДРЕСА
-// ══════════════════════════════════════════════════════════
+// АДРЕСА
 async function loadAddresses() {
   const el=document.getElementById('addressesC');
   el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
@@ -1534,14 +1539,12 @@ async function loadAddresses() {
   el.innerHTML=html;
 }
 
-// ══════════════════════════════════════════════════════════
-// ПРОФИЛЬ: ОПЛАТА
-// ══════════════════════════════════════════════════════════
+// ОПЛАТА
 async function loadPayments() {
   const el=document.getElementById('paymentsC');
   el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
   const slug=cart.slug||(ALL_RESTS[0]?.slug)||'';
-  const d=slug?await POST('/api/v2/cart/go-checkout',{place_slug:slug,address:addrObj()}):null;
+  const d=slug?await POST(`/api/v2/cart/go-checkout?longitude=${LON}&latitude=${LON}`,{place_slug:slug,address:addrObj()}):null;
   const icons={sbp:'⚡',card:'💳',cash:'💵',wallet:'👛'};
   const cols={sbp:'#e8f8ee',card:'#eef2ff',cash:'#fff5d0',wallet:'#fef9ee'};
   if (d?.payment_methods?.length) {
@@ -1551,21 +1554,15 @@ async function loadPayments() {
     </div>`;}).join('');
   } else {
     el.innerHTML='<div class="pay-card"><div class="pc-ic" style="background:#e8f8ee">⚡</div><div class="pc-bd"><div class="pc-nm">СБП</div></div></div>'+
-      '<div class="pay-card"><div class="pc-ic" style="background:#eef2ff">💳</div><div class="pc-bd"><div class="pc-nm">Банковская карта</div></div></div>'+
-      '<div class="pay-card"><div class="pc-ic" style="background:#fff5d0">💵</div><div class="pc-bd"><div class="pc-nm">Наличные</div></div></div>';
+      '<div class="pay-card"><div class="pc-ic" style="background:#eef2ff">💳</div><div class="pc-bd"><div class="pc-nm">Банковская карта</div></div></div>';
   }
 }
 
-// ══════════════════════════════════════════════════════════
-// ПРОФИЛЬ: ПРОМОКОДЫ
-// ══════════════════════════════════════════════════════════
+// ПРОМОКОДЫ — из HAR body просто {cart_id}
 async function loadPromos() {
   const el=document.getElementById('promosC');
   el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-  const d=await POST('/api/v1/user/promocodes',{
-    cart_id: cart.id || '',
-    payment:{payment_method_id: payId||'sbp', type: payType||'sbp'}
-  });
+  const d=await POST('/api/v1/user/promocodes', cartId ? { cart_id: cartId } : {});
   if (d?.promocodes?.length) {
     el.innerHTML=d.promocodes.map(p=>
       `<div class="promo-card">
@@ -1575,23 +1572,18 @@ async function loadPromos() {
       </div>`).join('');
     document.getElementById('piPromo').textContent=d.promocodes.length+' промокода(ов)';
   } else {
-    el.innerHTML='<div class="empty"><div class="e-ic">🏷️</div><div class="e-t">Промокодов нет</div><div class="e-s">Введите промокод при оформлении заказа</div></div>';
+    el.innerHTML='<div class="empty"><div class="e-ic">🏷️</div><div class="e-t">Промокодов нет</div><div class="e-s">Введите промокод при оформлении</div></div>';
   }
 }
 
-// ══════════════════════════════════════════════════════════
 // ПОДДЕРЖКА
-// ══════════════════════════════════════════════════════════
 function sendSup() {
   const inp=document.getElementById('supInp');
   const text=inp.value.trim(); if (!text) return;
   const c=document.getElementById('supChat');
   c.innerHTML+=`<div class="sm sm-u">${text}</div>`;
   inp.value=''; c.scrollTop=c.scrollHeight;
-  const rs=['Спасибо за обращение! Передаю оператору.',
-    'Понял вас. Обычно отвечаем в течение 5 минут.',
-    'Ваш запрос зарегистрирован под #'+Math.floor(10000+Math.random()*90000),
-    'Рассмотрим вашу проблему как можно скорее!'];
+  const rs=['Спасибо за обращение! Передаю оператору.','Понял вас. Обычно отвечаем в течение 5 минут.','Ваш запрос зарегистрирован под #'+Math.floor(10000+Math.random()*90000)];
   setTimeout(()=>{
     c.innerHTML+=`<div class="sm sm-b">${rs[Math.floor(Math.random()*rs.length)]}</div>`;
     c.scrollTop=c.scrollHeight;
