@@ -2,1812 +2,1101 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Яндекс Еда</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=YS+Display:wght@400;500;700&family=YS+Text:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root {
-  --red: #FC3F1D;
-  --red-d: #E8331A;
-  --bg: #F5F4F2;
-  --white: #fff;
-  --text: #21201F;
-  --sec: #9E9B98;
-  --border: #E0DEDA;
-  --green: #1E8B24;
-  --blue: #0F7DE8;
-  --r: 16px;
-  --rs: 10px;
-  --bh: 52px;
-  --safe-b: env(safe-area-inset-bottom, 0px);
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overscroll-behavior:none}
-body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+  :root {
+    --yellow: #FC3F1D;
+    --yellow-light: #FF6B47;
+    --bg: #F5F5F5;
+    --white: #FFFFFF;
+    --text: #1A1A1A;
+    --text-secondary: #999;
+    --border: #EDEDED;
+    --card-bg: #FFFFFF;
+    --radius: 16px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; overflow:hidden; background:var(--bg); font-family:'YS Text','SF Pro Text',system-ui,sans-serif; color:var(--text); }
 
-.scr{display:none;min-height:100vh;animation:fadeIn .2s ease}
-.scr.on{display:block}
-@keyframes fadeIn{from{opacity:.6;transform:translateY(4px)}to{opacity:1;transform:none}}
+  /* ── SPLASH ── */
+  #splash {
+    position:fixed; inset:0; background:#FC3F1D; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; z-index:9999; transition:opacity .4s;
+  }
+  #splash.hide { opacity:0; pointer-events:none; }
+  .splash-logo { font-size:48px; font-weight:700; color:#fff; letter-spacing:-2px; }
+  .splash-sub { color:rgba(255,255,255,.7); font-size:14px; margin-top:8px; }
 
-.hdr{position:sticky;top:0;z-index:100;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:11px 16px;min-height:52px}
-.hdr-title{font-size:17px;font-weight:600;flex:1}
-.hdr-sub{font-size:12px;color:var(--sec)}
-.back{width:36px;height:36px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  /* ── LAYOUT ── */
+  #app { height:100%; display:flex; flex-direction:column; }
+  #content { flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
+  #content::-webkit-scrollbar { display:none; }
 
-.bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--white);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-b)}
-.bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0;border:none;background:none;cursor:pointer;color:var(--sec);font-size:10px;font-weight:500;transition:color .15s}
-.bn.on{color:var(--red)}
-.bn svg{transition:transform .15s}
-.bn.on svg{transform:scale(1.1)}
+  /* ── BOTTOM NAV ── */
+  #nav {
+    display:flex; background:var(--white); border-top:1px solid var(--border);
+    padding-bottom:calc(8px + var(--safe-bottom)); padding-top:8px;
+    position:relative; z-index:100;
+  }
+  .nav-item {
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+    cursor:pointer; padding:4px 0; border:none; background:none;
+  }
+  .nav-icon { font-size:22px; line-height:1; transition:.2s; }
+  .nav-label { font-size:10px; color:var(--text-secondary); transition:.2s; font-weight:500; }
+  .nav-item.active .nav-label { color:var(--yellow); }
+  .nav-item.active .nav-icon { transform:scale(1.1); }
+  .cart-badge {
+    position:relative; display:inline-block;
+  }
+  .cart-count {
+    position:absolute; top:-6px; right:-8px; background:var(--yellow); color:#fff;
+    font-size:9px; font-weight:700; border-radius:99px; padding:1px 5px;
+    display:none;
+  }
 
-.page{padding-bottom:calc(62px + var(--safe-b))}
+  /* ── TOP BAR ── */
+  .top-bar {
+    background:var(--white); padding:12px 16px 8px;
+    position:sticky; top:0; z-index:50; border-bottom:1px solid var(--border);
+  }
+  .top-bar-row { display:flex; align-items:center; gap:8px; }
+  .location-btn {
+    flex:1; display:flex; align-items:center; gap:6px; cursor:pointer;
+    border:none; background:none; text-align:left; padding:0;
+  }
+  .location-pin { font-size:16px; }
+  .location-text { font-size:14px; font-weight:600; color:var(--text); max-width:220px; }
+  .location-sub { font-size:11px; color:var(--text-secondary); }
+  .avatar-btn {
+    width:36px; height:36px; border-radius:50%; background:var(--yellow);
+    color:#fff; font-weight:700; font-size:14px; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .search-bar {
+    margin-top:10px; display:flex; align-items:center; gap:8px;
+    background:var(--bg); border-radius:12px; padding:10px 14px;
+    cursor:pointer;
+  }
+  .search-icon { font-size:16px; color:var(--text-secondary); }
+  .search-placeholder { font-size:14px; color:var(--text-secondary); }
 
-.loader{display:flex;flex-direction:column;align-items:center;gap:12px;padding:60px 20px}
-.spin{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:sp .7s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-.loader-t{font-size:14px;color:var(--sec)}
+  /* ── HOME PAGE ── */
+  .section-title {
+    font-size:20px; font-weight:700; padding:16px 16px 8px;
+    font-family:'YS Display',sans-serif;
+  }
 
-.err-box{margin:16px;padding:14px;border-radius:var(--r);background:#FFF3F0;border:1px solid #FFCDC5;font-size:14px;color:#C0392B;line-height:1.5}
+  /* Promo banners */
+  .banners { display:flex; gap:12px; padding:8px 16px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .banners::-webkit-scrollbar { display:none; }
+  .banner {
+    flex-shrink:0; width:260px; height:120px; border-radius:16px;
+    display:flex; align-items:flex-end; padding:14px; cursor:pointer;
+    position:relative; overflow:hidden;
+  }
+  .banner-1 { background:linear-gradient(135deg, #FF6B47 0%, #FC3F1D 100%); }
+  .banner-2 { background:linear-gradient(135deg, #7B61FF 0%, #4F3FC1 100%); }
+  .banner-3 { background:linear-gradient(135deg, #34C759 0%, #1A8A3A 100%); }
+  .banner-title { color:#fff; font-size:16px; font-weight:700; line-height:1.2; }
+  .banner-sub { color:rgba(255,255,255,.8); font-size:12px; margin-top:2px; }
+  .banner-emoji { position:absolute; right:16px; top:16px; font-size:40px; opacity:.9; }
 
-.search-wrap{padding:10px 16px;background:var(--white);border-bottom:1px solid var(--border)}
-.search{width:100%;height:40px;padding:0 12px 0 38px;border:none;border-radius:var(--rs);background:var(--bg);font-size:15px;outline:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none'%3E%3Ccircle cx='7' cy='7' r='5.5' stroke='%239E9B98' stroke-width='1.5'/%3E%3Cpath d='m13 13-2.5-2.5' stroke='%239E9B98' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:12px center}
+  /* Categories */
+  .categories { display:flex; gap:10px; padding:4px 16px 8px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .categories::-webkit-scrollbar { display:none; }
+  .cat-chip {
+    flex-shrink:0; padding:8px 16px; background:var(--white); border-radius:99px;
+    font-size:13px; font-weight:500; cursor:pointer; border:1.5px solid transparent;
+    white-space:nowrap; transition:.2s;
+  }
+  .cat-chip.active { border-color:var(--yellow); color:var(--yellow); background:#fff5f3; }
 
-.addr-bar{background:var(--white);padding:11px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);cursor:pointer}
-.addr-bar .av{flex:1;min-width:0}
-.addr-bar .al{font-size:11px;color:var(--sec)}
-.addr-bar .at{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Restaurant cards */
+  .rest-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:0 16px 16px; }
+  .rest-card {
+    background:var(--card-bg); border-radius:var(--radius); overflow:hidden;
+    cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.06); transition:.2s;
+    active { transform:scale(.98); }
+  }
+  .rest-card:active { transform:scale(.97); }
+  .rest-img {
+    width:100%; height:100px; object-fit:cover; background:#f0f0f0;
+    display:flex; align-items:center; justify-content:center; font-size:36px;
+  }
+  .rest-body { padding:10px; }
+  .rest-name { font-size:13px; font-weight:600; margin-bottom:4px; line-height:1.3; }
+  .rest-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .rest-rating { font-size:11px; color:#FF9500; font-weight:600; }
+  .rest-dot { font-size:8px; color:var(--text-secondary); }
+  .rest-time { font-size:11px; color:var(--text-secondary); }
+  .rest-min { font-size:11px; color:var(--text-secondary); }
+  .rest-tag {
+    display:inline-block; font-size:10px; padding:2px 7px; border-radius:99px;
+    background:#fff3f0; color:var(--yellow); font-weight:500; margin-top:4px;
+  }
 
-.sec-t{padding:18px 16px 10px;font-size:20px;font-weight:700}
-.sec-t2{font-size:16px;font-weight:600;padding:16px 16px 8px}
+  /* ── RESTAURANT PAGE ── */
+  .rest-header-img {
+    width:100%; height:180px; background:#f0f0f0;
+    display:flex; align-items:center; justify-content:center; font-size:72px;
+    position:relative;
+  }
+  .back-btn {
+    position:absolute; top:12px; left:12px; width:36px; height:36px;
+    background:rgba(255,255,255,.9); border-radius:50%; border:none;
+    font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,.15);
+  }
+  .rest-info { padding:16px; background:var(--white); border-bottom:1px solid var(--border); }
+  .rest-info-name { font-size:22px; font-weight:700; font-family:'YS Display',sans-serif; }
+  .rest-info-meta { display:flex; gap:16px; margin-top:8px; flex-wrap:wrap; }
+  .rest-info-pill {
+    display:flex; align-items:center; gap:4px; font-size:13px; color:var(--text-secondary);
+  }
 
-.r-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
-.r-card{background:var(--white);border-radius:var(--r);overflow:hidden;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.07);transition:transform .12s,box-shadow .12s}
-.r-card:active{transform:scale(.98);box-shadow:0 1px 2px rgba(0,0,0,.05)}
-.r-img{width:100%;height:156px;object-fit:cover;background:var(--bg)}
-.r-img-ph{width:100%;height:156px;background:linear-gradient(135deg,#f0ede8,#e0dbd3);display:flex;align-items:center;justify-content:center;font-size:50px}
-.r-body{padding:12px 14px 14px}
-.r-name{font-size:16px;font-weight:600;margin-bottom:4px}
-.r-meta{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--sec)}
-.dot{width:3px;height:3px;border-radius:50%;background:var(--sec)}
-.r-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
-.tag{padding:3px 8px;border-radius:6px;background:var(--bg);font-size:12px;color:var(--sec)}
-.tag.g{background:#EDFBEE;color:var(--green)}
-.tag.r{background:#FFF0ED;color:var(--red)}
+  .menu-section { padding:8px 0; }
+  .menu-section-title { font-size:17px; font-weight:700; padding:12px 16px 8px; }
+  .menu-item {
+    display:flex; align-items:center; gap:12px; padding:12px 16px;
+    background:var(--white); border-bottom:1px solid var(--border); cursor:pointer;
+    transition:.1s;
+  }
+  .menu-item:active { background:#fafafa; }
+  .menu-item-img {
+    width:72px; height:72px; border-radius:12px; background:#f5f5f5; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:32px; overflow:hidden;
+  }
+  .menu-item-img img { width:100%; height:100%; object-fit:cover; border-radius:12px; }
+  .menu-item-body { flex:1; }
+  .menu-item-name { font-size:15px; font-weight:600; line-height:1.3; }
+  .menu-item-desc { font-size:12px; color:var(--text-secondary); margin-top:3px; line-height:1.4; }
+  .menu-item-price { font-size:15px; font-weight:700; margin-top:6px; }
+  .menu-item-add {
+    width:36px; height:36px; background:var(--yellow); border-radius:50%; border:none;
+    color:#fff; font-size:22px; cursor:pointer; display:flex; align-items:center;
+    justify-content:center; flex-shrink:0; transition:.1s;
+  }
+  .menu-item-add:active { transform:scale(.9); }
+  .item-qty-ctrl {
+    display:flex; align-items:center; gap:0; border:1.5px solid var(--yellow);
+    border-radius:99px; overflow:hidden; flex-shrink:0;
+  }
+  .item-qty-btn {
+    width:32px; height:32px; background:none; border:none; color:var(--yellow);
+    font-size:18px; cursor:pointer; font-weight:700; display:flex;
+    align-items:center; justify-content:center;
+  }
+  .item-qty-num { font-size:14px; font-weight:700; min-width:20px; text-align:center; }
 
-.menu-hero{width:100%;height:190px;object-fit:cover;display:block}
-.menu-hero-ph{width:100%;height:190px;background:linear-gradient(135deg,#f0ede8,#e0dbd3);display:flex;align-items:center;justify-content:center;font-size:60px}
-.menu-info{background:var(--white);padding:14px 16px}
-.menu-info h1{font-size:21px;font-weight:700}
-.menu-info .mm{font-size:13px;color:var(--sec);margin-top:4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  /* ── CART PAGE ── */
+  .cart-empty { text-align:center; padding:80px 24px; }
+  .cart-empty-icon { font-size:64px; margin-bottom:16px; }
+  .cart-empty-title { font-size:18px; font-weight:700; margin-bottom:8px; }
+  .cart-empty-sub { font-size:14px; color:var(--text-secondary); }
 
-.cats{display:flex;gap:8px;padding:11px 16px;overflow-x:auto;scrollbar-width:none;background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:50}
-.cats::-webkit-scrollbar{display:none}
-.cat{padding:7px 14px;border-radius:20px;border:none;background:var(--bg);font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--sec);transition:background .15s,color .15s}
-.cat.on{background:var(--text);color:#fff}
+  .cart-item {
+    display:flex; align-items:center; gap:12px; padding:14px 16px;
+    background:var(--white); border-bottom:1px solid var(--border);
+  }
+  .cart-item-img {
+    width:56px; height:56px; border-radius:10px; background:#f5f5f5; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:26px; overflow:hidden;
+  }
+  .cart-item-img img { width:100%; height:100%; object-fit:cover; border-radius:10px; }
+  .cart-item-body { flex:1; }
+  .cart-item-name { font-size:14px; font-weight:600; }
+  .cart-item-price { font-size:13px; color:var(--text-secondary); margin-top:2px; }
 
-.menu-sec{padding:0 16px}
-.menu-sec-t{font-size:18px;font-weight:700;padding:18px 0 10px}
-.m-items{display:flex;flex-direction:column;gap:1px;margin-bottom:16px}
-.m-item{background:var(--white);display:flex;align-items:center;gap:11px;padding:13px;cursor:pointer}
-.m-item:first-child{border-radius:var(--r) var(--r) 0 0}
-.m-item:last-child{border-radius:0 0 var(--r) var(--r)}
-.m-item:only-child{border-radius:var(--r)}
-.m-item:active{background:var(--bg)}
-.m-img{width:78px;height:78px;border-radius:11px;object-fit:cover;background:var(--bg);flex-shrink:0}
-.m-img-ph{width:78px;height:78px;border-radius:11px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0}
-.m-info{flex:1;min-width:0}
-.m-name{font-size:15px;font-weight:500;margin-bottom:3px}
-.m-desc{font-size:13px;color:var(--sec);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:5px}
-.m-price{font-size:15px;font-weight:600}
-.add-btn{width:36px;height:36px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:22px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:transform .1s,background .1s}
-.add-btn:active{transform:scale(.88);background:var(--red-d)}
-.qty{display:flex;align-items:center;gap:7px;flex-shrink:0}
-.qb{width:30px;height:30px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--text)}
-.qn{font-size:15px;font-weight:600;min-width:18px;text-align:center}
+  .cart-total-box {
+    background:var(--white); margin:12px 16px; border-radius:16px;
+    padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.06);
+  }
+  .cart-row { display:flex; justify-content:space-between; padding:4px 0; font-size:14px; }
+  .cart-row.total { font-weight:700; font-size:16px; border-top:1px solid var(--border); padding-top:12px; margin-top:8px; }
 
-.cart-fab{position:fixed;bottom:calc(62px + var(--safe-b) + 12px);left:16px;right:16px;z-index:150}
-.cart-fab-btn{width:100%;height:var(--bh);background:var(--red);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0 20px;box-shadow:0 4px 20px rgba(252,63,29,.4);transition:background .15s,transform .1s}
-.cart-fab-btn:active{background:var(--red-d);transform:scale(.98)}
-.cfb-c{background:rgba(255,255,255,.25);border-radius:8px;padding:4px 10px;font-size:14px}
+  .order-btn {
+    display:block; width:calc(100% - 32px); margin:0 16px 16px; padding:16px;
+    background:var(--yellow); color:#fff; border:none; border-radius:14px;
+    font-size:16px; font-weight:700; cursor:pointer; text-align:center;
+    transition:.15s;
+  }
+  .order-btn:active { transform:scale(.98); background:var(--yellow-light); }
+  .order-btn:disabled { background:#ccc; cursor:not-allowed; }
 
-.cart-list{padding:10px 16px;display:flex;flex-direction:column;gap:1px}
-.ci{background:var(--white);display:flex;align-items:center;gap:11px;padding:13px}
-.ci:first-child{border-radius:var(--r) var(--r) 0 0}
-.ci:last-child{border-radius:0 0 var(--r) var(--r)}
-.ci:only-child{border-radius:var(--r)}
-.ci-img{width:54px;height:54px;border-radius:9px;object-fit:cover;background:var(--bg);flex-shrink:0}
-.ci-name{flex:1;font-size:15px}
-.ci-p{font-size:13px;color:var(--sec);margin-top:2px}
+  /* ── ORDERS PAGE ── */
+  .order-card {
+    background:var(--white); border-radius:16px; margin:0 16px 12px; padding:16px;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+  }
+  .order-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .order-card-name { font-size:16px; font-weight:700; }
+  .order-status {
+    font-size:11px; font-weight:600; padding:4px 10px; border-radius:99px;
+  }
+  .status-active { background:#FFF3E0; color:#E65100; }
+  .status-done { background:#E8F5E9; color:#2E7D32; }
+  .status-cancelled { background:#FFEBEE; color:#C62828; }
+  .order-card-meta { font-size:12px; color:var(--text-secondary); }
+  .order-card-items { font-size:13px; margin-top:8px; color:var(--text); }
+  .order-card-total { font-size:15px; font-weight:700; margin-top:8px; }
 
-.card{background:var(--white);border-radius:var(--r);overflow:hidden;margin:0 16px 12px}
-.card-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)}
-.card-row:last-child{border-bottom:none}
-.card-row-lbl{font-size:15px}
-.card-row-val{font-size:15px;font-weight:500}
-.card-row-val.g{color:var(--green)}
-.card-row-val.total{font-size:17px;font-weight:700}
-.card-row-val.s{color:var(--sec)}
-.card-btn{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;background:none;border-top:none;border-left:none;border-right:none;width:100%;text-align:left}
-.card-btn:last-child{border-bottom:none}
-.card-btn:active{background:var(--bg)}
-.cb-l{font-size:15px;color:var(--text)}
-.cb-v{font-size:14px;color:var(--sec);display:flex;align-items:center;gap:5px}
+  /* ── PROFILE ── */
+  .profile-header {
+    background:var(--yellow); padding:32px 16px 24px;
+    display:flex; align-items:center; gap:16px;
+  }
+  .profile-avatar {
+    width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,.3);
+    display:flex; align-items:center; justify-content:center;
+    font-size:28px; font-weight:700; color:#fff; flex-shrink:0;
+  }
+  .profile-name { color:#fff; font-size:20px; font-weight:700; }
+  .profile-uid { color:rgba(255,255,255,.7); font-size:12px; margin-top:2px; }
 
-.promo-wrap{display:flex;gap:9px;padding:10px 16px 0}
-.promo-in{flex:1;height:44px;padding:0 13px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;outline:none;background:var(--white);transition:border-color .2s}
-.promo-in:focus{border-color:var(--red)}
-.promo-btn{height:44px;padding:0 16px;background:var(--text);color:#fff;border:none;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
-.promo-btn:active{background:#3a3a3a}
-.promo-msg{padding:7px 16px 0;font-size:13px}
-.promo-msg.ok{color:var(--green)}
-.promo-msg.er{color:var(--red)}
+  .menu-list { background:var(--white); }
+  .menu-list-item {
+    display:flex; align-items:center; gap:14px; padding:16px;
+    border-bottom:1px solid var(--border); cursor:pointer;
+  }
+  .menu-list-item:active { background:#f9f9f9; }
+  .menu-list-icon { font-size:22px; width:32px; text-align:center; }
+  .menu-list-text { flex:1; font-size:15px; font-weight:500; }
+  .menu-list-arrow { color:var(--text-secondary); font-size:14px; }
 
-.pay-m{background:var(--white);display:flex;align-items:center;gap:13px;padding:13px 16px;cursor:pointer;transition:background .1s;border-bottom:1px solid var(--border)}
-.pay-m:last-child{border-bottom:none}
-.pay-m:first-child{border-radius:var(--r) var(--r) 0 0}
-.pay-m:last-child{border-radius:0 0 var(--r) var(--r)}
-.pay-m:active{background:var(--bg)}
-.pay-ico{width:42px;height:30px;border-radius:5px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
-.pay-nm{flex:1;font-size:15px}
-.pay-sub{font-size:12px;color:var(--sec);margin-top:2px}
-.pay-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,border-color .15s}
-.pay-m.sel .pay-chk{background:var(--red);border-color:var(--red)}
+  /* ── LOADING ── */
+  .loading { display:flex; align-items:center; justify-content:center; height:200px; }
+  .spinner {
+    width:36px; height:36px; border:3px solid var(--border);
+    border-top-color:var(--yellow); border-radius:50%; animation:spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
 
-.pers{display:flex;align-items:center;gap:11px}
-.pb{width:32px;height:32px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--text)}
-.pb:active{background:var(--border)}
-.pn{font-size:16px;font-weight:600;min-width:22px;text-align:center}
+  /* ── ADDRESS MODAL ── */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200;
+    display:flex; align-items:flex-end; opacity:0; pointer-events:none; transition:.3s;
+  }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal-sheet {
+    width:100%; background:var(--white); border-radius:20px 20px 0 0;
+    padding:20px; max-height:80vh; overflow-y:auto;
+    transform:translateY(100%); transition:.3s;
+  }
+  .modal-overlay.open .modal-sheet { transform:translateY(0); }
+  .modal-handle {
+    width:40px; height:4px; background:var(--border);
+    border-radius:99px; margin:0 auto 16px;
+  }
+  .modal-title { font-size:18px; font-weight:700; margin-bottom:16px; }
+  .addr-input {
+    width:100%; padding:14px; border:1.5px solid var(--border);
+    border-radius:12px; font-size:15px; outline:none; font-family:inherit;
+    background:var(--bg); transition:.2s;
+  }
+  .addr-input:focus { border-color:var(--yellow); background:#fff; }
+  .suggest-item {
+    padding:14px; border-bottom:1px solid var(--border); cursor:pointer;
+    font-size:14px; transition:.1s;
+  }
+  .suggest-item:active { background:var(--bg); }
+  .suggest-icon { margin-right:8px; }
 
-.cmt-ta{width:100%;min-height:72px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;resize:none;outline:none;background:var(--white);font-family:inherit;line-height:1.5;transition:border-color .2s}
-.cmt-ta:focus{border-color:var(--red)}
-.chips{display:flex;gap:7px;flex-wrap:wrap;padding:6px 0 0}
-.chip{padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--white);font-size:13px;cursor:pointer;font-weight:500;transition:all .15s}
-.chip.on{background:var(--text);color:#fff;border-color:var(--text)}
+  /* ── SUCCESS ── */
+  .success-page {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:100%; padding:32px; text-align:center;
+  }
+  .success-icon { font-size:80px; margin-bottom:24px; animation:pop .5s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+  .success-title { font-size:24px; font-weight:700; margin-bottom:8px; }
+  .success-sub { font-size:15px; color:var(--text-secondary); line-height:1.5; }
 
-/* ── ADDRESS ── */
-.addr-in{width:100%;height:44px;padding:0 12px 0 36px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;outline:none;background:var(--bg);transition:border-color .2s;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='20' fill='none'%3E%3Cpath d='M8 0C4.7 0 2 2.7 2 6c0 4.5 6 11 6 11S14 10.5 14 6C14 2.7 11.3 0 8 0zm0 8.5A2.5 2.5 0 1 1 8 3.5a2.5 2.5 0 0 1 0 5z' fill='%23FC3F1D'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:10px center}
-.addr-in:focus{border-color:var(--red);background-color:var(--white)}
-.sug-list{background:var(--white)}
-.sug{padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:flex-start;gap:11px}
-.sug:last-child{border-bottom:none}
-.sug:active{background:var(--bg)}
-.sug-t{font-size:15px;font-weight:500}
-.sug-s{font-size:13px;color:var(--sec);margin-top:2px}
-.map-wrap{height:200px;background:#e8e4dc;position:relative}
-#ymap{width:100%;height:100%}
-.addr-flds{padding:14px 16px;display:flex;flex-direction:column;gap:9px}
-.fld{display:flex;flex-direction:column;gap:3px}
-.fld label{font-size:11px;color:var(--sec);font-weight:500;text-transform:uppercase;letter-spacing:.3px}
-.fld input{height:42px;padding:0 11px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;outline:none;background:var(--white);transition:border-color .2s}
-.fld input:focus{border-color:var(--red)}
-.fld-row{display:flex;gap:9px}
-.fld-row .fld{flex:1}
+  /* ── TOAST ── */
+  .toast {
+    position:fixed; bottom:calc(80px + var(--safe-bottom)); left:16px; right:16px;
+    background:#1A1A1A; color:#fff; padding:12px 16px; border-radius:12px;
+    font-size:14px; z-index:500; text-align:center; font-weight:500;
+    transform:translateY(20px); opacity:0; transition:.3s; pointer-events:none;
+  }
+  .toast.show { transform:translateY(0); opacity:1; }
 
-.status-wrap{display:flex;flex-direction:column;align-items:center;padding:36px 20px;gap:0}
-.s-icon{width:80px;height:80px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:38px;margin-bottom:18px}
-.s-icon.pulse{animation:pulse 1.5s ease-in-out infinite}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-.s-title{font-size:22px;font-weight:700;text-align:center;margin-bottom:8px}
-.s-desc{font-size:15px;color:var(--sec);text-align:center;line-height:1.5;margin-bottom:6px}
-.s-oid{font-size:13px;color:var(--sec)}
-.sbp-card{width:100%;background:var(--white);border-radius:var(--r);padding:18px;margin-top:20px;text-align:center}
-.sbp-title{font-size:16px;font-weight:600;margin-bottom:4px}
-.sbp-desc{font-size:13px;color:var(--sec);line-height:1.5;margin-bottom:14px}
-.sbp-btn{width:100%;height:48px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;transition:background .15s}
-.sbp-btn:active{background:#0c5fc4}
+  /* ── NO RESULTS ── */
+  .no-results { text-align:center; padding:48px 24px; color:var(--text-secondary); font-size:14px; }
 
-/* ── PROFILE ── */
-.profile-head{background:var(--white);padding:20px 16px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border)}
-.avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,var(--red),#ff6b4a);display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;font-weight:700;flex-shrink:0}
-.prf-name{font-size:19px;font-weight:700}
-.prf-uid{font-size:13px;color:var(--sec);margin-top:2px}
-.prf-status{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
-.prf-badge{padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600}
-.prf-badge.g{background:#EDFBEE;color:var(--green)}
-.prf-badge.r{background:#FFF0ED;color:var(--red)}
-.prf-badge.b{background:#EFF6FF;color:var(--blue)}
-.menu-list{margin:12px 16px;background:var(--white);border-radius:var(--r);overflow:hidden}
-.ml-item{display:flex;align-items:center;gap:13px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
-.ml-item:last-child{border-bottom:none}
-.ml-item:active{background:var(--bg)}
-.ml-ico{width:38px;height:38px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.ml-txt{flex:1;font-size:15px;font-weight:500}
-.ml-arr{color:var(--sec)}
-
-/* ── ORDERS ── */
-.ord-list{padding:10px 16px;display:flex;flex-direction:column;gap:10px}
-.ord-card{background:var(--white);border-radius:var(--r);overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.ord-card:active{transform:scale(.99)}
-.ord-head{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-.ord-rest{font-size:15px;font-weight:600}
-.ord-date{font-size:13px;color:var(--sec)}
-.ord-body{padding:12px 16px}
-.ord-items{font-size:14px;color:var(--sec);margin-bottom:6px;line-height:1.4}
-.ord-footer{display:flex;align-items:center;justify-content:space-between}
-.ord-price{font-size:16px;font-weight:700}
-.ord-status{font-size:13px;padding:3px 10px;border-radius:10px;font-weight:500}
-.ord-status.done{background:#EDFBEE;color:var(--green)}
-.ord-status.wait{background:#FFF0ED;color:var(--red)}
-.ord-status.del{background:#EFF6FF;color:var(--blue)}
-.ord-repeat{width:100%;height:42px;background:var(--bg);color:var(--text);border:none;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;margin-top:10px;transition:background .15s}
-.ord-repeat:active{background:var(--border)}
-
-/* ── PAYMENT METHODS SCREEN ── */
-.pay-screen-item{background:var(--white);display:flex;align-items:center;gap:13px;padding:15px 16px;border-bottom:1px solid var(--border);cursor:pointer}
-.pay-screen-item:first-child{border-radius:var(--r) var(--r) 0 0}
-.pay-screen-item:last-child{border-bottom:none;border-radius:0 0 var(--r) var(--r)}
-.pay-screen-item:active{background:var(--bg)}
-.pay-screen-ico{width:48px;height:34px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.pay-screen-name{flex:1}
-.pay-screen-title{font-size:16px;font-weight:500}
-.pay-screen-sub{font-size:13px;color:var(--sec);margin-top:2px}
-.pay-screen-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);flex-shrink:0}
-.pay-screen-item.sel .pay-screen-chk{background:var(--red);border-color:var(--red)}
-
-.bot-wrap{padding:12px 16px calc(12px + var(--safe-b))}
-.btn{width:100%;height:var(--bh);background:var(--red);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,transform .1s}
-.btn:active{background:var(--red-d);transform:scale(.98)}
-.btn:disabled{background:var(--border);color:var(--sec);transform:none;cursor:default}
-.btn.sec{background:var(--bg);color:var(--text)}
-.btn.sec:active{background:var(--border)}
-
-.gap{height:14px}
-
-.toast{position:fixed;bottom:calc(70px + var(--safe-b));left:50%;transform:translateX(-50%);background:rgba(33,32,31,.92);color:#fff;padding:10px 20px;border-radius:22px;font-size:14px;z-index:9999;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:calc(100vw - 40px);text-align:center}
-.toast.on{opacity:1}
-
-.empty{text-align:center;padding:50px 20px;color:var(--sec);font-size:15px}
-.empty-ico{font-size:48px;margin-bottom:12px}
-
-/* item detail modal */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:flex-end}
-.modal-bg.on{display:flex}
-.modal{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding-bottom:calc(16px + var(--safe-b));animation:slideUp .25s ease}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
-.modal-img{width:100%;height:220px;object-fit:cover}
-.modal-img-ph{width:100%;height:220px;background:linear-gradient(135deg,#f0ede8,#e0dbd3);display:flex;align-items:center;justify-content:center;font-size:70px}
-.modal-body{padding:16px}
-.modal-name{font-size:20px;font-weight:700;margin-bottom:6px}
-.modal-desc{font-size:14px;color:var(--sec);line-height:1.5;margin-bottom:12px}
-.modal-price{font-size:22px;font-weight:700;color:var(--red);margin-bottom:16px}
-.modal-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.modal-footer{display:flex;align-items:center;gap:12px;padding:0 16px}
-.modal-qty{display:flex;align-items:center;gap:12px;background:var(--bg);border-radius:var(--rs);padding:8px 12px}
-.modal-add{flex:1;height:48px;background:var(--red);color:#fff;border:none;border-radius:var(--rs);font-size:16px;font-weight:600;cursor:pointer}
+  /* page transitions */
+  .page { animation:fadeIn .2s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
 </style>
 </head>
 <body>
 
+<!-- Splash -->
+<div id="splash">
+  <div class="splash-logo">Еда</div>
+  <div class="splash-sub">Яндекс Еда</div>
+</div>
+
+<!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- item modal -->
-<div class="modal-bg" id="item-modal" onclick="closeModal(event)">
-  <div class="modal" style="position:relative">
-    <div id="modal-hero"></div>
-    <button class="modal-close" onclick="$('item-modal').classList.remove('on')">✕</button>
-    <div class="modal-body">
-      <div class="modal-name" id="modal-name"></div>
-      <div class="modal-desc" id="modal-desc"></div>
-      <div class="modal-price" id="modal-price"></div>
-    </div>
-    <div class="modal-footer">
-      <div class="modal-qty">
-        <button class="qb" onclick="modalQty(-1)">−</button>
-        <span class="qn" id="modal-qty-n">1</span>
-        <button class="qb" onclick="modalQty(1)">+</button>
-      </div>
-      <button class="modal-add" id="modal-add-btn" onclick="modalAdd()">В корзину</button>
-    </div>
+<!-- Address modal -->
+<div class="modal-overlay" id="addrModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📍 Введите адрес</div>
+    <input class="addr-input" id="addrInput" placeholder="Улица, дом..." autocomplete="off">
+    <div id="suggestList" style="margin-top:8px;"></div>
   </div>
 </div>
 
-<!-- ═══════ CATALOG ═══════ -->
-<div class="scr on" id="s-catalog">
-  <div class="hdr" style="justify-content:space-between">
-    <div><div class="hdr-title">Яндекс Еда</div></div>
-    <div id="hdr-name" style="font-size:14px;color:var(--sec)"></div>
-  </div>
-  <div class="addr-bar" onclick="nav('address','catalog')">
-    <svg width="16" height="20" fill="none"><path d="M8 0C4.7 0 2 2.7 2 6c0 4.5 6 11 6 11S14 10.5 14 6C14 2.7 11.3 0 8 0zm0 8.5A2.5 2.5 0 1 1 8 3.5a2.5 2.5 0 0 1 0 5z" fill="#FC3F1D"/></svg>
-    <div class="av"><div class="al">Доставить по адресу</div><div class="at" id="addr-top">Укажите адрес доставки</div></div>
-    <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </div>
-  <div class="search-wrap">
-    <input class="search" id="search" type="text" placeholder="Рестораны и магазины" oninput="filterR(this.value)">
-  </div>
-  <div class="sec-t">Рядом с вами</div>
-  <div class="r-list page" id="r-list">
-    <div class="loader"><div class="spin"></div><div class="loader-t">Загружаем рестораны...</div></div>
-  </div>
-</div>
-
-<!-- ═══════ MENU ═══════ -->
-<div class="scr" id="s-menu">
-  <div class="hdr">
-    <button class="back" onclick="nav('catalog')">
-      <svg width="9" height="16" fill="none"><path d="M8 1L1 8l7 7" stroke="#21201F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<div id="app">
+  <div id="content"></div>
+  <nav id="nav">
+    <button class="nav-item active" onclick="goPage('home')" id="tab-home">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Главная</span>
     </button>
-    <div class="hdr-title" id="menu-hdr-name">Меню</div>
-  </div>
-  <div id="menu-hero-wrap"></div>
-  <div class="menu-info">
-    <h1 id="menu-name">Ресторан</h1>
-    <div class="mm">
-      <span id="menu-rating"></span>
-      <span id="menu-time"></span>
-      <span id="menu-deliv"></span>
-    </div>
-  </div>
-  <div class="cats" id="menu-cats"></div>
-  <div class="page" id="menu-content">
-    <div class="loader"><div class="spin"></div><div class="loader-t">Загружаем меню...</div></div>
-  </div>
-  <div class="cart-fab" id="cart-fab" style="display:none">
-    <button class="cart-fab-btn" onclick="nav('cart')">
-      <span id="fab-cnt" class="cfb-c">0</span>
-      <span>Корзина</span>
-      <span id="fab-price">0 ₽</span>
+    <button class="nav-item" onclick="goPage('search')" id="tab-search">
+      <span class="nav-icon">🔍</span>
+      <span class="nav-label">Поиск</span>
     </button>
-  </div>
-</div>
-
-<!-- ═══════ CART ═══════ -->
-<div class="scr" id="s-cart">
-  <div class="hdr">
-    <button class="back" id="cart-back"></button>
-    <div><div class="hdr-title">Корзина</div></div>
-  </div>
-  <div class="addr-bar" onclick="nav('address','cart')">
-    <svg width="16" height="18" fill="none"><path d="M8 0C5.2 0 3 2.2 3 5c0 3.7 5 9 5 9s5-5.3 5-9c0-2.8-2.2-5-5-5zm0 6.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" fill="#9E9B98"/></svg>
-    <div class="av"><div class="al">Адрес доставки</div><div class="at" id="addr-cart">Укажите адрес</div></div>
-    <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </div>
-  <div class="cart-list" id="cart-list"></div>
-
-  <!-- промокод -->
-  <div id="promo-section" style="margin:0 16px 12px">
-    <div class="card" style="margin:0">
-      <button class="card-btn" onclick="togglePromo()">
-        <span class="cb-l">Промокод</span>
-        <span class="cb-v" id="promo-display">Добавить <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      </button>
-    </div>
-    <div id="promo-block" style="display:none;background:var(--white);border-radius:0 0 var(--r) var(--r);border:1px solid var(--border);border-top:none;padding-bottom:12px">
-      <div class="promo-wrap">
-        <input class="promo-in" id="promo-in" type="text" placeholder="Введите промокод" autocomplete="off" autocapitalize="characters">
-        <button class="promo-btn" onclick="applyPromo()">Применить</button>
-      </div>
-      <div class="promo-msg" id="promo-msg"></div>
-    </div>
-  </div>
-
-  <div class="gap"></div>
-
-  <!-- оплата -->
-  <div class="sec-t2">Способ оплаты</div>
-  <div id="pay-methods" style="margin:0 16px 12px;border-radius:var(--r);overflow:hidden">
-  </div>
-
-  <div class="gap"></div>
-
-  <!-- приборы + коммент -->
-  <div class="card" style="margin:0 16px 12px">
-    <div class="card-row">
-      <span class="card-row-lbl">Приборы</span>
-      <div class="pers">
-        <button class="pb" onclick="cPers(-1)">−</button>
-        <span class="pn" id="pers-n">2</span>
-        <button class="pb" onclick="cPers(1)">+</button>
-      </div>
-    </div>
-    <div style="padding:12px 16px">
-      <div style="font-size:13px;color:var(--sec);margin-bottom:7px">Комментарий</div>
-      <textarea class="cmt-ta" id="cmt" placeholder="Пожелания к заказу..."></textarea>
-      <div class="chips">
-        <div class="chip" onclick="addCmt('Побольше соуса')">Побольше соуса</div>
-        <div class="chip" onclick="addCmt('Без лука')">Без лука</div>
-        <div class="chip" onclick="addCmt('Позвоните в дверь')">Позвонить в дверь</div>
-        <div class="chip" onclick="addCmt('Не звонить')">Не звонить</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- итого -->
-  <div class="card" style="margin:0 16px 12px">
-    <div class="card-row">
-      <span class="card-row-lbl">Товары</span>
-      <span class="card-row-val" id="sum-items">0 ₽</span>
-    </div>
-    <div class="card-row">
-      <span class="card-row-lbl">Доставка</span>
-      <span class="card-row-val g" id="sum-deliv">Бесплатно</span>
-    </div>
-    <div class="card-row" id="disc-row" style="display:none">
-      <span class="card-row-lbl">Промокод</span>
-      <span class="card-row-val g" id="sum-disc">−0 ₽</span>
-    </div>
-    <div class="card-row" style="border-bottom:none">
-      <span class="card-row-lbl" style="font-size:17px;font-weight:700">Итого</span>
-      <span class="card-row-val total" id="sum-total">0 ₽</span>
-    </div>
-  </div>
-
-  <div class="bot-wrap page">
-    <button class="btn" id="order-btn" onclick="placeOrder()">Оформить заказ</button>
-  </div>
-</div>
-
-<!-- ═══════ ADDRESS ═══════ -->
-<div class="scr" id="s-address">
-  <div class="hdr">
-    <button class="back" id="addr-back"></button>
-    <div><div class="hdr-title">Адрес доставки</div></div>
-  </div>
-  <div style="padding:10px 16px;background:var(--white);border-bottom:1px solid var(--border)">
-    <input class="addr-in" id="addr-in" type="text" placeholder="Введите адрес..." oninput="onAddrInput(this.value)" autocomplete="off">
-  </div>
-  <div id="sug-list" class="sug-list"></div>
-  <div class="map-wrap"><div id="ymap"></div></div>
-  <div class="addr-flds">
-    <div class="fld-row">
-      <div class="fld"><label>Подъезд</label><input id="f-entr" type="text" placeholder="1"></div>
-      <div class="fld"><label>Этаж</label><input id="f-floor" type="text" placeholder="3"></div>
-      <div class="fld"><label>Квартира</label><input id="f-flat" type="text" placeholder="77"></div>
-    </div>
-    <div class="fld"><label>Домофон</label><input id="f-door" type="text" placeholder="1234#"></div>
-    <div class="fld"><label>Комментарий курьеру</label><input id="f-acmt" type="text" placeholder="Домофон не работает, звоните"></div>
-  </div>
-  <div class="bot-wrap">
-    <button class="btn" onclick="confirmAddr()">Подтвердить адрес</button>
-  </div>
-</div>
-
-<!-- ═══════ STATUS ═══════ -->
-<div class="scr" id="s-status">
-  <div class="hdr">
-    <button class="back" onclick="nav('catalog')">
-      <svg width="9" height="16" fill="none"><path d="M8 1L1 8l7 7" stroke="#21201F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <button class="nav-item" onclick="goPage('cart')" id="tab-cart">
+      <span class="nav-icon">
+        <span class="cart-badge">🛒<span class="cart-count" id="cartCount">0</span></span>
+      </span>
+      <span class="nav-label">Корзина</span>
     </button>
-    <div><div class="hdr-title">Заказ</div></div>
-  </div>
-  <div class="status-wrap page">
-    <div class="s-icon" id="s-ico">⏳</div>
-    <div class="s-title" id="s-title">Обрабатываем</div>
-    <div class="s-desc" id="s-desc">Ждём подтверждения ресторана</div>
-    <div class="s-oid" id="s-oid"></div>
-    <div class="sbp-card" id="sbp-card" style="display:none">
-      <div class="sbp-title">Оплата СБП</div>
-      <div class="sbp-desc" id="sbp-desc">Перейдите в приложение банка для подтверждения оплаты</div>
-      <button class="sbp-btn" onclick="openSBP()">Перейти в банк →</button>
-    </div>
-    <div style="width:100%;margin-top:20px;display:flex;flex-direction:column;gap:10px">
-      <button class="btn sec" onclick="nav('orders')">История заказов</button>
-      <button class="btn sec" onclick="nav('catalog')">На главную</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════ ORDERS ═══════ -->
-<div class="scr" id="s-orders">
-  <div class="hdr">
-    <button class="back" id="orders-back"></button>
-    <div><div class="hdr-title">Мои заказы</div></div>
-  </div>
-  <div class="page" id="orders-content">
-    <div class="loader"><div class="spin"></div><div class="loader-t">Загружаем заказы...</div></div>
-  </div>
-</div>
-
-<!-- ═══════ PROFILE ═══════ -->
-<div class="scr" id="s-profile">
-  <div class="hdr"><div class="hdr-title">Профиль</div></div>
-  <div class="profile-head">
-    <div class="avatar" id="prf-ava">?</div>
-    <div>
-      <div class="prf-name" id="prf-name">Загружаем...</div>
-      <div class="prf-uid" id="prf-uid"></div>
-      <div class="prf-status" id="prf-badges"></div>
-    </div>
-  </div>
-  <div class="menu-list">
-    <div class="ml-item" onclick="nav('orders')">
-      <div class="ml-ico">📦</div>
-      <div class="ml-txt">Мои заказы</div>
-      <svg class="ml-arr" width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <div class="ml-item" onclick="nav('addresses')">
-      <div class="ml-ico">📍</div>
-      <div class="ml-txt">Мои адреса</div>
-      <svg class="ml-arr" width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <div class="ml-item" onclick="nav('payment')">
-      <div class="ml-ico">💳</div>
-      <div class="ml-txt">Способы оплаты</div>
-      <svg class="ml-arr" width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════ ADDRESSES ═══════ -->
-<div class="scr" id="s-addresses">
-  <div class="hdr">
-    <button class="back" onclick="nav('profile')">
-      <svg width="9" height="16" fill="none"><path d="M8 1L1 8l7 7" stroke="#21201F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <button class="nav-item" onclick="goPage('orders')" id="tab-orders">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Заказы</span>
     </button>
-    <div><div class="hdr-title">Мои адреса</div></div>
-  </div>
-  <div class="page" id="addresses-content">
-    <div class="loader"><div class="spin"></div><div class="loader-t">Загружаем адреса...</div></div>
-  </div>
-  <div class="bot-wrap">
-    <button class="btn" onclick="nav('address','addresses')">+ Добавить адрес</button>
-  </div>
-</div>
-
-<!-- ═══════ PAYMENT METHODS ═══════ -->
-<div class="scr" id="s-payment">
-  <div class="hdr">
-    <button class="back" onclick="nav('profile')">
-      <svg width="9" height="16" fill="none"><path d="M8 1L1 8l7 7" stroke="#21201F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <button class="nav-item" onclick="goPage('profile')" id="tab-profile">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Профиль</span>
     </button>
-    <div><div class="hdr-title">Способы оплаты</div></div>
-  </div>
-  <div class="page">
-    <div style="height:12px"></div>
-    <div id="pay-screen-list" style="margin:0 16px;border-radius:var(--r);overflow:hidden">
-    </div>
-    <div style="padding:12px 16px;font-size:13px;color:var(--sec)">
-      Выбранный способ будет использоваться по умолчанию при оформлении заказа.
-    </div>
-  </div>
+  </nav>
 </div>
-
-<!-- ═══════ BOTTOM NAV ═══════ -->
-<nav class="bnav" id="bnav">
-  <button class="bn on" id="bn-catalog" onclick="nav('catalog')">
-    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
-    Рестораны
-  </button>
-  <button class="bn" id="bn-cart" onclick="nav('cart')">
-    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 6h18" stroke="currentColor" stroke-width="1.8"/><path d="M16 10a4 4 0 01-8 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-    Корзина
-    <span id="bn-cart-cnt" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700"></span>
-  </button>
-  <button class="bn" id="bn-orders" onclick="nav('orders')">
-    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 7H4a2 2 0 00-2 2v11a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="7" y="3" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>
-    Заказы
-  </button>
-  <button class="bn" id="bn-profile" onclick="nav('profile')">
-    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-    Профиль
-  </button>
-</nav>
 
 <script>
-// ═══════════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════════
-const tg = window.Telegram?.WebApp;
-if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#FFFFFF'); }
+// ── CONFIG ──────────────────────────────────
+const params = new URLSearchParams(location.search);
+const CHAT_ID   = params.get('chat_id') || '';
+const TOKEN     = params.get('token') || '';
+const DEVICE_ID = params.get('device_id') || '';
+const AM_UUID   = params.get('appmetrica_uuid') || '';
+const PROXY     = (params.get('proxy') || 'https://stylographic-affably-luana.ngrok-free.dev').replace(/\/$/, '');
+const BANK_TOKEN = params.get('bank_token') || '';
+const PLUS_TOKEN = params.get('plus_token') || '';
+const USER_NAME  = decodeURIComponent(params.get('name') || '');
+const USER_UID   = params.get('uid') || '';
 
-const P           = new URLSearchParams(location.search);
-const CHAT_ID     = P.get('chat_id')         || '';
-const TOKEN       = P.get('token')           || '';
-const DEVICE_ID   = P.get('device_id')       || '';
-const AM_UUID     = P.get('appmetrica_uuid') || '';
-const PROXY       = (P.get('proxy') || '').replace(/\/$/, '');
-const BANK_TOKEN  = P.get('bank_token')      || '';
-const PLUS_TOKEN  = P.get('plus_token')      || '';
-const MAPS_KEY    = '84a7e8e1-6a86-4b9d-b6db-b7c0dcb9c8e1';
+// State
+let cart = {};           // { [placeName]: { items:[{id,name,price,qty,emoji}], placeId, placeName } }
+let currentPlace = null; // current restaurant data
+let currentPage = 'home';
+let userAddress = localStorage.getItem('eda_address') || 'Москва';
+let userLat = parseFloat(localStorage.getItem('eda_lat') || '55.7558');
+let userLon = parseFloat(localStorage.getItem('eda_lon') || '37.6176');
+let restaurants = [];
+let menuCache = {};
+let suggestTimer = null;
+let ordersCache = null;
 
-// Мобильные User-Agent как в боте
-const EATS_UA   = 'Edaeda/8.94.0 (com.yandex.red; build:10003; iOS 17.5.0) Alamofire/5.6.4';
-const APP_ID    = 'ru.foodfox.courier';
-const APP_VER   = '8.94.0';
-const CODE_VER  = '10003';
-const SDK_VER   = '6.32.0.10003';
-
-const $ = id => document.getElementById(id);
-
-const S = {
-  screen: 'catalog', prevScreen: 'catalog',
-  cart: [], restaurant: null, address: null,
-  payMethod: 'sbp', payMethodId: 5,
-  payMethods: [],   // список доступных методов из API
-  savedCards: [],   // привязанные карты
-  persons: 2, promo: '', promoDisc: 0, promoOk: false,
-  orderId: null, sbpUrl: null, pollTimer: null,
-  lat: null, lon: null,
-  ymapReady: false, ymapInited: false, ymapObj: null, ymapPin: null,
-  cartId: null,     // UUID корзины для Lavka API
-  cartVersion: 0,   // версия корзины
-};
-
-$('cart-back').onclick   = () => nav(S.prevScreen === 'cart' ? 'menu' : 'menu');
-$('addr-back').onclick   = () => nav(S.prevScreen === 'address' ? 'catalog' : S.prevScreen);
-$('orders-back').onclick = () => nav(S.prevScreen === 'orders' ? 'catalog' : S.prevScreen);
-
-// ═══════════════════════════════════════════════════════════════
-// UTILS
-// ═══════════════════════════════════════════════════════════════
-function fmtR(rub) {
-  if (rub === null || rub === undefined) return '—';
-  return parseFloat(rub).toLocaleString('ru-RU',{maximumFractionDigits:2}) + ' ₽';
-}
-function fmtK(kop) { return fmtR(kop / 100); }
-function uid4() {
-  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c/4).toString(16));
-}
-function showToast(msg, d=2500) {
-  const t = $('toast'); t.textContent = msg; t.classList.add('on');
-  setTimeout(() => t.classList.remove('on'), d);
-}
-function setBtn(id, loading, txt) {
-  const b = $(id); if (!b) return;
-  b.disabled = loading; b.textContent = loading ? '...' : txt;
-}
-function emoji(cats=[]) {
-  const s = (Array.isArray(cats) ? cats.join(' ') : String(cats)).toLowerCase();
-  if (s.includes('пицц')||s.includes('pizza'))    return '🍕';
-  if (s.includes('бургер')||s.includes('burger')) return '🍔';
-  if (s.includes('суши')||s.includes('рол'))      return '🍣';
-  if (s.includes('шаурм'))                        return '🌯';
-  if (s.includes('паст')||s.includes('итальян'))  return '🍝';
-  if (s.includes('китай')||s.includes('лапш'))    return '🍜';
-  if (s.includes('десерт')||s.includes('торт'))   return '🍰';
-  if (s.includes('кофе')||s.includes('напит'))    return '☕';
-  if (s.includes('суп')||s.includes('борщ'))      return '🍲';
-  if (s.includes('салат'))                        return '🥗';
-  return '🍽️';
-}
-function priceR(raw) {
-  // Яндекс отдаёт в копейках когда > 500
-  const n = parseFloat(raw) || 0;
-  return n > 500 ? n / 100 : n;
-}
-function priceKop(r) { return Math.round(r * 100); }
-
-// ═══════════════════════════════════════════════════════════════
-// API — базовые заголовки как в питон-боте
-// ═══════════════════════════════════════════════════════════════
-function edaHeaders(extra = {}) {
-  const lat = S.lat || 55.7558;
-  const lon = S.lon || 37.6176;
-  const sess = uid4().toUpperCase();
-  const h = {
-    'user-agent':             EATS_UA,
-    'x-app-version':          APP_VER,
-    'x-code-version':         CODE_VER,
-    'x-platform':             'ios_app',
-    'x-app-id':               APP_ID,
-    'x-device-id':            DEVICE_ID || uid4(),
-    'x-device-model':         'iPhone17,1',
-    'x-device-manufacturer':  'Apple',
-    'x-os-version':           '17.5.0',
-    'x-appmetrica-deviceid':  DEVICE_ID || uid4(),
-    'x-appmetrica-uuid':      AM_UUID || uid4(),
-    'x-client-session':       sess,
-    'x-request-id':           uid4(),
-    'api_service':             'SDK',
-    'accept':                 'application/json',
-    'accept-language':        'ru-RU;q=1.0',
-    'content-type':           'application/json',
-    'accept-encoding':        'gzip, deflate, br',
-    'x-eda-api-version':      '7',
-    'x-city-id':              '1',
-    'x-ya-coordinates':       `latitude=${lat.toFixed(8)},longitude=${lon.toFixed(8)}`,
-    'ngrok-skip-browser-warning': '1',
-  };
-  if (TOKEN) h['authorization'] = `Bearer ${TOKEN}`;
-  if (CHAT_ID) h['X-Chat-Id'] = CHAT_ID;
-  if (S.lat && S.lon) h['X-User-Coords'] = `${S.lat},${S.lon}`;
-  return { ...h, ...extra };
-}
-
+// ── HELPERS ─────────────────────────────────
 async function api(path, opts = {}) {
-  if (!PROXY) return {};
-  const url = PROXY + '/proxy/' + path.replace(/^\//, '');
-  try {
-    const res = await fetch(url, {
-      method: opts.method || 'GET',
-      headers: edaHeaders(opts.headers || {}),
-      body: opts.body ? JSON.stringify(opts.body) : undefined,
-    });
-    return res.json().catch(() => ({}));
-  } catch(e) {
-    console.error('[API ERR]', path, e);
-    return {};
-  }
+  const url = `${PROXY}/proxy/${path.replace(/^\//,'')}`;
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Chat-Id': CHAT_ID,
+    'X-Bearer': TOKEN,
+    'X-Device-Id': DEVICE_ID,
+    'X-Appmetrica-Uuid': AM_UUID,
+    'X-User-Coords': `${userLat},${userLon}`,
+    ...(opts.headers || {})
+  };
+  const r = await fetch(url, { method: opts.method || 'GET', headers, body: opts.body });
+  return r.json().catch(() => ({}));
 }
 
-async function post(path, body = {}, extra = {}) {
-  if (!PROXY) return {};
-  const url = PROXY + '/proxy/' + path.replace(/^\//, '');
-  const idem = uid4();
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: edaHeaders({ 'content-type': 'application/json', 'x-idempotency-token': idem, ...extra }),
-      body: JSON.stringify(body),
-    });
-    return res.json().catch(() => ({}));
-  } catch(e) {
-    console.error('[POST ERR]', path, e);
-    return {};
-  }
+function toast(msg, dur = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
 }
 
-// Suggest через /proxy-suggest
-async function proxySuggest(text) {
-  if (!PROXY) return [];
-  try {
-    const r = await fetch(PROXY + '/proxy-suggest', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'ngrok-skip-browser-warning': '1' },
-      body: JSON.stringify({ text, lat: S.lat || 55.7558, lon: S.lon || 37.6176 })
-    });
-    const d = await r.json().catch(() => ({}));
-    return d?.results || d?.suggest || d?.items || (Array.isArray(d) ? d : []);
-  } catch(e) { console.error('[SUG ERR]', e); return []; }
+function setTab(name) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById('tab-' + name);
+  if (el) el.classList.add('active');
+  currentPage = name;
 }
 
-// Geocode через /proxy-geocode
-async function proxyGeocode(text) {
-  if (!PROXY) return null;
-  try {
-    const r = await fetch(PROXY + '/proxy-geocode', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'ngrok-skip-browser-warning': '1' },
-      body: JSON.stringify({ text })
-    });
-    const d = await r.json().catch(() => null);
-    if (!d) return null;
-    const go = d?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject;
-    if (!go) return null;
-    const addr  = go.metaDataProperty?.GeocoderMetaData?.Address || {};
-    const comps = addr.Components || [];
-    const get   = kind => comps.find(c => c.kind === kind)?.name || '';
-    const pos   = go.Point?.pos?.split(' ');
-    const lon   = pos ? parseFloat(pos[0]) : (S.lon || 37.6176);
-    const lat   = pos ? parseFloat(pos[1]) : (S.lat || 55.7558);
-    const full  = go.metaDataProperty?.GeocoderMetaData?.text || text;
-    const short = [get('street'), get('house')].filter(Boolean).join(', ') || full;
-    return {
-      lat, lon, full_text: full, short_text: short,
-      city:   get('locality') || get('province'),
-      street: get('street'), house: get('house'),
-      areas:  [get('province') || get('country')].filter(Boolean),
-      uri:    go.uri || ''
-    };
-  } catch(e) { console.error('[GEO ERR]', e); return null; }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// NAVIGATION
-// ═══════════════════════════════════════════════════════════════
-const ALL_SCREENS = ['catalog','menu','cart','address','status','orders','profile','addresses','payment'];
-const BN_MAP = {
-  catalog:'catalog', menu:'catalog', cart:'cart',
-  orders:'orders', profile:'profile', status:'catalog',
-  address:null, addresses:'profile', payment:'profile'
-};
-
-function nav(screen, from) {
-  if (from) S.prevScreen = from;
-  else S.prevScreen = S.screen;
-  S.screen = screen;
-
-  ALL_SCREENS.forEach(s => $('s-'+s)?.classList.remove('on'));
-  $('s-'+screen)?.classList.add('on');
-  window.scrollTo(0,0);
-
-  document.querySelectorAll('.bn').forEach(b => b.classList.remove('on'));
-  const bnId = BN_MAP[screen];
-  if (bnId) $('bn-'+bnId)?.classList.add('on');
-  $('bnav').style.display = screen === 'address' ? 'none' : 'flex';
-
-  if (screen === 'catalog')   loadCatalog();
-  if (screen === 'cart')      renderCart();
-  if (screen === 'profile')   loadProfile();
-  if (screen === 'orders')    loadOrders();
-  if (screen === 'address')   initAddr();
-  if (screen === 'addresses') loadAddresses();
-  if (screen === 'payment')   loadPayMethods();
-}
-
-// ═══════════════════════════════════════════════════════════════
-// GEO
-// ═══════════════════════════════════════════════════════════════
-function initGeo() {
-  if (tg?.LocationManager?.isInited) {
-    tg.LocationManager.getLocation(l => { if(l){S.lat=l.latitude;S.lon=l.longitude;} });
-  } else if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      p => { S.lat=p.coords.latitude; S.lon=p.coords.longitude; },
-      () => {}
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CATALOG — используем layout-constructor
-// ═══════════════════════════════════════════════════════════════
-let _rAll = [], _rLoaded = false;
-
-async function loadCatalog() {
-  if (_rLoaded && _rAll.length) { renderR(_rAll); return; }
-  $('r-list').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем рестораны...</div></div>';
-
-  const lat = S.lat || 55.7558, lon = S.lon || 37.6176;
-  let list = [];
-
-  try {
-    // Вариант 1: layout-constructor (основной Яндекс Еда)
-    const d1 = await api(`eats/v1/layout-constructor/v1/layout?latitude=${lat}&longitude=${lon}&region_id=1`);
-    for (const blk of (d1?.payload?.blocks || d1?.blocks || [])) {
-      for (const it of (blk?.payload?.places || blk?.places || blk?.items || [])) {
-        const p = it?.place || it;
-        if (p?.slug || p?.place_slug) list.push(p);
-      }
-    }
-    if (d1?.payload?.places?.length) list = [...list, ...d1.payload.places];
-
-    // Вариант 2: места рядом
-    if (!list.length) {
-      const d2 = await api(`eats/v1/places/v1/nearby?latitude=${lat}&longitude=${lon}`);
-      list = d2?.places || d2?.payload?.places || [];
-    }
-
-    // Вариант 3: catalog
-    if (!list.length) {
-      const d3 = await api(`api/v2/catalog?latitude=${lat}&longitude=${lon}`);
-      list = d3?.places || d3?.data || d3?.restaurants || [];
-    }
-
-    // Дедупликация
-    const seen = new Set();
-    list = list.filter(r => {
-      const k = r.slug || r.place_slug || r.id || '';
-      if (!k || seen.has(k)) return false;
-      seen.add(k); return true;
-    });
-
-    if (!list.length) {
-      $('r-list').innerHTML = `<div class="err-box">Рестораны не найдены.<br><br>
-        <a onclick="nav('address','catalog')" style="color:var(--red);cursor:pointer;text-decoration:underline">Укажите адрес доставки</a> — это поможет найти рестораны рядом.</div>`;
-      return;
-    }
-    _rAll = list; _rLoaded = true;
-    renderR(list);
-  } catch(e) {
-    $('r-list').innerHTML = `<div class="err-box">Ошибка загрузки: ${e.message}</div>`;
-  }
-}
-
-function renderR(list) {
-  if (!list.length) { $('r-list').innerHTML='<div class="empty"><div class="empty-ico">🔍</div>Ничего не найдено</div>'; return; }
-  $('r-list').innerHTML = list.map(r => {
-    const name = r.name || r.title || '—';
-    const slug = r.slug || r.place_slug || r.id || '';
-    const rating = r.rating?.value || r.rating || '';
-    const mn = r.delivery?.min_time || r.min_time || '';
-    const mx = r.delivery?.max_time || r.max_time || mn;
-    const dp = r.delivery?.price ? fmtK(r.delivery.price) : 'Бесплатно';
-    const free = !r.delivery?.price || r.delivery?.price === 0;
-    const img = r.logo_url || r.image_url || r.logo || r.cover_url || '';
-    const cats = (r.categories || r.tags || []).slice(0,3).map(c => c.name || c).filter(Boolean);
-    const imgH = img
-      ? `<img class="r-img" src="${img}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\\'r-img-ph\\'>${emoji(cats)}</div>'">`
-      : `<div class="r-img-ph">${emoji(cats)}</div>`;
-    return `<div class="r-card" onclick="openR('${slug}','${encodeURIComponent(name)}')">
-      ${imgH}
-      <div class="r-body">
-        <div class="r-name">${name}</div>
-        <div class="r-meta">
-          ${rating?`<span>⭐ ${rating}</span><div class="dot"></div>`:''}
-          ${mn?`<span>${mn}–${mx} мин</span><div class="dot"></div>`:''}
-          <span class="${free?'tag g':'tag'}" style="padding:2px 7px">${dp}</span>
-        </div>
-        ${cats.length?`<div class="r-tags">${cats.map(c=>`<span class="tag">${c}</span>`).join('')}</div>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function filterR(q) {
-  if (!q) { renderR(_rAll); return; }
-  const f = q.toLowerCase();
-  renderR(_rAll.filter(r =>
-    (r.name||r.title||'').toLowerCase().includes(f) ||
-    (r.categories||r.tags||[]).map(c=>(c.name||c).toLowerCase()).join(' ').includes(f)
-  ));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// MENU — v2 endpoint
-// ═══════════════════════════════════════════════════════════════
-async function openR(slug, name) {
-  S.restaurant = { slug, name: decodeURIComponent(name) };
-  // Сбрасываем корзину при смене ресторана
-  if (S.cart.length && S.restaurant.slug !== slug) {
-    S.cart = []; S.cartId = null; S.cartVersion = 0; updateFab();
-  }
-  $('menu-hdr-name').textContent = decodeURIComponent(name);
-  $('menu-name').textContent = decodeURIComponent(name);
-  $('menu-content').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем меню...</div></div>';
-  $('menu-cats').innerHTML = '';
-  $('menu-hero-wrap').innerHTML = `<div class="menu-hero-ph">🍽️</div>`;
-  $('cart-fab').style.display = 'none';
-  nav('menu');
-
-  try {
-    const lat = S.lat || 55.7558, lon = S.lon || 37.6176;
-
-    // Пробуем v2, потом v1
-    let d = await api(`eats/v1/menu/v2/menu?placeSlug=${slug}&latitude=${lat}&longitude=${lon}`);
-    let cats = d?.payload?.categories || d?.categories || d?.menu || [];
-    if (!cats.length) {
-      d = await api(`eats/v1/menu/v1/menu?placeSlug=${slug}&latitude=${lat}&longitude=${lon}`);
-      cats = d?.payload?.categories || d?.categories || d?.menu || [];
-    }
-
-    if (!cats.length) { $('menu-content').innerHTML='<div class="err-box">Меню временно недоступно</div>'; return; }
-
-    // Инфо о ресторане
-    const pl = d?.payload?.place || d?.place || {};
-    if (pl.rating?.value) $('menu-rating').textContent = `⭐ ${pl.rating.value}`;
-    if (pl.delivery?.min_time) {
-      $('menu-time').textContent = `${pl.delivery.min_time}–${pl.delivery.max_time || pl.delivery.min_time} мин`;
-    }
-    const delivText = pl.delivery?.price ? fmtK(pl.delivery.price) : 'Бесплатно';
-    $('menu-deliv').innerHTML = `<span class="tag g" style="padding:2px 7px">${delivText}</span>`;
-
-    // Герой
-    const heroImg = pl.logo_url || pl.cover_url || pl.image_url || '';
-    $('menu-hero-wrap').innerHTML = heroImg
-      ? `<img class="menu-hero" src="${heroImg}" onerror="this.outerHTML='<div class=\\'menu-hero-ph\\'>🍽️</div>'">`
-      : `<div class="menu-hero-ph">${emoji(pl.categories?.map(c=>c.name)||[])}</div>`;
-
-    // Категории (sticky nav)
-    $('menu-cats').innerHTML = cats.map((c,i) =>
-      `<button class="cat ${i===0?'on':''}" onclick="scrollCat('cat${i}',this)">${c.name||c.category||''}</button>`
-    ).join('');
-
-    // Позиции меню
-    $('menu-content').innerHTML = cats.map((c,i) => {
-      const items = c.items || c.products || [];
-      return `<div class="menu-sec" id="cat${i}">
-        <div class="menu-sec-t">${c.name||c.category||''}</div>
-        <div class="m-items">${items.map(it => menuItemHtml(it)).join('')}</div>
-      </div>`;
-    }).join('');
-
-    updateFab();
-  } catch(e) { $('menu-content').innerHTML=`<div class="err-box">Ошибка: ${e.message}</div>`; }
-}
-
-function menuItemHtml(it) {
-  const id    = String(it.id || it.item_id || '');
-  const name  = it.name || it.title || '—';
-  const desc  = it.description || it.description_text || '';
-  const raw   = it.price || it.price_info?.price || 0;
-  const pR    = priceR(raw);
-  const img   = it.picture_url || it.picture?.uri || it.image_url || '';
-  const inC   = S.cart.find(c => c.item.id === id);
-
-  const imgH = img
-    ? `<img class="m-img" src="${img}" loading="lazy" onerror="this.style.display='none'">`
-    : `<div class="m-img-ph">${emoji(name)}</div>`;
-
-  // Сериализуем данные товара
-  const itemJson = JSON.stringify({ id, name, desc, raw, pR, img });
-  const safeJson = itemJson.replace(/'/g, '&#39;');
-
-  const ctrl = inC
-    ? `<div class="qty" id="qc-${id}">
-         <button class="qb" onclick="cQ('${id}',-1,event)">−</button>
-         <span class="qn">${inC.qty}</span>
-         <button class="qb" onclick="cQ('${id}',1,event)">+</button>
-       </div>`
-    : `<button class="add-btn" id="qc-${id}" onclick="addToCart('${id}',event)">+</button>`;
-
-  return `<div class="m-item" onclick="openItem('${safeJson.replace(/"/g,'&quot;')}')" data-id="${id}"
-    data-item='${safeJson.replace(/'/g,"&#39;")}'>
-    ${imgH}
-    <div class="m-info">
-      <div class="m-name">${name}</div>
-      ${desc ? `<div class="m-desc">${desc}</div>` : ''}
-      <div class="m-price">${fmtR(pR)}</div>
-    </div>
-    ${ctrl}
-  </div>`;
-}
-
-function scrollCat(id, btn) {
-  document.querySelectorAll('.cat').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-  $(id)?.scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ITEM MODAL
-// ═══════════════════════════════════════════════════════════════
-let _modalItem = null, _modalQty = 1;
-
-function openItem(jsonStr) {
-  try {
-    const it = JSON.parse(jsonStr.replace(/&quot;/g,'"').replace(/&#39;/g,"'"));
-    _modalItem = it; _modalQty = 1;
-    const inC = S.cart.find(c => c.item.id === it.id);
-    if (inC) _modalQty = inC.qty;
-
-    $('modal-hero').innerHTML = it.img
-      ? `<img class="modal-img" src="${it.img}" onerror="this.outerHTML='<div class=\\'modal-img-ph\\'>🍽️</div>'">`
-      : `<div class="modal-img-ph">${emoji(it.name)}</div>`;
-    $('modal-name').textContent  = it.name;
-    $('modal-desc').textContent  = it.desc || '';
-    $('modal-price').textContent = fmtR(it.pR);
-    $('modal-qty-n').textContent = _modalQty;
-    $('modal-add-btn').textContent = inC ? 'Обновить' : 'В корзину';
-    $('item-modal').classList.add('on');
-  } catch(e) {}
-}
-
-function closeModal(e) {
-  if (e.target === $('item-modal')) $('item-modal').classList.remove('on');
-}
-
-function modalQty(d) {
-  _modalQty = Math.max(1, _modalQty + d);
-  $('modal-qty-n').textContent = _modalQty;
-}
-
-function modalAdd() {
-  if (!_modalItem) return;
-  const id = _modalItem.id;
-  const ex = S.cart.find(c => c.item.id === id);
-  if (ex) ex.qty = _modalQty;
-  else S.cart.push({ item: _modalItem, qty: _modalQty });
-  refreshQC(id);
-  updateFab();
-  $('item-modal').classList.remove('on');
-  showToast(`${_modalItem.name} → корзина`);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CART LOGIC
-// ═══════════════════════════════════════════════════════════════
-function addToCart(id, e) {
-  e.stopPropagation();
-  // Найдём item data из DOM
-  const el = e.target.closest('.m-item');
-  if (!el) return;
-  const raw = el.getAttribute('data-item') || '';
-  let it;
-  try { it = JSON.parse(raw.replace(/&#39;/g,"'")); } catch(ex) { return; }
-  const ex = S.cart.find(c => c.item.id === id);
-  if (ex) ex.qty++;
-  else S.cart.push({ item: it, qty: 1 });
-  refreshQC(id);
-  updateFab();
-  showToast((it.name || 'Товар') + ' добавлен');
-}
-
-function cQ(id, d, e) {
-  e.stopPropagation();
-  const i = S.cart.findIndex(c => c.item.id === id);
-  if (i < 0) return;
-  S.cart[i].qty += d;
-  if (S.cart[i].qty <= 0) S.cart.splice(i, 1);
-  refreshQC(id);
-  updateFab();
-}
-
-function refreshQC(id) {
-  const el = $(`qc-${id}`);
-  if (!el) return;
-  const inC = S.cart.find(c => c.item.id === id);
-  if (inC) {
-    el.outerHTML = `<div class="qty" id="qc-${id}">
-      <button class="qb" onclick="cQ('${id}',-1,event)">−</button>
-      <span class="qn">${inC.qty}</span>
-      <button class="qb" onclick="cQ('${id}',1,event)">+</button>
-    </div>`;
-  } else {
-    el.outerHTML = `<button class="add-btn" id="qc-${id}" onclick="addToCart('${id}',event)">+</button>`;
-  }
-}
-
-function updateFab() {
-  const cnt   = S.cart.reduce((s,c) => s+c.qty, 0);
-  const total = cartTotal().items;
-  const fab   = $('cart-fab');
-  if (cnt > 0) {
-    fab.style.display = 'block';
-    $('fab-cnt').textContent   = cnt;
-    $('fab-price').textContent = fmtR(total);
-  } else { fab.style.display = 'none'; }
-  const bc = $('bn-cart-cnt');
-  if (cnt > 0) { bc.style.display='inline'; bc.textContent=cnt; }
-  else bc.style.display='none';
+function updateCartBadge() {
+  let total = 0;
+  Object.values(cart).forEach(p => p.items.forEach(i => total += i.qty));
+  const el = document.getElementById('cartCount');
+  el.textContent = total;
+  el.style.display = total > 0 ? 'block' : 'none';
 }
 
 function cartTotal() {
-  const items = S.cart.reduce((s,c) => s + (c.item.pR || 0) * c.qty, 0);
-  return { items, discount: S.promoDisc, total: Math.max(0, items - S.promoDisc) };
+  let sum = 0;
+  Object.values(cart).forEach(p => p.items.forEach(i => sum += i.price * i.qty));
+  return sum;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// CART RENDER + PAYMENT METHODS
-// ═══════════════════════════════════════════════════════════════
-async function renderCart() {
-  const el = $('cart-list');
-  if (!S.cart.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-ico">🛒</div>Корзина пуста</div>';
-  } else {
-    el.innerHTML = S.cart.map((c,i) => {
-      const it  = c.item;
-      const img = it.img || '';
-      const imgH = img
-        ? `<img class="ci-img" src="${img}" onerror="this.style.display='none'">`
-        : `<div class="ci-img" style="display:flex;align-items:center;justify-content:center;font-size:22px">🍽️</div>`;
-      return `<div class="ci">${imgH}
-        <div style="flex:1;min-width:0">
-          <div class="ci-name">${it.name||'—'}</div>
-          <div class="ci-p">${fmtR((it.pR||0)*c.qty)}</div>
-        </div>
-        <div class="qty">
-          <button class="qb" onclick="cCart(${i},-1)">−</button>
-          <span class="qn">${c.qty}</span>
-          <button class="qb" onclick="cCart(${i},1)">+</button>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  const t = cartTotal();
-  $('sum-items').textContent = fmtR(t.items);
-  $('sum-total').textContent = fmtR(t.total);
-  $('disc-row').style.display = t.discount > 0 ? 'flex' : 'none';
-  if (t.discount > 0) $('sum-disc').textContent = '−' + fmtR(t.discount);
-
-  const aT = S.address?.short_text || S.address?.full_text || 'Укажите адрес';
-  $('addr-cart').textContent = aT;
-  $('addr-top').textContent  = aT;
-
-  // Загружаем способы оплаты
-  await renderPayMethods();
+function cartItemCount(placeId, itemId) {
+  const p = Object.values(cart).find(p => p.placeId === placeId);
+  if (!p) return 0;
+  const item = p.items.find(i => i.id === itemId);
+  return item ? item.qty : 0;
 }
 
-function cCart(i, d) {
-  S.cart[i].qty += d;
-  if (S.cart[i].qty <= 0) S.cart.splice(i, 1);
-  renderCart(); updateFab();
-  if (!S.cart.length) nav('menu');
+function addToCart(placeId, placeName, item) {
+  if (!cart[placeId]) cart[placeId] = { placeId, placeName, items: [] };
+  const existing = cart[placeId].items.find(i => i.id === item.id);
+  if (existing) existing.qty++;
+  else cart[placeId].items.push({ ...item, qty: 1 });
+  updateCartBadge();
+  toast(`${item.name} добавлено 🛒`);
 }
 
-function cPers(d) { S.persons = Math.max(0, (S.persons || 2) + d); $('pers-n').textContent = S.persons; }
-function addCmt(t) { const ta=$('cmt'); ta.value=ta.value?ta.value+', '+t:t; }
-
-// ═══════════════════════════════════════════════════════════════
-// PAYMENT METHODS — загружаем из API
-// ═══════════════════════════════════════════════════════════════
-async function loadPayMethodsFromAPI() {
-  // Пробуем загрузить способы оплаты через Яндекс Еда API
-  try {
-    const lat = S.lat || 55.7558, lon = S.lon || 37.6176;
-    // Метод 1: payment-methods
-    const d = await api(`api/v1/payment-methods?latitude=${lat}&longitude=${lon}`);
-    const methods = d?.payment_methods || d?.methods || d?.data || [];
-    if (methods.length) return methods;
-
-    // Метод 2: user/payment-methods
-    const d2 = await api(`api/v2/user/payment-methods`);
-    return d2?.payment_methods || d2?.methods || [];
-  } catch(e) {
-    return [];
-  }
+function removeFromCart(placeId, itemId) {
+  if (!cart[placeId]) return;
+  const idx = cart[placeId].items.findIndex(i => i.id === itemId);
+  if (idx === -1) return;
+  cart[placeId].items[idx].qty--;
+  if (cart[placeId].items[idx].qty <= 0) cart[placeId].items.splice(idx, 1);
+  if (cart[placeId].items.length === 0) delete cart[placeId];
+  updateCartBadge();
 }
 
-async function renderPayMethods() {
-  const container = $('pay-methods');
-  if (!container) return;
+// ── NAVIGATION ──────────────────────────────
+function goPage(page, data = null) {
+  setTab(page);
+  const content = document.getElementById('content');
+  content.scrollTop = 0;
+  if (page === 'home')    renderHome();
+  if (page === 'search')  renderSearch();
+  if (page === 'cart')    renderCart();
+  if (page === 'orders')  renderOrders();
+  if (page === 'profile') renderProfile();
+  if (page === 'restaurant' && data) renderRestaurant(data);
+}
 
-  // Базовые методы (всегда доступны)
-  const defaults = [
-    { id: 'sbp', mid: 5, icon: '🏦', name: 'СБП', sub: 'Система быстрых платежей' },
-    { id: 'cash', mid: 1, icon: '💵', name: 'Наличными курьеру', sub: '' },
-  ];
-
-  // Если есть карты из снифа
-  const cardMethods = S.savedCards.map(card => ({
-    id: 'card_' + (card.id || card.card_id || ''),
-    mid: 2,
-    icon: '💳',
-    name: card.masked_number || card.last4 ? `Карта •••• ${card.last4 || card.masked_number?.slice(-4)}` : 'Банковская карта',
-    sub: card.payment_system || card.card_type || ''
-  }));
-
-  const all = [...defaults, ...cardMethods];
-  if (!cardMethods.length) {
-    all.push({ id: 'card', mid: 2, icon: '💳', name: 'Добавить карту', sub: 'Оплата онлайн' });
-  }
-
-  container.innerHTML = all.map(m => {
-    const isSel = S.payMethod === m.id || (S.payMethod === 'sbp' && m.id === 'sbp') || (S.payMethod === 'cash' && m.id === 'cash');
-    return `<div class="pay-m ${isSel?'sel':''}" onclick="selPay('${m.id}',${m.mid},this)">
-      <div class="pay-ico">${m.icon}</div>
-      <div style="flex:1">
-        <div class="pay-nm">${m.name}</div>
-        ${m.sub?`<div class="pay-sub">${m.sub}</div>`:''}
+// ── HOME ────────────────────────────────────
+async function renderHome() {
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="top-bar">
+      <div class="top-bar-row">
+        <button class="location-btn" onclick="openAddrModal()">
+          <span class="location-pin">📍</span>
+          <div>
+            <div class="location-text" id="addrLabel">${userAddress}</div>
+            <div class="location-sub">Нажмите чтобы изменить</div>
+          </div>
+        </button>
+        <button class="avatar-btn" onclick="goPage('profile')">${USER_NAME ? USER_NAME[0].toUpperCase() : '👤'}</button>
       </div>
-      <div class="pay-chk">${isSel?'<svg width="10" height="8" fill="none"><path d="M1 4l3 3L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div>
-    </div>`;
-  }).join('');
-}
-
-async function loadPayMethods() {
-  // Для экрана "Способы оплаты" в профиле
-  const container = $('pay-screen-list');
-  if (!container) return;
-
-  const defaults = [
-    { id: 'sbp', mid: 5, icon: '🏦', title: 'СБП', sub: 'Система быстрых платежей' },
-    { id: 'cash', mid: 1, icon: '💵', title: 'Наличные', sub: 'Курьеру при получении' },
-  ];
-
-  // Пробуем загрузить реальные карты
-  const apiMethods = await loadPayMethodsFromAPI();
-  const cards = apiMethods.filter(m =>
-    m.payment_type === 'card' || m.type === 'card' || m.payment_type === 'bank_card'
-  );
-  if (cards.length) {
-    S.savedCards = cards;
-    cards.forEach(c => {
-      defaults.push({
-        id: 'card_' + (c.id || c.card_id || uid4().slice(0,8)),
-        mid: 2, icon: '💳',
-        title: c.masked_number || `Карта •••• ${c.last4||''}`,
-        sub: c.payment_system || c.card_type || ''
-      });
-    });
-  } else {
-    defaults.push({ id: 'card', mid: 2, icon: '💳', title: 'Банковская карта', sub: 'Добавить в настройках Яндекса' });
-  }
-
-  container.innerHTML = defaults.map(m => {
-    const isSel = S.payMethod === m.id;
-    return `<div class="pay-screen-item ${isSel?'sel':''}" onclick="setGlobalPay('${m.id}',${m.mid},this)">
-      <div class="pay-screen-ico">${m.icon}</div>
-      <div class="pay-screen-name">
-        <div class="pay-screen-title">${m.title}</div>
-        ${m.sub?`<div class="pay-screen-sub">${m.sub}</div>`:''}
+      <div class="search-bar" onclick="goPage('search')">
+        <span class="search-icon">🔍</span>
+        <span class="search-placeholder">Рестораны, блюда...</span>
       </div>
-      <div class="pay-screen-chk"></div>
-    </div>`;
-  }).join('');
+    </div>
+    <div id="homeBody"><div class="loading"><div class="spinner"></div></div></div>
+  `;
+  await loadHomeContent();
 }
 
-function selPay(id, mid, el) {
-  document.querySelectorAll('.pay-m').forEach(m => {
-    m.classList.remove('sel');
-    m.querySelector('.pay-chk').innerHTML = '';
-  });
-  el.classList.add('sel');
-  el.querySelector('.pay-chk').innerHTML = '<svg width="10" height="8" fill="none"><path d="M1 4l3 3L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  S.payMethod = id; S.payMethodId = mid;
-}
-
-function setGlobalPay(id, mid, el) {
-  S.payMethod = id; S.payMethodId = mid;
-  document.querySelectorAll('.pay-screen-item').forEach(m => {
-    m.classList.remove('sel');
-  });
-  el.classList.add('sel');
-  const labels = { sbp:'СБП выбран', cash:'Наличные выбраны', card:'Карта выбрана' };
-  showToast(labels[id.split('_')[0]] || 'Выбрано');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PROMO — через Яндекс Еда API
-// ═══════════════════════════════════════════════════════════════
-function togglePromo() {
-  const b = $('promo-block');
-  b.style.display = b.style.display === 'none' ? 'block' : 'none';
-}
-
-async function applyPromo() {
-  const code = ($('promo-in').value || '').trim().toUpperCase();
-  if (!code) return;
-  const msg = $('promo-msg');
-  msg.textContent = 'Проверяем...'; msg.className = 'promo-msg';
-
+async function loadHomeContent() {
+  const body = document.getElementById('homeBody');
+  if (!body) return;
   try {
-    // Используем корректный эндпоинт Яндекс Еды
-    const r = await post('api/v2/apply-promocode', {
-      promocode: code,
-      place_slug: S.restaurant?.slug || '',
-      cart: buildCartItems()
-    });
+    const data = await api(`v2/catalog/places?latitude=${userLat}&longitude=${userLon}&limit=40&offset=0`);
+    const places = data.payload?.places || data.places || [];
+    restaurants = places;
 
-    const disc = r?.discount_amount || r?.discount || 0;
-    if (disc || r?.status === 'ok') {
-      S.promo = code;
-      S.promoDisc = disc > 1000 ? disc/100 : disc;
-      S.promoOk = true;
-      msg.textContent = `✓ Скидка ${fmtR(S.promoDisc)}`; msg.className = 'promo-msg ok';
-      $('promo-display').innerHTML = `<span style="color:var(--red)">${code}</span> ✓`;
-      renderCart();
+    // banners
+    let html = `
+      <div class="banners">
+        <div class="banner banner-1"><span class="banner-emoji">🍕</span><div><div class="banner-title">Пицца<br>со скидкой 30%</div><div class="banner-sub">Только сегодня</div></div></div>
+        <div class="banner banner-2"><span class="banner-emoji">🚀</span><div><div class="banner-title">Быстрая<br>доставка</div><div class="banner-sub">За 30 минут</div></div></div>
+        <div class="banner banner-3"><span class="banner-emoji">⭐</span><div><div class="banner-title">Яндекс Плюс<br>кешбэк 10%</div><div class="banner-sub">${PLUS_TOKEN ? 'Активен' : 'Подключить'}</div></div></div>
+      </div>
+    `;
+
+    // categories
+    const cats = ['Все', 'Пицца', 'Суши', 'Бургеры', 'Роллы', 'Паста', 'Кофе', 'Десерты', 'Азия'];
+    html += `<div class="categories">${cats.map((c,i)=>`<div class="cat-chip ${i===0?'active':''}" onclick="filterCat(this,'${c}')">${c}</div>`).join('')}</div>`;
+
+    html += `<div class="section-title">Рестораны рядом</div>`;
+
+    if (places.length === 0) {
+      html += `<div class="no-results">😕 Рестораны не найдены<br>Попробуйте изменить адрес</div>`;
     } else {
-      const errMsg = r?.message || r?.err || r?.error || 'Промокод не найден';
-      msg.textContent = '✗ ' + errMsg; msg.className = 'promo-msg er';
-    }
-  } catch(e) { msg.textContent = '✗ ' + e.message; msg.className = 'promo-msg er'; }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// BUILD CART — формат Яндекс Еда API
-// ═══════════════════════════════════════════════════════════════
-function buildCartItems() {
-  return S.cart.map(c => ({
-    id:       c.item.id || '',
-    quantity: c.qty,
-    // Передаём цену в копейках
-    price:    priceKop(c.item.pR || 0)
-  }));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PLACE ORDER — через api/v2/place-order
-// ═══════════════════════════════════════════════════════════════
-async function placeOrder() {
-  if (!S.address) { showToast('Укажите адрес доставки'); nav('address','cart'); return; }
-  if (!S.cart.length) { showToast('Корзина пуста'); return; }
-
-  setBtn('order-btn', true, 'Оформляем...');
-  const t = cartTotal();
-  const a = S.address;
-
-  // Определяем payment_information исходя из выбранного метода
-  let payInfo;
-  if (S.payMethod === 'sbp') {
-    payInfo = { type: 'sbp', id: 'sbp_qr', costForCustomer: t.total.toFixed(2) };
-  } else if (S.payMethod === 'cash') {
-    payInfo = { type: 'cash', id: 'cash', costForCustomer: t.total.toFixed(2) };
-  } else {
-    // Карта
-    const cardId = S.payMethod.startsWith('card_') ? S.payMethod.replace('card_','') : 'card';
-    payInfo = { type: 'card', id: cardId, costForCustomer: t.total.toFixed(2) };
-  }
-
-  const body = {
-    courier_options:  [],
-    persons_quantity: S.persons,
-    location: { latitude: a.lat || S.lat || 55.7558, longitude: a.lon || S.lon || 37.6176 },
-    comment: $('cmt')?.value || '',
-    payment: { recently_link_cards: false },
-    payment_method_id: S.payMethodId,
-    place_slug: S.restaurant?.slug || '',
-    extended_options: [{ type:'delivery_options' }],
-    address: {
-      office:     $('f-flat')?.value  || '',
-      floor:      $('f-floor')?.value || '',
-      entrance:   $('f-entr')?.value  || '',
-      doorcode:   $('f-door')?.value  || '',
-      comment:    $('f-acmt')?.value  || '',
-      city:       a.city    || '',
-      street:     a.street  || '',
-      house:      a.house   || '',
-      short_text: a.short_text || a.full_text || '',
-      full_text:  a.full_text  || a.short_text || '',
-      title:      a.short_text || a.full_text || '',
-      country:    'Россия',
-      areas:      a.areas || [],
-      type:       { id: 0 },
-      location:   { latitude: a.lat || 55.7558, longitude: a.lon || 37.6176 },
-      ...(a.uri ? { uri: a.uri } : {}),
-    },
-    payment_information: payInfo,
-    without_callback: true,
-    first_order: false,
-    currency: 'RUB',
-    country_code: 'RU',
-    ...(S.promoOk ? { promo_code: S.promo } : {}),
-    cart: buildCartItems()
-  };
-
-  try {
-    const r = await post('api/v2/place-order', body);
-    if (r?.status === 'error' || r?.domain || r?.code) {
-      showToast(r?.err || r?.message || r?.description || 'Ошибка оформления');
-      setBtn('order-btn', false, 'Оформить заказ');
-      return;
-    }
-    S.orderId = r?.order?.order?.order_id || r?.order_id || r?.id || '';
-    nav('status');
-    handleOrderResponse(r);
-  } catch(e) {
-    showToast('Ошибка: ' + e.message);
-    setBtn('order-btn', false, 'Оформить заказ');
-  }
-}
-
-function handleOrderResponse(r) {
-  const oid = S.orderId;
-  $('s-oid').textContent = oid ? `Заказ №${oid}` : '';
-  const pay = r?.order?.payment || r?.payment;
-  const tr  = r?.transparentPayment;
-
-  if (pay?.status === 'sbp_required' || tr || S.payMethod === 'sbp') {
-    const url = pay?.payload?.url || tr?.screen?.actions?.[0]?.url || '';
-    S.sbpUrl  = url;
-    $('s-ico').textContent = '💳';
-    $('s-ico').classList.add('pulse');
-    $('s-title').textContent = 'Ожидаем оплату';
-    $('s-desc').textContent  = tr?.screen?.text?.text || 'Подтвердите платёж в приложении банка';
-    if (url) { $('sbp-card').style.display = 'block'; $('sbp-desc').textContent = 'Перейдите в приложение банка для оплаты'; }
-    if (oid) startPoll(oid);
-  } else {
-    $('s-ico').textContent = '✅'; $('s-ico').classList.remove('pulse');
-    $('s-title').textContent = 'Заказ принят!';
-    $('s-desc').textContent  = 'Ресторан уже готовит ваш заказ';
-    S.cart = []; updateFab();
-  }
-}
-
-function openSBP() {
-  if (!S.sbpUrl) { showToast('Ссылка для оплаты недоступна'); return; }
-  tg ? tg.openLink(S.sbpUrl) : window.open(S.sbpUrl, '_blank');
-}
-
-function startPoll(oid) {
-  if (S.pollTimer) clearInterval(S.pollTimer);
-  S.pollTimer = setInterval(() => pollOrder(oid), 3000);
-  setTimeout(() => { if(S.pollTimer) clearInterval(S.pollTimer); }, 600000);
-}
-
-async function pollOrder(oid) {
-  try {
-    const r  = await api(`api/v2/orders/${oid}/info`);
-    const ps = r?.order?.payment?.status || r?.payment_status || '';
-    const os = r?.order?.order?.status   || r?.order_status   || '';
-    if (ps==='paid'||os==='confirmed'||os==='cooking'||os==='delivering') {
-      clearInterval(S.pollTimer); S.pollTimer=null;
-      $('s-ico').textContent='✅'; $('s-ico').classList.remove('pulse');
-      $('s-title').textContent='Оплата прошла!'; $('s-desc').textContent='Ресторан принял заказ';
-      $('sbp-card').style.display='none'; S.cart=[]; updateFab();
-    } else if (ps==='failed'||os==='cancelled') {
-      clearInterval(S.pollTimer); S.pollTimer=null;
-      $('s-ico').textContent='❌'; $('s-ico').classList.remove('pulse');
-      $('s-title').textContent='Оплата не прошла'; $('s-desc').textContent='Попробуйте другой способ';
-    }
-  } catch(e) {}
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ORDERS HISTORY
-// ═══════════════════════════════════════════════════════════════
-async function loadOrders() {
-  $('orders-content').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем заказы...</div></div>';
-  try {
-    const d = await api('api/v2/orders/history?page=1&page_size=20');
-    const orders = d?.orders || d?.data || d?.history || [];
-    if (!orders.length) {
-      $('orders-content').innerHTML = '<div class="empty"><div class="empty-ico">📦</div>Заказов пока нет</div>';
-      return;
-    }
-    $('orders-content').innerHTML = `<div class="ord-list page">${orders.map(o => renderOrder(o)).join('')}</div>`;
-  } catch(e) {
-    $('orders-content').innerHTML = `<div class="err-box">Ошибка загрузки: ${e.message}</div>`;
-  }
-}
-
-function renderOrder(o) {
-  const oid   = o.order_id || o.id || '';
-  const rest  = o.place_name || o.restaurant_name || o.place?.name || 'Ресторан';
-  const date  = o.created_at
-    ? new Date(o.created_at).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
-    : '';
-  const items = (o.items || o.products || []).slice(0,3).map(i => i.name||i.title||'').filter(Boolean).join(', ');
-  const total = o.total_cost || o.total || o.cost || 0;
-  const totalR = total > 5000 ? total/100 : total;
-  const status = o.status || o.order_status || '';
-  const statMap = {
-    delivered:['done','Доставлен'], completed:['done','Выполнен'],
-    cancelled:['wait','Отменён'], delivering:['del','Везут'],
-    cooking:['del','Готовится'], confirmed:['del','Принят'],
-  };
-  const [cls, label] = statMap[status] || ['wait', status || 'В обработке'];
-  const safeO = encodeURIComponent(JSON.stringify({
-    place_slug: o.place_slug || o.place?.slug || '',
-    place_name: rest,
-    items: (o.items||[]).map(i => ({ id:i.id||i.item_id||'', name:i.name||'', raw:i.price||0, pR:priceR(i.price||0), qty:i.quantity||1 }))
-  }));
-  return `<div class="ord-card">
-    <div class="ord-head">
-      <div>
-        <div class="ord-rest">${rest}</div>
-        <div class="ord-date">${date}${oid?' · №'+oid:''}</div>
-      </div>
-      <span class="ord-status ${cls}">${label}</span>
-    </div>
-    <div class="ord-body">
-      ${items?`<div class="ord-items">${items}${(o.items||[]).length>3?` и ещё ${(o.items||[]).length-3}`:''}</div>`:''}
-      <div class="ord-footer">
-        <span class="ord-price">${fmtR(totalR)}</span>
-      </div>
-      <button class="ord-repeat" onclick="repeatOrder('${safeO}')">Повторить заказ</button>
-    </div>
-  </div>`;
-}
-
-function repeatOrder(encoded) {
-  try {
-    const o = JSON.parse(decodeURIComponent(encoded));
-    if (!o.place_slug) { showToast('Нет данных о ресторане'); return; }
-    S.restaurant = { slug: o.place_slug, name: o.place_name||'Ресторан' };
-    S.cart = (o.items||[]).map(it => ({ item:it, qty:it.qty||1 }));
-    updateFab(); nav('cart');
-    showToast('Заказ добавлен в корзину');
-  } catch(e) { showToast('Ошибка'); }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// SAVED ADDRESSES
-// ═══════════════════════════════════════════════════════════════
-async function loadAddresses() {
-  $('addresses-content').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем...</div></div>';
-  try {
-    const d = await api('api/v2/user/addresses');
-    const addrs = d?.addresses || d?.data || [];
-    if (!addrs.length && S.address) {
-      $('addresses-content').innerHTML = `<div class="ord-list page">
-        <div class="ord-card">
-          <div class="ord-head"><div>
-            <div class="ord-rest">Текущий адрес</div>
-            <div class="ord-date">${S.address.full_text||S.address.short_text||''}</div>
-          </div></div>
-          <div class="ord-body"><button class="ord-repeat" onclick="nav('address','addresses')">Изменить адрес</button></div>
-        </div>
-      </div>`;
-      return;
-    }
-    if (!addrs.length) {
-      $('addresses-content').innerHTML = '<div class="empty"><div class="empty-ico">📍</div>Нет сохранённых адресов</div>';
-      return;
-    }
-    $('addresses-content').innerHTML = `<div class="ord-list page">${addrs.map(a => {
-      const txt = a.full_text || a.short_text || a.name || a.address || 'Адрес';
-      const safe = encodeURIComponent(JSON.stringify(a));
-      return `<div class="ord-card" onclick="useAddress('${safe}')">
-        <div class="ord-head"><div>
-          <div class="ord-rest">${txt}</div>
-          ${a.entrance?`<div class="ord-date">Подъезд ${a.entrance}${a.floor?`, этаж ${a.floor}`:''}</div>`:''}
-        </div>
-        <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-      </div>`;
-    }).join('')}</div>`;
-  } catch(e) {
-    $('addresses-content').innerHTML = '<div class="empty"><div class="empty-ico">📍</div>Нет сохранённых адресов</div>';
-  }
-}
-
-function useAddress(encoded) {
-  try {
-    const a = JSON.parse(decodeURIComponent(encoded));
-    S.address = {
-      full_text:  a.full_text  || a.name || '',
-      short_text: a.short_text || a.name || '',
-      city:    a.city    || '', street:  a.street  || '',
-      house:   a.house   || '',
-      lat:     a.lat || a.location?.latitude  || 55.7558,
-      lon:     a.lon || a.location?.longitude || 37.6176,
-      entrance: a.entrance || '', floor: a.floor || '',
-      flat:    a.flat || a.office || '', doorcode: a.doorcode || '',
-      areas:   a.areas || [], uri: a.uri || ''
-    };
-    const disp = S.address.short_text || S.address.full_text;
-    $('addr-top').textContent  = disp;
-    $('addr-cart').textContent = disp;
-    showToast('Адрес выбран ✓');
-    _rLoaded = false;
-    nav('catalog');
-  } catch(e) {}
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PROFILE
-// ═══════════════════════════════════════════════════════════════
-async function loadProfile() {
-  const urlName = decodeURIComponent(P.get('name') || '');
-  const urlUid  = P.get('uid') || '';
-  const tgUser  = tg?.initDataUnsafe?.user;
-  let name = urlName || tgUser?.first_name || '';
-  let uid  = urlUid || '';
-
-  if (name) _renderProfile(name, uid);
-
-  if (PROXY && CHAT_ID) {
-    try {
-      const r = await fetch(`${PROXY}/proxy-account?chat_id=${CHAT_ID}`, {
-        headers: { 'ngrok-skip-browser-warning':'1', 'X-Chat-Id': CHAT_ID }
+      html += `<div class="rest-grid" id="restGrid">`;
+      places.forEach(p => {
+        const slug = p.slug || p.id || '';
+        const name = p.name || 'Ресторан';
+        const rating = p.rating?.value || p.rating || '';
+        const time = p.delivery?.time || p.deliveryTime || '30–45';
+        const minOrder = p.minOrderPrice?.value || p.minOrderPrice || 0;
+        const emoji = getEmoji(p.categories);
+        html += `
+          <div class="rest-card" onclick="openRestaurant('${slug}','${encodeURIComponent(name)}')">
+            <div class="rest-img">${emoji}</div>
+            <div class="rest-body">
+              <div class="rest-name">${name}</div>
+              <div class="rest-meta">
+                ${rating ? `<span class="rest-rating">⭐ ${rating}</span><span class="rest-dot">•</span>` : ''}
+                <span class="rest-time">${time} мин</span>
+              </div>
+              ${minOrder ? `<div class="rest-tag">от ${minOrder} ₽</div>` : ''}
+            </div>
+          </div>`;
       });
-      const d = await r.json().catch(()=>({}));
-      if (d.name) name = d.name;
-      if (d.uid)  uid  = d.uid;
-      if (d.bank_token && !BANK_TOKEN) {}  // можно использовать
-    } catch(e) {}
+      html += `</div>`;
+    }
+    if (body) body.innerHTML = `<div class="page">${html}</div>`;
+  } catch(e) {
+    if (body) body.innerHTML = `<div class="no-results">⚠️ Ошибка загрузки<br><small>${e.message}</small></div>`;
   }
-  _renderProfile(name, uid);
 }
 
-function _renderProfile(name, uid) {
-  $('prf-ava').textContent  = name ? name[0].toUpperCase() : '?';
-  $('prf-name').textContent = name || 'Пользователь';
-  $('prf-uid').textContent  = uid  ? `UID: ${uid}` : '';
-  const badges = [];
-  if (PLUS_TOKEN)  badges.push('<span class="prf-badge b">⭐ Яндекс Плюс</span>');
-  if (BANK_TOKEN)  badges.push('<span class="prf-badge g">💳 Яндекс Банк</span>');
-  $('prf-badges').innerHTML = badges.join('');
-  $('hdr-name').textContent = name ? name.split(' ')[0] : '';
+function getEmoji(cats) {
+  if (!cats) return '🍽️';
+  const c = JSON.stringify(cats).toLowerCase();
+  if (c.includes('pizza') || c.includes('пицц')) return '🍕';
+  if (c.includes('sushi') || c.includes('суши') || c.includes('ролл')) return '🍣';
+  if (c.includes('burger') || c.includes('бургер')) return '🍔';
+  if (c.includes('coffee') || c.includes('кофе')) return '☕';
+  if (c.includes('pasta') || c.includes('паст')) return '🍝';
+  if (c.includes('asian') || c.includes('китай') || c.includes('азия')) return '🥡';
+  if (c.includes('dessert') || c.includes('десерт')) return '🍰';
+  return ['🍽️','🥗','🌮','🥩','🍜','🫕'][Math.floor(Math.random()*6)];
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ADDRESS — suggest + geocode через прокси
-// ═══════════════════════════════════════════════════════════════
-let _sugTimer = null, _ymInited = false;
-
-function initAddr() {
-  if (S.address) {
-    $('addr-in').value = S.address.short_text || S.address.full_text || '';
-    $('f-entr').value  = S.address.entrance || '';
-    $('f-floor').value = S.address.floor    || '';
-    $('f-flat').value  = S.address.flat     || '';
-    $('f-door').value  = S.address.doorcode || '';
-    $('f-acmt').value  = S.address.comment  || '';
-  }
-  $('sug-list').innerHTML = '';
-  if (!_ymInited) { _ymInited = true; loadYmap(); }
-  else if (S.ymapReady && S.address?.lat) setPin(S.address.lat, S.address.lon);
+function filterCat(el, cat) {
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  const grid = document.getElementById('restGrid');
+  if (!grid) return;
+  const cards = grid.querySelectorAll('.rest-card');
+  cards.forEach((card, i) => {
+    if (cat === 'Все') { card.style.display = ''; return; }
+    const name = card.querySelector('.rest-name')?.textContent || '';
+    const emoji = card.querySelector('.rest-img')?.textContent || '';
+    const catMap = {
+      'Пицца': ['🍕','пицц'],
+      'Суши': ['🍣','суши','ролл'],
+      'Бургеры': ['🍔','бургер'],
+      'Роллы': ['🍣','ролл'],
+      'Паста': ['🍝','паст'],
+      'Кофе': ['☕','кофе'],
+      'Десерты': ['🍰','десерт'],
+      'Азия': ['🥡','азия','китай']
+    };
+    const keys = catMap[cat] || [];
+    const match = keys.some(k => emoji.includes(k) || name.toLowerCase().includes(k));
+    card.style.display = match ? '' : 'none';
+  });
 }
 
-function loadYmap() {
-  const s = document.createElement('script');
-  s.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=' + MAPS_KEY;
-  s.onload = () => {
-    if (!window.ymaps) return;
-    ymaps.ready(() => {
-      try {
-        const lat = S.address?.lat || S.lat || 55.7558;
-        const lon = S.address?.lon || S.lon || 37.6176;
-        S.ymapObj = new ymaps.Map('ymap', { center:[lat,lon], zoom:16, controls:['zoomControl'] });
-        S.ymapPin = new ymaps.Placemark([lat,lon], {}, { preset:'islands#redDotIcon' });
-        S.ymapObj.geoObjects.add(S.ymapPin);
-        S.ymapReady = true;
-        S.ymapObj.events.add('click', e => {
-          const [la,lo] = e.get('coords');
-          setPin(la, lo);
-          revGeo(la, lo);
-        });
-      } catch(e) { console.log('[MAP ERR]', e); }
-    });
-  };
-  s.onerror = () => console.log('[MAP] не загрузились');
-  document.head.appendChild(s);
+// ── RESTAURANT ──────────────────────────────
+async function openRestaurant(slug, namenc) {
+  const name = decodeURIComponent(namenc);
+  const c = document.getElementById('content');
+  setTab('');
+  c.innerHTML = `
+    <div class="rest-header-img">
+      <span>${getEmoji(null)}</span>
+      <button class="back-btn" onclick="goPage('home')">←</button>
+    </div>
+    <div class="rest-info">
+      <div class="rest-info-name">${name}</div>
+      <div class="rest-info-meta">
+        <span class="rest-info-pill">🚚 Доставка</span>
+        <span class="rest-info-pill">⏱ 30–45 мин</span>
+        <span class="rest-info-pill">📍 ${userAddress.split(',')[0]}</span>
+      </div>
+    </div>
+    <div id="menuBody"><div class="loading"><div class="spinner"></div></div></div>
+  `;
+  currentPlace = { slug, name };
+  await loadMenu(slug, name);
 }
 
-function setPin(lat, lon) {
-  if (!S.ymapReady) return;
-  try {
-    S.ymapPin.geometry.setCoordinates([lat, lon]);
-    S.ymapObj.setCenter([lat, lon], 16, { duration:300 });
-  } catch(e) {}
-}
+async function loadMenu(slug, name) {
+  const body = document.getElementById('menuBody');
+  if (!body) return;
 
-function onAddrInput(val) {
-  clearTimeout(_sugTimer);
-  if (!val || val.length < 2) { $('sug-list').innerHTML = ''; return; }
-  _sugTimer = setTimeout(() => fetchSug(val), 350);
-}
-
-async function fetchSug(text) {
-  $('sug-list').innerHTML = '<div style="padding:10px 16px;color:var(--sec);font-size:14px">Ищем...</div>';
-  const items = await proxySuggest(text);
-  if (!items.length) {
-    $('sug-list').innerHTML = '<div style="padding:10px 16px;color:var(--sec);font-size:14px">Ничего не найдено</div>';
+  if (menuCache[slug]) {
+    renderMenu(menuCache[slug], slug, name);
     return;
   }
-  $('sug-list').innerHTML = items.slice(0,8).map(it => {
-    const title = it?.title?.text || it?.name || it?.text || it?.value || '';
-    const sub   = it?.subtitle?.text || it?.description || it?.displayName || '';
-    const uri   = it?.uri || '';
-    const safe  = encodeURIComponent(JSON.stringify({ title, sub, uri }));
-    return `<div class="sug" onclick="selSug('${safe}')">
-      <svg style="flex-shrink:0;margin-top:2px;opacity:.5" width="14" height="18" fill="none">
-        <path d="M7 0C3.7 0 1 2.7 1 6c0 4.5 6 11 6 11S13 10.5 13 6C13 2.7 10.3 0 7 0zm0 8.5A2.5 2.5 0 1 1 7 3.5a2.5 2.5 0 0 1 0 5z" fill="#9E9B98"/>
-      </svg>
-      <div style="flex:1;min-width:0">
-        <div class="sug-t">${title}</div>
-        ${sub?`<div class="sug-s">${sub}</div>`:''}
+
+  try {
+    const data = await api(`v2/catalog/place/menu?slug=${slug}&latitude=${userLat}&longitude=${userLon}`);
+    const menu = data.payload || data;
+    menuCache[slug] = menu;
+    renderMenu(menu, slug, name);
+  } catch(e) {
+    if (body) body.innerHTML = `<div class="no-results">⚠️ Не удалось загрузить меню</div>`;
+  }
+}
+
+function renderMenu(menu, placeId, placeName) {
+  const body = document.getElementById('menuBody');
+  if (!body) return;
+
+  const categories = menu.categories || menu.payload?.categories || [];
+  let html = '';
+
+  if (categories.length === 0) {
+    html = `<div class="no-results">📭 Меню пусто</div>`;
+  }
+
+  categories.forEach(cat => {
+    const items = cat.items || [];
+    if (!items.length) return;
+    html += `<div class="menu-section"><div class="menu-section-title">${cat.name || cat.title || 'Блюда'}</div>`;
+    items.forEach(item => {
+      const id = item.id || item.publicId || Math.random();
+      const iname = item.name || 'Блюдо';
+      const desc = item.description || '';
+      const price = item.price?.value || item.decimalPrice || item.price || 0;
+      const imgUrl = item.imageUrl || item.image || '';
+      const emoji = getItemEmoji(iname);
+      const qty = cartItemCount(placeId, id);
+
+      html += `
+        <div class="menu-item" id="menuitem-${id}">
+          <div class="menu-item-img">
+            ${imgUrl ? `<img src="${imgUrl}" loading="lazy" onerror="this.parentNode.innerHTML='${emoji}'" />` : emoji}
+          </div>
+          <div class="menu-item-body">
+            <div class="menu-item-name">${iname}</div>
+            ${desc ? `<div class="menu-item-desc">${desc.slice(0,80)}${desc.length>80?'...':''}</div>` : ''}
+            <div class="menu-item-price">${price} ₽</div>
+          </div>
+          <div id="addctrl-${id}">
+            ${qty > 0
+              ? `<div class="item-qty-ctrl">
+                   <button class="item-qty-btn" onclick="changeQty('${placeId}','${encodeURIComponent(placeName)}','${id}','${encodeURIComponent(iname)}',${price},'${emoji}',-1)">−</button>
+                   <span class="item-qty-num" id="qty-${id}">${qty}</span>
+                   <button class="item-qty-btn" onclick="changeQty('${placeId}','${encodeURIComponent(placeName)}','${id}','${encodeURIComponent(iname)}',${price},'${emoji}',1)">+</button>
+                 </div>`
+              : `<button class="menu-item-add" onclick="changeQty('${placeId}','${encodeURIComponent(placeName)}','${id}','${encodeURIComponent(iname)}',${price},'${emoji}',1)">+</button>`
+            }
+          </div>
+        </div>`;
+    });
+    html += `</div>`;
+  });
+
+  body.innerHTML = `<div class="page">${html}</div>`;
+}
+
+function getItemEmoji(name) {
+  const n = name.toLowerCase();
+  if (n.includes('пицц')) return '🍕';
+  if (n.includes('бургер') || n.includes('burger')) return '🍔';
+  if (n.includes('роллы') || n.includes('ролл') || n.includes('суши')) return '🍣';
+  if (n.includes('суп') || n.includes('борщ') || n.includes('солянк')) return '🍲';
+  if (n.includes('паст') || n.includes('спагетт')) return '🍝';
+  if (n.includes('салат')) return '🥗';
+  if (n.includes('кофе') || n.includes('капуч') || n.includes('латте') || n.includes('эспрессо')) return '☕';
+  if (n.includes('чай')) return '🍵';
+  if (n.includes('сок') || n.includes('напит') || n.includes('лимон')) return '🥤';
+  if (n.includes('торт') || n.includes('десерт') || n.includes('мороженое')) return '🍰';
+  if (n.includes('шашлык') || n.includes('мясо') || n.includes('стейк')) return '🥩';
+  if (n.includes('курица') || n.includes('куриц') || n.includes('chicken')) return '🍗';
+  if (n.includes('рыб') || n.includes('salmon') || n.includes('тунец')) return '🐟';
+  if (n.includes('картош') || n.includes('фри')) return '🍟';
+  if (n.includes('блин') || n.includes('блины')) return '🥞';
+  if (n.includes('шоколад') || n.includes('брауни')) return '🍫';
+  return '🍽️';
+}
+
+function changeQty(placeId, placeNameEnc, itemId, itemNameEnc, price, emoji, delta) {
+  const placeName = decodeURIComponent(placeNameEnc);
+  const itemName = decodeURIComponent(itemNameEnc);
+  if (delta > 0) {
+    addToCart(placeId, placeName, { id: itemId, name: itemName, price, emoji });
+  } else {
+    removeFromCart(placeId, itemId);
+  }
+  // update UI inline
+  const qty = cartItemCount(placeId, itemId);
+  const ctrl = document.getElementById(`addctrl-${itemId}`);
+  if (ctrl) {
+    if (qty > 0) {
+      ctrl.innerHTML = `<div class="item-qty-ctrl">
+        <button class="item-qty-btn" onclick="changeQty('${placeId}','${encodeURIComponent(placeName)}','${itemId}','${encodeURIComponent(itemName)}',${price},'${emoji}',-1)">−</button>
+        <span class="item-qty-num" id="qty-${itemId}">${qty}</span>
+        <button class="item-qty-btn" onclick="changeQty('${placeId}','${encodeURIComponent(placeName)}','${itemId}','${encodeURIComponent(itemName)}',${price},'${emoji}',1)">+</button>
+      </div>`;
+    } else {
+      ctrl.innerHTML = `<button class="menu-item-add" onclick="changeQty('${placeId}','${encodeURIComponent(placeName)}','${itemId}','${encodeURIComponent(itemName)}',${price},'${emoji}',1)">+</button>`;
+    }
+  }
+}
+
+// ── SEARCH ──────────────────────────────────
+async function renderSearch() {
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="top-bar">
+      <div style="font-size:18px;font-weight:700;margin-bottom:10px">🔍 Поиск</div>
+      <input class="addr-input" id="searchInput" placeholder="Ресторан или блюдо..." oninput="doSearch(this.value)" autocomplete="off">
+    </div>
+    <div id="searchResults"><div style="padding:32px;text-align:center;color:var(--text-secondary);font-size:14px">Начните вводить запрос</div></div>
+  `;
+  document.getElementById('searchInput').focus();
+}
+
+async function doSearch(q) {
+  const body = document.getElementById('searchResults');
+  if (!q || q.length < 2) {
+    body.innerHTML = `<div style="padding:32px;text-align:center;color:var(--text-secondary);font-size:14px">Начните вводить запрос</div>`;
+    return;
+  }
+  const filtered = restaurants.filter(r => r.name?.toLowerCase().includes(q.toLowerCase()));
+  if (filtered.length === 0) {
+    body.innerHTML = `<div class="no-results">😕 Ничего не найдено по "${q}"</div>`;
+    return;
+  }
+  let html = `<div class="rest-grid page" style="padding-top:12px">`;
+  filtered.forEach(p => {
+    const slug = p.slug || p.id || '';
+    const name = p.name || 'Ресторан';
+    const rating = p.rating?.value || p.rating || '';
+    const time = p.delivery?.time || p.deliveryTime || '30–45';
+    const emoji = getEmoji(p.categories);
+    html += `
+      <div class="rest-card" onclick="openRestaurant('${slug}','${encodeURIComponent(name)}')">
+        <div class="rest-img">${emoji}</div>
+        <div class="rest-body">
+          <div class="rest-name">${name}</div>
+          <div class="rest-meta">
+            ${rating ? `<span class="rest-rating">⭐ ${rating}</span><span class="rest-dot">•</span>` : ''}
+            <span class="rest-time">${time} мин</span>
+          </div>
+        </div>
+      </div>`;
+  });
+  html += `</div>`;
+  body.innerHTML = html;
+}
+
+// ── CART ─────────────────────────────────────
+function renderCart() {
+  const c = document.getElementById('content');
+  const allItems = Object.values(cart).flatMap(p => p.items.map(i => ({ ...i, placeId: p.placeId, placeName: p.placeName })));
+
+  if (allItems.length === 0) {
+    c.innerHTML = `
+      <div class="top-bar"><div style="font-size:18px;font-weight:700">🛒 Корзина</div></div>
+      <div class="cart-empty page">
+        <div class="cart-empty-icon">🛒</div>
+        <div class="cart-empty-title">Корзина пуста</div>
+        <div class="cart-empty-sub">Добавьте блюда из меню ресторана</div>
+      </div>`;
+    return;
+  }
+
+  // Group by place
+  const places = Object.values(cart);
+  let html = `<div class="top-bar"><div style="font-size:18px;font-weight:700">🛒 Корзина</div></div><div class="page">`;
+
+  places.forEach(place => {
+    html += `<div style="padding:12px 16px 4px;font-size:15px;font-weight:700;color:var(--text-secondary)">${place.placeName}</div>`;
+    place.items.forEach(item => {
+      html += `
+        <div class="cart-item">
+          <div class="cart-item-img">${item.emoji || '🍽️'}</div>
+          <div class="cart-item-body">
+            <div class="cart-item-name">${item.name}</div>
+            <div class="cart-item-price">${item.price} ₽ × ${item.qty}</div>
+          </div>
+          <div class="item-qty-ctrl">
+            <button class="item-qty-btn" onclick="cartChange('${place.placeId}','${item.id}',-1)"  >−</button>
+            <span class="item-qty-num">${item.qty}</span>
+            <button class="item-qty-btn" onclick="cartChange('${place.placeId}','${item.id}',1)">+</button>
+          </div>
+        </div>`;
+    });
+  });
+
+  const delivery = 99;
+  const subtotal = cartTotal();
+  const total = subtotal + delivery;
+
+  html += `
+    <div class="cart-total-box">
+      <div class="cart-row"><span>Товары</span><span>${subtotal} ₽</span></div>
+      <div class="cart-row"><span>Доставка</span><span>${delivery} ₽</span></div>
+      ${PLUS_TOKEN ? `<div class="cart-row" style="color:#FC3F1D"><span>⭐ Кешбэк Плюс</span><span>−${Math.floor(subtotal * 0.05)} ₽</span></div>` : ''}
+      <div class="cart-row total"><span>Итого</span><span>${total} ₽</span></div>
+    </div>
+    <div style="padding:0 16px 8px;font-size:13px;color:var(--text-secondary)">
+      📍 ${userAddress}
+    </div>
+    <button class="order-btn" onclick="placeOrder()">Оформить заказ — ${total} ₽</button>
+  </div>`;
+
+  c.innerHTML = html;
+}
+
+function cartChange(placeId, itemId, delta) {
+  if (delta > 0) {
+    const p = cart[placeId];
+    const item = p?.items.find(i => i.id === itemId);
+    if (item) { item.qty++; updateCartBadge(); renderCart(); }
+  } else {
+    removeFromCart(placeId, itemId);
+    renderCart();
+  }
+  updateCartBadge();
+}
+
+// ── PLACE ORDER ─────────────────────────────
+async function placeOrder() {
+  if (!TOKEN) { toast('❌ Не авторизован'); return; }
+  const btn = document.querySelector('.order-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Оформляем...'; }
+
+  // Build order payload for first place in cart
+  const placeData = Object.values(cart)[0];
+  if (!placeData) return;
+
+  try {
+    const items = placeData.items.map(i => ({ id: i.id, quantity: i.qty }));
+    const payload = {
+      place_slug: placeData.placeId,
+      items,
+      delivery_address: { comment: userAddress, latitude: userLat, longitude: userLon },
+      payment: { type: 'card' }
+    };
+
+    const r = await api('v2/cart/place-order', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'X-Idempotency-Token': crypto.randomUUID() }
+    });
+
+    if (r.order_nr || r.payload?.orderNr || r.order?.id) {
+      cart = {};
+      updateCartBadge();
+      const content = document.getElementById('content');
+      const orderNr = r.order_nr || r.payload?.orderNr || r.order?.id || '—';
+      content.innerHTML = `
+        <div class="success-page page">
+          <div class="success-icon">🎉</div>
+          <div class="success-title">Заказ оформлен!</div>
+          <div class="success-sub">№ ${orderNr}<br><br>Ваш заказ принят и уже готовится.<br>Время доставки: 30–45 минут.</div>
+          <button class="order-btn" style="margin-top:32px" onclick="goPage('orders')">Мои заказы</button>
+        </div>`;
+    } else {
+      toast('❌ ' + (r.message || r.error || 'Ошибка оформления'));
+      if (btn) { btn.disabled = false; btn.textContent = `Оформить заказ — ${cartTotal() + 99} ₽`; }
+    }
+  } catch(e) {
+    toast('❌ ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = `Оформить заказ`; }
+  }
+}
+
+// ── ORDERS ───────────────────────────────────
+async function renderOrders() {
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="top-bar"><div style="font-size:18px;font-weight:700">📋 Мои заказы</div></div>
+    <div id="ordersBody"><div class="loading"><div class="spinner"></div></div></div>`;
+  await loadOrders();
+}
+
+async function loadOrders() {
+  const body = document.getElementById('ordersBody');
+  if (!body) return;
+  try {
+    const data = await api('v2/orders?limit=20&offset=0');
+    const orders = data.payload?.orders || data.orders || [];
+
+    if (orders.length === 0) {
+      body.innerHTML = `<div class="cart-empty page"><div class="cart-empty-icon">📋</div><div class="cart-empty-title">Заказов пока нет</div><div class="cart-empty-sub">После первого заказа они появятся здесь</div></div>`;
+      return;
+    }
+
+    let html = `<div class="page" style="padding-top:12px">`;
+    orders.forEach(o => {
+      const status = o.status || '';
+      const statusMap = {
+        'active': ['Активен', 'status-active'],
+        'in_progress': ['В пути', 'status-active'],
+        'delivered': ['Доставлен', 'status-done'],
+        'cancelled': ['Отменён', 'status-cancelled'],
+      };
+      const [slabel, scls] = statusMap[status] || [status, 'status-active'];
+      const date = o.created_at ? new Date(o.created_at * 1000).toLocaleDateString('ru') : '';
+      const total = o.total?.value || o.total || '';
+      const itemNames = (o.items || []).map(i => i.name).join(', ');
+      const placeName = o.place?.name || o.place_name || '';
+
+      html += `
+        <div class="order-card">
+          <div class="order-card-header">
+            <div class="order-card-name">${placeName}</div>
+            <span class="order-status ${scls}">${slabel}</span>
+          </div>
+          <div class="order-card-meta">${date}${o.order_nr ? ' · №' + o.order_nr : ''}</div>
+          ${itemNames ? `<div class="order-card-items">${itemNames.slice(0,80)}</div>` : ''}
+          ${total ? `<div class="order-card-total">${total} ₽</div>` : ''}
+        </div>`;
+    });
+    html += `</div>`;
+    body.innerHTML = html;
+  } catch(e) {
+    body.innerHTML = `<div class="no-results">⚠️ Не удалось загрузить заказы</div>`;
+  }
+}
+
+// ── PROFILE ──────────────────────────────────
+function renderProfile() {
+  const c = document.getElementById('content');
+  const initials = USER_NAME ? USER_NAME.slice(0,2).toUpperCase() : '??';
+  c.innerHTML = `
+    <div class="page">
+      <div class="profile-header">
+        <div class="profile-avatar">${initials}</div>
+        <div>
+          <div class="profile-name">${USER_NAME || 'Пользователь'}</div>
+          <div class="profile-uid">UID: ${USER_UID || '—'}</div>
+        </div>
+      </div>
+      <div style="background:var(--white);margin:12px 16px;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+        <div class="menu-list-item"><span class="menu-list-icon">🎁</span><span class="menu-list-text">Яндекс Плюс</span><span style="font-size:12px;color:${PLUS_TOKEN?'#34C759':'#999'}">${PLUS_TOKEN?'Активен':'Нет'}</span></div>
+        <div class="menu-list-item"><span class="menu-list-icon">💳</span><span class="menu-list-text">Методы оплаты</span><span class="menu-list-arrow">›</span></div>
+        <div class="menu-list-item"><span class="menu-list-icon">📍</span><span class="menu-list-text">Мои адреса</span><span class="menu-list-arrow">›</span></div>
+        <div class="menu-list-item" onclick="goPage('orders')"><span class="menu-list-icon">📋</span><span class="menu-list-text">История заказов</span><span class="menu-list-arrow">›</span></div>
+      </div>
+      <div style="background:var(--white);margin:0 16px 12px;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+        <div class="menu-list-item"><span class="menu-list-icon">🔔</span><span class="menu-list-text">Уведомления</span><span class="menu-list-arrow">›</span></div>
+        <div class="menu-list-item"><span class="menu-list-icon">🔒</span><span class="menu-list-text">Безопасность</span><span class="menu-list-arrow">›</span></div>
+        <div class="menu-list-item"><span class="menu-list-icon">❓</span><span class="menu-list-text">Помощь</span><span class="menu-list-arrow">›</span></div>
+      </div>
+      <div style="padding:8px 16px 24px">
+        <div style="background:var(--white);border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;font-weight:600">СТАТУС СЕССИИ</div>
+          <div style="font-size:12px;color:#34C759;font-weight:600">✅ Авторизован через Яндекс</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Token: ${TOKEN ? TOKEN.slice(0,20)+'...' : '—'}</div>
+        </div>
       </div>
     </div>`;
-  }).join('');
 }
 
-async function selSug(encoded) {
+// ── ADDRESS MODAL ────────────────────────────
+function openAddrModal() {
+  document.getElementById('addrModal').classList.add('open');
+  document.getElementById('addrInput').value = '';
+  document.getElementById('suggestList').innerHTML = '';
+  setTimeout(() => document.getElementById('addrInput').focus(), 300);
+}
+
+function closeAddrModal() {
+  document.getElementById('addrModal').classList.remove('open');
+}
+
+document.getElementById('addrModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('addrModal')) closeAddrModal();
+});
+
+document.getElementById('addrInput').addEventListener('input', e => {
+  clearTimeout(suggestTimer);
+  const q = e.target.value;
+  if (q.length < 2) { document.getElementById('suggestList').innerHTML = ''; return; }
+  suggestTimer = setTimeout(() => loadSuggests(q), 300);
+});
+
+async function loadSuggests(q) {
+  const list = document.getElementById('suggestList');
   try {
-    const { title, sub, uri } = JSON.parse(decodeURIComponent(encoded));
-    const full = [title, sub].filter(Boolean).join(', ');
-    $('addr-in').value = title;
-    $('sug-list').innerHTML = '';
-    const geo = await proxyGeocode(full);
-    if (geo) {
-      S.address = { ...geo, uri: uri || geo.uri };
-      if (S.ymapReady) setPin(geo.lat, geo.lon);
-    } else {
-      S.address = S.address || {};
-      S.address.full_text  = full;
-      S.address.short_text = title;
-      S.address.uri        = uri;
-      if (!S.address.lat) S.address.lat = S.lat || 55.7558;
-      if (!S.address.lon) S.address.lon = S.lon || 37.6176;
-      S.address.areas = S.address.areas || [];
+    const r = await fetch(`${PROXY}/proxy-suggest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Chat-Id': CHAT_ID },
+      body: JSON.stringify({ text: q, lat: userLat, lon: userLon })
+    });
+    const data = await r.json();
+    const items = data.results || data.features || [];
+    list.innerHTML = items.slice(0, 6).map(item => {
+      const title = item.title?.text || item.properties?.name || item.name || q;
+      const sub = item.subtitle?.text || item.properties?.description || '';
+      return `<div class="suggest-item" onclick="selectAddr('${encodeURIComponent(title)}')">
+        <span class="suggest-icon">📍</span>${title}${sub ? `<br><small style="color:var(--text-secondary)">${sub}</small>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = `<div class="suggest-item" onclick="selectAddr('${encodeURIComponent(q)}')">📍 ${q}</div>`;
+  }
+}
+
+async function selectAddr(enc) {
+  const addr = decodeURIComponent(enc);
+  userAddress = addr;
+  localStorage.setItem('eda_address', addr);
+
+  // geocode
+  try {
+    const r = await fetch(`${PROXY}/proxy-geocode`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: addr })
+    });
+    const d = await r.json();
+    const pos = d.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject?.Point?.pos;
+    if (pos) {
+      const [lon, lat] = pos.split(' ').map(Number);
+      userLat = lat; userLon = lon;
+      localStorage.setItem('eda_lat', lat); localStorage.setItem('eda_lon', lon);
     }
   } catch(e) {}
+
+  closeAddrModal();
+  const lbl = document.getElementById('addrLabel');
+  if (lbl) lbl.textContent = addr;
+  menuCache = {};
+  restaurants = [];
+  loadHomeContent();
+  toast(`📍 Адрес: ${addr}`);
 }
 
-async function revGeo(lat, lon) {
-  const geo = await proxyGeocode(`${lon},${lat}`);
-  if (geo && S.address) {
-    Object.assign(S.address, geo);
-    $('addr-in').value = geo.short_text || geo.full_text || '';
+// ── INIT ─────────────────────────────────────
+async function init() {
+  // Hidde splash
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('hide');
+    setTimeout(() => document.getElementById('splash').remove(), 400);
+  }, 1200);
+
+  if (!TOKEN && !CHAT_ID) {
+    document.getElementById('content').innerHTML = `
+      <div class="success-page">
+        <div style="font-size:64px">🔐</div>
+        <div class="success-title">Не авторизован</div>
+        <div class="success-sub">Откройте приложение через Telegram бота</div>
+      </div>`;
+    return;
   }
+
+  renderHome();
 }
 
-function confirmAddr() {
-  const inputVal = ($('addr-in').value || '').trim();
-  if (!inputVal && !S.address) { showToast('Введите адрес'); return; }
-
-  if (!S.address) S.address = {};
-  if (inputVal && inputVal !== S.address.short_text && inputVal !== S.address.full_text) {
-    S.address.full_text  = inputVal;
-    S.address.short_text = inputVal;
-    if (!S.address.lat) S.address.lat = S.lat || 55.7558;
-    if (!S.address.lon) S.address.lon = S.lon || 37.6176;
-    S.address.areas = S.address.areas || [];
-  }
-
-  S.address.entrance = $('f-entr')?.value  || '';
-  S.address.floor    = $('f-floor')?.value || '';
-  S.address.flat     = $('f-flat')?.value  || '';
-  S.address.doorcode = $('f-door')?.value  || '';
-  S.address.comment  = $('f-acmt')?.value  || '';
-
-  const disp = S.address.short_text || S.address.full_text || '';
-  $('addr-top').textContent  = disp;
-  $('addr-cart').textContent = disp;
-  _rLoaded = false;
-  showToast('Адрес сохранён ✓');
-  nav(S.prevScreen === 'address' ? 'catalog' : (S.prevScreen || 'catalog'));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// LAUNCH
-// ═══════════════════════════════════════════════════════════════
-initGeo();
-
-if (!TOKEN && !PROXY) {
-  $('r-list').innerHTML = '<div class="err-box">Откройте приложение через Telegram-бота</div>';
-} else {
-  loadCatalog();
-  loadProfile();
-}
+init();
 </script>
 </body>
 </html>
