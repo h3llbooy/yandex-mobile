@@ -76,10 +76,11 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .tag.g{background:#EDFBEE;color:var(--green)}
 .tag.r{background:#FFF0ED;color:var(--red)}
 
-.menu-hero{width:100%;height:190px;object-fit:cover;background:linear-gradient(135deg,#f0ede8,#e0dbd3);display:flex;align-items:center;justify-content:center;font-size:60px}
+.menu-hero{width:100%;height:190px;object-fit:cover;display:block}
+.menu-hero-ph{width:100%;height:190px;background:linear-gradient(135deg,#f0ede8,#e0dbd3);display:flex;align-items:center;justify-content:center;font-size:60px}
 .menu-info{background:var(--white);padding:14px 16px}
 .menu-info h1{font-size:21px;font-weight:700}
-.menu-info .mm{font-size:13px;color:var(--sec);margin-top:4px;display:flex;gap:10px}
+.menu-info .mm{font-size:13px;color:var(--sec);margin-top:4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 
 .cats{display:flex;gap:8px;padding:11px 16px;overflow-x:auto;scrollbar-width:none;background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:50}
 .cats::-webkit-scrollbar{display:none}
@@ -89,7 +90,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .menu-sec{padding:0 16px}
 .menu-sec-t{font-size:18px;font-weight:700;padding:18px 0 10px}
 .m-items{display:flex;flex-direction:column;gap:1px;margin-bottom:16px}
-.m-item{background:var(--white);display:flex;align-items:center;gap:11px;padding:13px}
+.m-item{background:var(--white);display:flex;align-items:center;gap:11px;padding:13px;cursor:pointer}
 .m-item:first-child{border-radius:var(--r) var(--r) 0 0}
 .m-item:last-child{border-radius:0 0 var(--r) var(--r)}
 .m-item:only-child{border-radius:var(--r)}
@@ -147,10 +148,10 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .pay-m:last-child{border-bottom:none}
 .pay-m:first-child{border-radius:var(--r) var(--r) 0 0}
 .pay-m:last-child{border-radius:0 0 var(--r) var(--r)}
-.pay-m:only-child{border-radius:var(--r)}
 .pay-m:active{background:var(--bg)}
 .pay-ico{width:42px;height:30px;border-radius:5px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
 .pay-nm{flex:1;font-size:15px}
+.pay-sub{font-size:12px;color:var(--sec);margin-top:2px}
 .pay-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,border-color .15s}
 .pay-m.sel .pay-chk{background:var(--red);border-color:var(--red)}
 
@@ -261,11 +262,48 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 
 .empty{text-align:center;padding:50px 20px;color:var(--sec);font-size:15px}
 .empty-ico{font-size:48px;margin-bottom:12px}
+
+/* item detail modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:flex-end}
+.modal-bg.on{display:flex}
+.modal{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding-bottom:calc(16px + var(--safe-b));animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.modal-img{width:100%;height:220px;object-fit:cover}
+.modal-img-ph{width:100%;height:220px;background:linear-gradient(135deg,#f0ede8,#e0dbd3);display:flex;align-items:center;justify-content:center;font-size:70px}
+.modal-body{padding:16px}
+.modal-name{font-size:20px;font-weight:700;margin-bottom:6px}
+.modal-desc{font-size:14px;color:var(--sec);line-height:1.5;margin-bottom:12px}
+.modal-price{font-size:22px;font-weight:700;color:var(--red);margin-bottom:16px}
+.modal-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-footer{display:flex;align-items:center;gap:12px;padding:0 16px}
+.modal-qty{display:flex;align-items:center;gap:12px;background:var(--bg);border-radius:var(--rs);padding:8px 12px}
+.modal-add{flex:1;height:48px;background:var(--red);color:#fff;border:none;border-radius:var(--rs);font-size:16px;font-weight:600;cursor:pointer}
 </style>
 </head>
 <body>
 
 <div class="toast" id="toast"></div>
+
+<!-- item modal -->
+<div class="modal-bg" id="item-modal" onclick="closeModal(event)">
+  <div class="modal" style="position:relative">
+    <div id="modal-hero"></div>
+    <button class="modal-close" onclick="$('item-modal').classList.remove('on')">✕</button>
+    <div class="modal-body">
+      <div class="modal-name" id="modal-name"></div>
+      <div class="modal-desc" id="modal-desc"></div>
+      <div class="modal-price" id="modal-price"></div>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-qty">
+        <button class="qb" onclick="modalQty(-1)">−</button>
+        <span class="qn" id="modal-qty-n">1</span>
+        <button class="qb" onclick="modalQty(1)">+</button>
+      </div>
+      <button class="modal-add" id="modal-add-btn" onclick="modalAdd()">В корзину</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════ CATALOG ═══════ -->
 <div class="scr on" id="s-catalog">
@@ -295,13 +333,13 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
     </button>
     <div class="hdr-title" id="menu-hdr-name">Меню</div>
   </div>
-  <div id="menu-hero" class="menu-hero">🍔</div>
+  <div id="menu-hero-wrap"></div>
   <div class="menu-info">
     <h1 id="menu-name">Ресторан</h1>
     <div class="mm">
-      <span id="menu-rating">⭐ 4.8</span>
-      <span id="menu-time">30 мин</span>
-      <span id="menu-deliv" class="tag g" style="padding:0">Бесплатно</span>
+      <span id="menu-rating"></span>
+      <span id="menu-time"></span>
+      <span id="menu-deliv"></span>
     </div>
   </div>
   <div class="cats" id="menu-cats"></div>
@@ -328,19 +366,19 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
     <div class="av"><div class="al">Адрес доставки</div><div class="at" id="addr-cart">Укажите адрес</div></div>
     <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </div>
-  <div class="cart-list page" id="cart-list"></div>
+  <div class="cart-list" id="cart-list"></div>
 
   <!-- промокод -->
-  <div id="promo-section">
-    <div class="card">
+  <div id="promo-section" style="margin:0 16px 12px">
+    <div class="card" style="margin:0">
       <button class="card-btn" onclick="togglePromo()">
         <span class="cb-l">Промокод</span>
         <span class="cb-v" id="promo-display">Добавить <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       </button>
     </div>
-    <div id="promo-block" style="display:none;padding-bottom:4px">
+    <div id="promo-block" style="display:none;background:var(--white);border-radius:0 0 var(--r) var(--r);border:1px solid var(--border);border-top:none;padding-bottom:12px">
       <div class="promo-wrap">
-        <input class="promo-in" id="promo-in" type="text" placeholder="Введите промокод">
+        <input class="promo-in" id="promo-in" type="text" placeholder="Введите промокод" autocomplete="off" autocapitalize="characters">
         <button class="promo-btn" onclick="applyPromo()">Применить</button>
       </div>
       <div class="promo-msg" id="promo-msg"></div>
@@ -351,22 +389,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 
   <!-- оплата -->
   <div class="sec-t2">Способ оплаты</div>
-  <div id="pay-methods" style="margin:0 16px 12px">
-    <div class="pay-m sel" data-m="sbp" data-mid="5" onclick="selPay(this)">
-      <div class="pay-ico">🏦</div>
-      <div class="pay-nm">СБП</div>
-      <div class="pay-chk"><svg width="10" height="8" fill="none"><path d="M1 4l3 3L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    </div>
-    <div class="pay-m" data-m="cash" data-mid="1" onclick="selPay(this)">
-      <div class="pay-ico">💵</div>
-      <div class="pay-nm">Наличными курьеру</div>
-      <div class="pay-chk"></div>
-    </div>
-    <div class="pay-m" data-m="card" data-mid="2" onclick="selPay(this)">
-      <div class="pay-ico">💳</div>
-      <div class="pay-nm" id="cart-card-nm">Карта (добавьте в профиле)</div>
-      <div class="pay-chk"></div>
-    </div>
+  <div id="pay-methods" style="margin:0 16px 12px;border-radius:var(--r);overflow:hidden">
   </div>
 
   <div class="gap"></div>
@@ -413,7 +436,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
     </div>
   </div>
 
-  <div class="bot-wrap">
+  <div class="bot-wrap page">
     <button class="btn" id="order-btn" onclick="placeOrder()">Оформить заказ</button>
   </div>
 </div>
@@ -535,31 +558,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   </div>
   <div class="page">
     <div style="height:12px"></div>
-    <div style="margin:0 16px;background:var(--white);border-radius:var(--r);overflow:hidden">
-      <div class="pay-screen-item sel" id="pm-sbp" onclick="setGlobalPay('sbp',5,this)">
-        <div class="pay-screen-ico">🏦</div>
-        <div class="pay-screen-name">
-          <div class="pay-screen-title">СБП</div>
-          <div class="pay-screen-sub">Система быстрых платежей</div>
-        </div>
-        <div class="pay-screen-chk"></div>
-      </div>
-      <div class="pay-screen-item" id="pm-cash" onclick="setGlobalPay('cash',1,this)">
-        <div class="pay-screen-ico">💵</div>
-        <div class="pay-screen-name">
-          <div class="pay-screen-title">Наличные</div>
-          <div class="pay-screen-sub">Курьеру при получении</div>
-        </div>
-        <div class="pay-screen-chk"></div>
-      </div>
-      <div class="pay-screen-item" id="pm-card" onclick="setGlobalPay('card',2,this)">
-        <div class="pay-screen-ico">💳</div>
-        <div class="pay-screen-name">
-          <div class="pay-screen-title">Карта</div>
-          <div class="pay-screen-sub" id="card-sub">Добавить карту</div>
-        </div>
-        <div class="pay-screen-chk"></div>
-      </div>
+    <div id="pay-screen-list" style="margin:0 16px;border-radius:var(--r);overflow:hidden">
     </div>
     <div style="padding:12px 16px;font-size:13px;color:var(--sec)">
       Выбранный способ будет использоваться по умолчанию при оформлении заказа.
@@ -595,56 +594,54 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#FFFFFF'); }
 
-const P   = new URLSearchParams(location.search);
-const CHAT_ID    = P.get('chat_id') || '';
-const TOKEN      = P.get('token')   || '';
-const DEVICE_ID  = P.get('device_id') || '';
-const AM_UUID    = P.get('appmetrica_uuid') || '';
-const PROXY      = (P.get('proxy') || '').replace(/\/$/, '');
-const BANK_TOKEN = P.get('bank_token') || '';
-const PLUS_TOKEN = P.get('plus_token') || '';
+const P           = new URLSearchParams(location.search);
+const CHAT_ID     = P.get('chat_id')         || '';
+const TOKEN       = P.get('token')           || '';
+const DEVICE_ID   = P.get('device_id')       || '';
+const AM_UUID     = P.get('appmetrica_uuid') || '';
+const PROXY       = (P.get('proxy') || '').replace(/\/$/, '');
+const BANK_TOKEN  = P.get('bank_token')      || '';
+const PLUS_TOKEN  = P.get('plus_token')      || '';
+const MAPS_KEY    = '84a7e8e1-6a86-4b9d-b6db-b7c0dcb9c8e1';
+
+// Мобильные User-Agent как в боте
+const EATS_UA   = 'Edaeda/8.94.0 (com.yandex.red; build:10003; iOS 17.5.0) Alamofire/5.6.4';
+const APP_ID    = 'ru.foodfox.courier';
+const APP_VER   = '8.94.0';
+const CODE_VER  = '10003';
+const SDK_VER   = '6.32.0.10003';
 
 const $ = id => document.getElementById(id);
 
 const S = {
-  screen: 'catalog',
-  prevScreen: 'catalog',
-  cart: [],
-  restaurant: null,
-  address: null,
-  payMethod: 'sbp',
-  payMethodId: 5,
-  savedCardId: '',      // ID привязанной карты (заполняется после снифа)
-  persons: 2,
-  promo: '',
-  promoDisc: 0,
-  promoOk: false,
-  orderId: null,
-  sbpUrl: null,
-  pollTimer: null,
-  lat: null,
-  lon: null,
-  ymapReady: false,
-  ymapInited: false,
-  ymapObj: null,
-  ymapPin: null,
+  screen: 'catalog', prevScreen: 'catalog',
+  cart: [], restaurant: null, address: null,
+  payMethod: 'sbp', payMethodId: 5,
+  payMethods: [],   // список доступных методов из API
+  savedCards: [],   // привязанные карты
+  persons: 2, promo: '', promoDisc: 0, promoOk: false,
+  orderId: null, sbpUrl: null, pollTimer: null,
+  lat: null, lon: null,
+  ymapReady: false, ymapInited: false, ymapObj: null, ymapPin: null,
+  cartId: null,     // UUID корзины для Lavka API
+  cartVersion: 0,   // версия корзины
 };
 
-$('cart-back').onclick  = () => nav(S.prevScreen === 'cart' ? 'menu' : 'menu');
-$('addr-back').onclick  = () => nav(S.prevScreen === 'address' ? 'catalog' : S.prevScreen);
-$('orders-back').onclick= () => nav(S.prevScreen === 'orders' ? 'catalog' : S.prevScreen);
+$('cart-back').onclick   = () => nav(S.prevScreen === 'cart' ? 'menu' : 'menu');
+$('addr-back').onclick   = () => nav(S.prevScreen === 'address' ? 'catalog' : S.prevScreen);
+$('orders-back').onclick = () => nav(S.prevScreen === 'orders' ? 'catalog' : S.prevScreen);
 
 // ═══════════════════════════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════════════════════════
 function fmtR(rub) {
   if (rub === null || rub === undefined) return '—';
-  return parseFloat(rub).toLocaleString('ru-RU', {maximumFractionDigits:2}) + ' ₽';
+  return parseFloat(rub).toLocaleString('ru-RU',{maximumFractionDigits:2}) + ' ₽';
 }
 function fmtK(kop) { return fmtR(kop / 100); }
 function uid4() {
   return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c/4).toString(16));
 }
 function showToast(msg, d=2500) {
   const t = $('toast'); t.textContent = msg; t.classList.add('on');
@@ -655,41 +652,70 @@ function setBtn(id, loading, txt) {
   b.disabled = loading; b.textContent = loading ? '...' : txt;
 }
 function emoji(cats=[]) {
-  const s = cats.join(' ').toLowerCase();
-  if (s.includes('пицц')||s.includes('pizza')) return '🍕';
+  const s = (Array.isArray(cats) ? cats.join(' ') : String(cats)).toLowerCase();
+  if (s.includes('пицц')||s.includes('pizza'))    return '🍕';
   if (s.includes('бургер')||s.includes('burger')) return '🍔';
-  if (s.includes('суши')||s.includes('рол')) return '🍣';
-  if (s.includes('шаурм')) return '🌯';
-  if (s.includes('паст')||s.includes('итальян')) return '🍝';
-  if (s.includes('китай')||s.includes('лапш')) return '🍜';
-  if (s.includes('десерт')||s.includes('торт')) return '🍰';
-  if (s.includes('кофе')||s.includes('напит')) return '☕';
+  if (s.includes('суши')||s.includes('рол'))      return '🍣';
+  if (s.includes('шаурм'))                        return '🌯';
+  if (s.includes('паст')||s.includes('итальян'))  return '🍝';
+  if (s.includes('китай')||s.includes('лапш'))    return '🍜';
+  if (s.includes('десерт')||s.includes('торт'))   return '🍰';
+  if (s.includes('кофе')||s.includes('напит'))    return '☕';
+  if (s.includes('суп')||s.includes('борщ'))      return '🍲';
+  if (s.includes('салат'))                        return '🥗';
   return '🍽️';
 }
+function priceR(raw) {
+  // Яндекс отдаёт в копейках когда > 500
+  const n = parseFloat(raw) || 0;
+  return n > 500 ? n / 100 : n;
+}
+function priceKop(r) { return Math.round(r * 100); }
 
 // ═══════════════════════════════════════════════════════════════
-// API
+// API — базовые заголовки как в питон-боте
 // ═══════════════════════════════════════════════════════════════
-function hdrs(extra={}) {
+function edaHeaders(extra = {}) {
+  const lat = S.lat || 55.7558;
+  const lon = S.lon || 37.6176;
+  const sess = uid4().toUpperCase();
   const h = {
-    'X-Bearer':               TOKEN,
-    'X-Device-Id':            DEVICE_ID,
-    'X-Appmetrica-Uuid':      AM_UUID,
-    'X-Chat-Id':              CHAT_ID,
-    // Обходим страницу предупреждения ngrok
+    'user-agent':             EATS_UA,
+    'x-app-version':          APP_VER,
+    'x-code-version':         CODE_VER,
+    'x-platform':             'ios_app',
+    'x-app-id':               APP_ID,
+    'x-device-id':            DEVICE_ID || uid4(),
+    'x-device-model':         'iPhone17,1',
+    'x-device-manufacturer':  'Apple',
+    'x-os-version':           '17.5.0',
+    'x-appmetrica-deviceid':  DEVICE_ID || uid4(),
+    'x-appmetrica-uuid':      AM_UUID || uid4(),
+    'x-client-session':       sess,
+    'x-request-id':           uid4(),
+    'api_service':             'SDK',
+    'accept':                 'application/json',
+    'accept-language':        'ru-RU;q=1.0',
+    'content-type':           'application/json',
+    'accept-encoding':        'gzip, deflate, br',
+    'x-eda-api-version':      '7',
+    'x-city-id':              '1',
+    'x-ya-coordinates':       `latitude=${lat.toFixed(8)},longitude=${lon.toFixed(8)}`,
     'ngrok-skip-browser-warning': '1',
   };
+  if (TOKEN) h['authorization'] = `Bearer ${TOKEN}`;
+  if (CHAT_ID) h['X-Chat-Id'] = CHAT_ID;
   if (S.lat && S.lon) h['X-User-Coords'] = `${S.lat},${S.lon}`;
-  return {...h, ...extra};
+  return { ...h, ...extra };
 }
 
-async function api(path, opts={}) {
+async function api(path, opts = {}) {
   if (!PROXY) return {};
   const url = PROXY + '/proxy/' + path.replace(/^\//, '');
   try {
     const res = await fetch(url, {
       method: opts.method || 'GET',
-      headers: hdrs(opts.headers || {}),
+      headers: edaHeaders(opts.headers || {}),
       body: opts.body ? JSON.stringify(opts.body) : undefined,
     });
     return res.json().catch(() => ({}));
@@ -699,34 +725,66 @@ async function api(path, opts={}) {
   }
 }
 
-async function post(path, body={}, extra={}) {
-  return api(path, {method:'POST', headers:{'Content-Type':'application/json',...extra}, body});
+async function post(path, body = {}, extra = {}) {
+  if (!PROXY) return {};
+  const url = PROXY + '/proxy/' + path.replace(/^\//, '');
+  const idem = uid4();
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: edaHeaders({ 'content-type': 'application/json', 'x-idempotency-token': idem, ...extra }),
+      body: JSON.stringify(body),
+    });
+    return res.json().catch(() => ({}));
+  } catch(e) {
+    console.error('[POST ERR]', path, e);
+    return {};
+  }
 }
 
-// Suggest через наш прокси (который использует мобильный прокси)
-async function suggest(text) {
-  if (!PROXY) return {};
+// Suggest через /proxy-suggest
+async function proxySuggest(text) {
+  if (!PROXY) return [];
   try {
     const r = await fetch(PROXY + '/proxy-suggest', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'1'},
-      body: JSON.stringify({text, lat: S.lat||55.7558, lon: S.lon||37.6176})
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'ngrok-skip-browser-warning': '1' },
+      body: JSON.stringify({ text, lat: S.lat || 55.7558, lon: S.lon || 37.6176 })
     });
-    return r.json().catch(()=>({}));
-  } catch(e) { return {}; }
+    const d = await r.json().catch(() => ({}));
+    return d?.results || d?.suggest || d?.items || (Array.isArray(d) ? d : []);
+  } catch(e) { console.error('[SUG ERR]', e); return []; }
 }
 
-// Geocode через наш прокси
-async function geocode(text) {
-  if (!PROXY) return {};
+// Geocode через /proxy-geocode
+async function proxyGeocode(text) {
+  if (!PROXY) return null;
   try {
     const r = await fetch(PROXY + '/proxy-geocode', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'1'},
-      body: JSON.stringify({text})
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'ngrok-skip-browser-warning': '1' },
+      body: JSON.stringify({ text })
     });
-    return r.json().catch(()=>({}));
-  } catch(e) { return {}; }
+    const d = await r.json().catch(() => null);
+    if (!d) return null;
+    const go = d?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject;
+    if (!go) return null;
+    const addr  = go.metaDataProperty?.GeocoderMetaData?.Address || {};
+    const comps = addr.Components || [];
+    const get   = kind => comps.find(c => c.kind === kind)?.name || '';
+    const pos   = go.Point?.pos?.split(' ');
+    const lon   = pos ? parseFloat(pos[0]) : (S.lon || 37.6176);
+    const lat   = pos ? parseFloat(pos[1]) : (S.lat || 55.7558);
+    const full  = go.metaDataProperty?.GeocoderMetaData?.text || text;
+    const short = [get('street'), get('house')].filter(Boolean).join(', ') || full;
+    return {
+      lat, lon, full_text: full, short_text: short,
+      city:   get('locality') || get('province'),
+      street: get('street'), house: get('house'),
+      areas:  [get('province') || get('country')].filter(Boolean),
+      uri:    go.uri || ''
+    };
+  } catch(e) { console.error('[GEO ERR]', e); return null; }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -759,7 +817,7 @@ function nav(screen, from) {
   if (screen === 'orders')    loadOrders();
   if (screen === 'address')   initAddr();
   if (screen === 'addresses') loadAddresses();
-  if (screen === 'payment')   syncPayScreen();
+  if (screen === 'payment')   loadPayMethods();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -777,53 +835,51 @@ function initGeo() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CATALOG
+// CATALOG — используем layout-constructor
 // ═══════════════════════════════════════════════════════════════
-let _rAll = [];
-let _rLoaded = false;
+let _rAll = [], _rLoaded = false;
 
 async function loadCatalog() {
   if (_rLoaded && _rAll.length) { renderR(_rAll); return; }
   $('r-list').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем рестораны...</div></div>';
+
+  const lat = S.lat || 55.7558, lon = S.lon || 37.6176;
+  let list = [];
+
   try {
-    const lat = S.lat||55.7558, lon = S.lon||37.6176;
-
-    // Пробуем несколько эндпоинтов для получения списка ресторанов
-    let list = [];
-
-    // Вариант 1: layout-constructor (основной)
+    // Вариант 1: layout-constructor (основной Яндекс Еда)
     const d1 = await api(`eats/v1/layout-constructor/v1/layout?latitude=${lat}&longitude=${lon}&region_id=1`);
-    for (const blk of (d1?.payload?.blocks||d1?.blocks||[])) {
-      for (const it of (blk?.payload?.places||blk?.places||blk?.items||[])) {
-        const p = it?.place||it;
-        if (p?.slug||p?.place_slug) list.push(p);
+    for (const blk of (d1?.payload?.blocks || d1?.blocks || [])) {
+      for (const it of (blk?.payload?.places || blk?.places || blk?.items || [])) {
+        const p = it?.place || it;
+        if (p?.slug || p?.place_slug) list.push(p);
       }
     }
-    if (d1?.payload?.places) list = [...list, ...(d1.payload.places)];
+    if (d1?.payload?.places?.length) list = [...list, ...d1.payload.places];
 
-    // Вариант 2: places/v1/nearby
+    // Вариант 2: места рядом
     if (!list.length) {
       const d2 = await api(`eats/v1/places/v1/nearby?latitude=${lat}&longitude=${lon}`);
-      const places = d2?.places||d2?.payload?.places||d2?.data||[];
-      list = places;
+      list = d2?.places || d2?.payload?.places || [];
     }
 
-    // Вариант 3: /api/v2/catalog
+    // Вариант 3: catalog
     if (!list.length) {
       const d3 = await api(`api/v2/catalog?latitude=${lat}&longitude=${lon}`);
-      list = d3?.places||d3?.data||d3?.restaurants||[];
+      list = d3?.places || d3?.data || d3?.restaurants || [];
     }
 
-    // Дедупликация по slug
+    // Дедупликация
     const seen = new Set();
     list = list.filter(r => {
-      const k = r.slug||r.place_slug||r.id||'';
+      const k = r.slug || r.place_slug || r.id || '';
       if (!k || seen.has(k)) return false;
       seen.add(k); return true;
     });
 
     if (!list.length) {
-      $('r-list').innerHTML = `<div class="err-box">Рестораны не найдены. <br><br>Укажите <a onclick="nav('address','catalog')" style="color:var(--red);cursor:pointer;text-decoration:underline">адрес доставки</a> — это поможет найти рестораны рядом.</div>`;
+      $('r-list').innerHTML = `<div class="err-box">Рестораны не найдены.<br><br>
+        <a onclick="nav('address','catalog')" style="color:var(--red);cursor:pointer;text-decoration:underline">Укажите адрес доставки</a> — это поможет найти рестораны рядом.</div>`;
       return;
     }
     _rAll = list; _rLoaded = true;
@@ -836,15 +892,15 @@ async function loadCatalog() {
 function renderR(list) {
   if (!list.length) { $('r-list').innerHTML='<div class="empty"><div class="empty-ico">🔍</div>Ничего не найдено</div>'; return; }
   $('r-list').innerHTML = list.map(r => {
-    const name = r.name||r.title||'—';
-    const slug = r.slug||r.place_slug||r.id||'';
-    const rating = r.rating?.value||r.rating||'';
-    const mn = r.delivery?.min_time||r.min_time||'';
-    const mx = r.delivery?.max_time||r.max_time||mn;
-    const free = !r.delivery?.price||r.delivery?.price===0;
+    const name = r.name || r.title || '—';
+    const slug = r.slug || r.place_slug || r.id || '';
+    const rating = r.rating?.value || r.rating || '';
+    const mn = r.delivery?.min_time || r.min_time || '';
+    const mx = r.delivery?.max_time || r.max_time || mn;
     const dp = r.delivery?.price ? fmtK(r.delivery.price) : 'Бесплатно';
-    const img = r.logo_url||r.image_url||r.logo||r.cover_url||'';
-    const cats = (r.categories||r.tags||[]).slice(0,3).map(c=>c.name||c).filter(Boolean);
+    const free = !r.delivery?.price || r.delivery?.price === 0;
+    const img = r.logo_url || r.image_url || r.logo || r.cover_url || '';
+    const cats = (r.categories || r.tags || []).slice(0,3).map(c => c.name || c).filter(Boolean);
     const imgH = img
       ? `<img class="r-img" src="${img}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\\'r-img-ph\\'>${emoji(cats)}</div>'">`
       : `<div class="r-img-ph">${emoji(cats)}</div>`;
@@ -866,108 +922,188 @@ function renderR(list) {
 function filterR(q) {
   if (!q) { renderR(_rAll); return; }
   const f = q.toLowerCase();
-  renderR(_rAll.filter(r => (r.name||r.title||'').toLowerCase().includes(f) ||
-    (r.categories||r.tags||[]).map(c=>(c.name||c).toLowerCase()).join(' ').includes(f)));
+  renderR(_rAll.filter(r =>
+    (r.name||r.title||'').toLowerCase().includes(f) ||
+    (r.categories||r.tags||[]).map(c=>(c.name||c).toLowerCase()).join(' ').includes(f)
+  ));
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MENU
+// MENU — v2 endpoint
 // ═══════════════════════════════════════════════════════════════
 async function openR(slug, name) {
   S.restaurant = { slug, name: decodeURIComponent(name) };
+  // Сбрасываем корзину при смене ресторана
+  if (S.cart.length && S.restaurant.slug !== slug) {
+    S.cart = []; S.cartId = null; S.cartVersion = 0; updateFab();
+  }
   $('menu-hdr-name').textContent = decodeURIComponent(name);
   $('menu-name').textContent = decodeURIComponent(name);
   $('menu-content').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем меню...</div></div>';
   $('menu-cats').innerHTML = '';
+  $('menu-hero-wrap').innerHTML = `<div class="menu-hero-ph">🍽️</div>`;
   $('cart-fab').style.display = 'none';
   nav('menu');
+
   try {
-    const lat=S.lat||55.7558, lon=S.lon||37.6176;
+    const lat = S.lat || 55.7558, lon = S.lon || 37.6176;
 
-    // Пробуем несколько эндпоинтов для меню
+    // Пробуем v2, потом v1
     let d = await api(`eats/v1/menu/v2/menu?placeSlug=${slug}&latitude=${lat}&longitude=${lon}`);
-    let cats = d?.payload?.categories||d?.categories||d?.menu||[];
-
-    // Фоллбэк на v1
+    let cats = d?.payload?.categories || d?.categories || d?.menu || [];
     if (!cats.length) {
       d = await api(`eats/v1/menu/v1/menu?placeSlug=${slug}&latitude=${lat}&longitude=${lon}`);
-      cats = d?.payload?.categories||d?.categories||d?.menu||[];
+      cats = d?.payload?.categories || d?.categories || d?.menu || [];
     }
 
-    if (!cats.length) { $('menu-content').innerHTML='<div class="err-box">Меню недоступно</div>'; return; }
+    if (!cats.length) { $('menu-content').innerHTML='<div class="err-box">Меню временно недоступно</div>'; return; }
 
-    const pl = d?.payload?.place||d?.place||{};
+    // Инфо о ресторане
+    const pl = d?.payload?.place || d?.place || {};
     if (pl.rating?.value) $('menu-rating').textContent = `⭐ ${pl.rating.value}`;
-    if (pl.delivery?.min_time) $('menu-time').textContent = `${pl.delivery.min_time}–${pl.delivery.max_time||pl.delivery.min_time} мин`;
-    $('menu-deliv').textContent = pl.delivery?.price ? fmtK(pl.delivery.price) : 'Бесплатно';
-
-    const hero = $('menu-hero');
-    const heroImg = pl.logo_url||pl.cover_url||pl.image_url||'';
-    if (heroImg) {
-      hero.style.backgroundImage=`url(${heroImg})`;
-      hero.style.backgroundSize='cover';
-      hero.style.backgroundPosition='center';
-      hero.textContent='';
+    if (pl.delivery?.min_time) {
+      $('menu-time').textContent = `${pl.delivery.min_time}–${pl.delivery.max_time || pl.delivery.min_time} мин`;
     }
+    const delivText = pl.delivery?.price ? fmtK(pl.delivery.price) : 'Бесплатно';
+    $('menu-deliv').innerHTML = `<span class="tag g" style="padding:2px 7px">${delivText}</span>`;
 
-    $('menu-cats').innerHTML = cats.map((c,i)=>`<button class="cat ${i===0?'on':''}" onclick="scrollCat('cat${i}',this)">${c.name||c.category||''}</button>`).join('');
-    $('menu-content').innerHTML = cats.map((c,i)=>{
-      const items = c.items||c.products||[];
+    // Герой
+    const heroImg = pl.logo_url || pl.cover_url || pl.image_url || '';
+    $('menu-hero-wrap').innerHTML = heroImg
+      ? `<img class="menu-hero" src="${heroImg}" onerror="this.outerHTML='<div class=\\'menu-hero-ph\\'>🍽️</div>'">`
+      : `<div class="menu-hero-ph">${emoji(pl.categories?.map(c=>c.name)||[])}</div>`;
+
+    // Категории (sticky nav)
+    $('menu-cats').innerHTML = cats.map((c,i) =>
+      `<button class="cat ${i===0?'on':''}" onclick="scrollCat('cat${i}',this)">${c.name||c.category||''}</button>`
+    ).join('');
+
+    // Позиции меню
+    $('menu-content').innerHTML = cats.map((c,i) => {
+      const items = c.items || c.products || [];
       return `<div class="menu-sec" id="cat${i}">
         <div class="menu-sec-t">${c.name||c.category||''}</div>
-        <div class="m-items">${items.map(it=>menuItem(it)).join('')}</div>
+        <div class="m-items">${items.map(it => menuItemHtml(it)).join('')}</div>
       </div>`;
     }).join('');
+
     updateFab();
   } catch(e) { $('menu-content').innerHTML=`<div class="err-box">Ошибка: ${e.message}</div>`; }
 }
 
-function menuItem(it) {
-  const id   = it.id||it.item_id||'';
-  const name = it.name||it.title||'—';
-  const desc = it.description||it.description_text||'';
-  const price= it.price||it.price_info?.price||0;
-  // Яндекс Еда отдаёт цену в копейках если > 500, иначе в рублях
-  const priceR = price > 500 ? price/100 : price;
-  const img  = it.picture_url||it.picture?.uri||it.image_url||'';
-  const inC  = S.cart.find(c=>c.item.id===id);
+function menuItemHtml(it) {
+  const id    = String(it.id || it.item_id || '');
+  const name  = it.name || it.title || '—';
+  const desc  = it.description || it.description_text || '';
+  const raw   = it.price || it.price_info?.price || 0;
+  const pR    = priceR(raw);
+  const img   = it.picture_url || it.picture?.uri || it.image_url || '';
+  const inC   = S.cart.find(c => c.item.id === id);
+
   const imgH = img
     ? `<img class="m-img" src="${img}" loading="lazy" onerror="this.style.display='none'">`
-    : `<div class="m-img-ph">🍽️</div>`;
-  // Сохраняем оригинальную цену из API (в той единице что пришла)
-  const itemData = JSON.stringify({id, name, desc, price, priceR, img});
+    : `<div class="m-img-ph">${emoji(name)}</div>`;
+
+  // Сериализуем данные товара
+  const itemJson = JSON.stringify({ id, name, desc, raw, pR, img });
+  const safeJson = itemJson.replace(/'/g, '&#39;');
+
   const ctrl = inC
-    ? `<div class="qty" id="qc-${id}"><button class="qb" onclick="cQ('${id}',-1,event)">−</button><span class="qn">${inC.qty}</span><button class="qb" onclick="cQ('${id}',1,event)">+</button></div>`
-    : `<button class="add-btn" id="qc-${id}" onclick="addItem(${JSON.stringify(itemData)},event)">+</button>`;
-  return `<div class="m-item">${imgH}<div class="m-info"><div class="m-name">${name}</div>${desc?`<div class="m-desc">${desc}</div>`:''}<div class="m-price">${fmtR(priceR)}</div></div>${ctrl}</div>`;
+    ? `<div class="qty" id="qc-${id}">
+         <button class="qb" onclick="cQ('${id}',-1,event)">−</button>
+         <span class="qn">${inC.qty}</span>
+         <button class="qb" onclick="cQ('${id}',1,event)">+</button>
+       </div>`
+    : `<button class="add-btn" id="qc-${id}" onclick="addToCart('${id}',event)">+</button>`;
+
+  return `<div class="m-item" onclick="openItem('${safeJson.replace(/"/g,'&quot;')}')" data-id="${id}"
+    data-item='${safeJson.replace(/'/g,"&#39;")}'>
+    ${imgH}
+    <div class="m-info">
+      <div class="m-name">${name}</div>
+      ${desc ? `<div class="m-desc">${desc}</div>` : ''}
+      <div class="m-price">${fmtR(pR)}</div>
+    </div>
+    ${ctrl}
+  </div>`;
 }
 
 function scrollCat(id, btn) {
-  document.querySelectorAll('.cat').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.cat').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
-  $(`${id}`)?.scrollIntoView({behavior:'smooth',block:'start'});
+  $(id)?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ITEM MODAL
+// ═══════════════════════════════════════════════════════════════
+let _modalItem = null, _modalQty = 1;
+
+function openItem(jsonStr) {
+  try {
+    const it = JSON.parse(jsonStr.replace(/&quot;/g,'"').replace(/&#39;/g,"'"));
+    _modalItem = it; _modalQty = 1;
+    const inC = S.cart.find(c => c.item.id === it.id);
+    if (inC) _modalQty = inC.qty;
+
+    $('modal-hero').innerHTML = it.img
+      ? `<img class="modal-img" src="${it.img}" onerror="this.outerHTML='<div class=\\'modal-img-ph\\'>🍽️</div>'">`
+      : `<div class="modal-img-ph">${emoji(it.name)}</div>`;
+    $('modal-name').textContent  = it.name;
+    $('modal-desc').textContent  = it.desc || '';
+    $('modal-price').textContent = fmtR(it.pR);
+    $('modal-qty-n').textContent = _modalQty;
+    $('modal-add-btn').textContent = inC ? 'Обновить' : 'В корзину';
+    $('item-modal').classList.add('on');
+  } catch(e) {}
+}
+
+function closeModal(e) {
+  if (e.target === $('item-modal')) $('item-modal').classList.remove('on');
+}
+
+function modalQty(d) {
+  _modalQty = Math.max(1, _modalQty + d);
+  $('modal-qty-n').textContent = _modalQty;
+}
+
+function modalAdd() {
+  if (!_modalItem) return;
+  const id = _modalItem.id;
+  const ex = S.cart.find(c => c.item.id === id);
+  if (ex) ex.qty = _modalQty;
+  else S.cart.push({ item: _modalItem, qty: _modalQty });
+  refreshQC(id);
+  updateFab();
+  $('item-modal').classList.remove('on');
+  showToast(`${_modalItem.name} → корзина`);
 }
 
 // ═══════════════════════════════════════════════════════════════
 // CART LOGIC
 // ═══════════════════════════════════════════════════════════════
-function addItem(strData, e) {
+function addToCart(id, e) {
   e.stopPropagation();
-  const it = JSON.parse(strData);
-  const ex = S.cart.find(c=>c.item.id===it.id);
+  // Найдём item data из DOM
+  const el = e.target.closest('.m-item');
+  if (!el) return;
+  const raw = el.getAttribute('data-item') || '';
+  let it;
+  try { it = JSON.parse(raw.replace(/&#39;/g,"'")); } catch(ex) { return; }
+  const ex = S.cart.find(c => c.item.id === id);
   if (ex) ex.qty++;
-  else S.cart.push({item:it, qty:1});
-  refreshQC(it.id);
+  else S.cart.push({ item: it, qty: 1 });
+  refreshQC(id);
   updateFab();
-  showToast((it.name||'Товар') + ' добавлен');
+  showToast((it.name || 'Товар') + ' добавлен');
 }
 
 function cQ(id, d, e) {
   e.stopPropagation();
-  const i = S.cart.findIndex(c=>c.item.id===id);
-  if (i<0) return;
+  const i = S.cart.findIndex(c => c.item.id === id);
+  if (i < 0) return;
   S.cart[i].qty += d;
-  if (S.cart[i].qty<=0) S.cart.splice(i,1);
+  if (S.cart[i].qty <= 0) S.cart.splice(i, 1);
   refreshQC(id);
   updateFab();
 }
@@ -975,55 +1111,55 @@ function cQ(id, d, e) {
 function refreshQC(id) {
   const el = $(`qc-${id}`);
   if (!el) return;
-  const inC = S.cart.find(c=>c.item.id===id);
-  const itemData = inC ? JSON.stringify(JSON.stringify(inC.item)) : JSON.stringify(JSON.stringify({id}));
+  const inC = S.cart.find(c => c.item.id === id);
   if (inC) {
-    el.outerHTML = `<div class="qty" id="qc-${id}"><button class="qb" onclick="cQ('${id}',-1,event)">−</button><span class="qn">${inC.qty}</span><button class="qb" onclick="cQ('${id}',1,event)">+</button></div>`;
+    el.outerHTML = `<div class="qty" id="qc-${id}">
+      <button class="qb" onclick="cQ('${id}',-1,event)">−</button>
+      <span class="qn">${inC.qty}</span>
+      <button class="qb" onclick="cQ('${id}',1,event)">+</button>
+    </div>`;
   } else {
-    el.outerHTML = `<button class="add-btn" id="qc-${id}" onclick="addItem(${itemData},event)">+</button>`;
+    el.outerHTML = `<button class="add-btn" id="qc-${id}" onclick="addToCart('${id}',event)">+</button>`;
   }
 }
 
 function updateFab() {
-  const cnt   = S.cart.reduce((s,c)=>s+c.qty, 0);
+  const cnt   = S.cart.reduce((s,c) => s+c.qty, 0);
   const total = cartTotal().items;
-  const fab = $('cart-fab');
+  const fab   = $('cart-fab');
   if (cnt > 0) {
-    fab.style.display='block';
-    $('fab-cnt').textContent = cnt;
+    fab.style.display = 'block';
+    $('fab-cnt').textContent   = cnt;
     $('fab-price').textContent = fmtR(total);
-  } else {
-    fab.style.display='none';
-  }
-  const bnCnt = $('bn-cart-cnt');
-  if (cnt > 0) { bnCnt.style.display='inline'; bnCnt.textContent=cnt; }
-  else bnCnt.style.display='none';
+  } else { fab.style.display = 'none'; }
+  const bc = $('bn-cart-cnt');
+  if (cnt > 0) { bc.style.display='inline'; bc.textContent=cnt; }
+  else bc.style.display='none';
 }
 
 function cartTotal() {
-  const items = S.cart.reduce((s,c) => s + (c.item.priceR||c.item.price||0) * c.qty, 0);
-  return {items, discount: S.promoDisc, total: Math.max(0, items - S.promoDisc)};
+  const items = S.cart.reduce((s,c) => s + (c.item.pR || 0) * c.qty, 0);
+  return { items, discount: S.promoDisc, total: Math.max(0, items - S.promoDisc) };
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CART RENDER
+// CART RENDER + PAYMENT METHODS
 // ═══════════════════════════════════════════════════════════════
-function renderCart() {
+async function renderCart() {
   const el = $('cart-list');
   if (!S.cart.length) {
     el.innerHTML = '<div class="empty"><div class="empty-ico">🛒</div>Корзина пуста</div>';
   } else {
     el.innerHTML = S.cart.map((c,i) => {
-      const it = c.item;
-      const r = it.priceR||it.price||0;
-      const img= it.img||it.picture_url||it.image_url||'';
+      const it  = c.item;
+      const img = it.img || '';
       const imgH = img
         ? `<img class="ci-img" src="${img}" onerror="this.style.display='none'">`
         : `<div class="ci-img" style="display:flex;align-items:center;justify-content:center;font-size:22px">🍽️</div>`;
       return `<div class="ci">${imgH}
         <div style="flex:1;min-width:0">
           <div class="ci-name">${it.name||'—'}</div>
-          <div class="ci-p">${fmtR(r*c.qty)}</div>
+          <div class="ci-p">${fmtR((it.pR||0)*c.qty)}</div>
         </div>
         <div class="qty">
           <button class="qb" onclick="cCart(${i},-1)">−</button>
@@ -1037,238 +1173,320 @@ function renderCart() {
   const t = cartTotal();
   $('sum-items').textContent = fmtR(t.items);
   $('sum-total').textContent = fmtR(t.total);
-  $('disc-row').style.display = t.discount>0 ? 'flex':'none';
-  if (t.discount>0) $('sum-disc').textContent = '−' + fmtR(t.discount);
+  $('disc-row').style.display = t.discount > 0 ? 'flex' : 'none';
+  if (t.discount > 0) $('sum-disc').textContent = '−' + fmtR(t.discount);
 
-  const aT = S.address?.short_text||S.address?.full_text||'Укажите адрес';
+  const aT = S.address?.short_text || S.address?.full_text || 'Укажите адрес';
   $('addr-cart').textContent = aT;
   $('addr-top').textContent  = aT;
 
-  // Синхронизируем способ оплаты из корзины
-  syncCartPayMethods();
-}
-
-function syncCartPayMethods() {
-  document.querySelectorAll('.pay-m').forEach(m => {
-    m.classList.remove('sel');
-    m.querySelector('.pay-chk').innerHTML = '';
-  });
-  const sel = document.querySelector(`.pay-m[data-m="${S.payMethod}"]`);
-  if (sel) {
-    sel.classList.add('sel');
-    sel.querySelector('.pay-chk').innerHTML = '<svg width="10" height="8" fill="none"><path d="M1 4l3 3L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  }
+  // Загружаем способы оплаты
+  await renderPayMethods();
 }
 
 function cCart(i, d) {
   S.cart[i].qty += d;
-  if (S.cart[i].qty<=0) S.cart.splice(i,1);
+  if (S.cart[i].qty <= 0) S.cart.splice(i, 1);
   renderCart(); updateFab();
   if (!S.cart.length) nav('menu');
 }
 
-function cPers(d) { S.persons = Math.max(0,(S.persons||2)+d); $('pers-n').textContent=S.persons; }
+function cPers(d) { S.persons = Math.max(0, (S.persons || 2) + d); $('pers-n').textContent = S.persons; }
 function addCmt(t) { const ta=$('cmt'); ta.value=ta.value?ta.value+', '+t:t; }
 
 // ═══════════════════════════════════════════════════════════════
-// PROMO
+// PAYMENT METHODS — загружаем из API
+// ═══════════════════════════════════════════════════════════════
+async function loadPayMethodsFromAPI() {
+  // Пробуем загрузить способы оплаты через Яндекс Еда API
+  try {
+    const lat = S.lat || 55.7558, lon = S.lon || 37.6176;
+    // Метод 1: payment-methods
+    const d = await api(`api/v1/payment-methods?latitude=${lat}&longitude=${lon}`);
+    const methods = d?.payment_methods || d?.methods || d?.data || [];
+    if (methods.length) return methods;
+
+    // Метод 2: user/payment-methods
+    const d2 = await api(`api/v2/user/payment-methods`);
+    return d2?.payment_methods || d2?.methods || [];
+  } catch(e) {
+    return [];
+  }
+}
+
+async function renderPayMethods() {
+  const container = $('pay-methods');
+  if (!container) return;
+
+  // Базовые методы (всегда доступны)
+  const defaults = [
+    { id: 'sbp', mid: 5, icon: '🏦', name: 'СБП', sub: 'Система быстрых платежей' },
+    { id: 'cash', mid: 1, icon: '💵', name: 'Наличными курьеру', sub: '' },
+  ];
+
+  // Если есть карты из снифа
+  const cardMethods = S.savedCards.map(card => ({
+    id: 'card_' + (card.id || card.card_id || ''),
+    mid: 2,
+    icon: '💳',
+    name: card.masked_number || card.last4 ? `Карта •••• ${card.last4 || card.masked_number?.slice(-4)}` : 'Банковская карта',
+    sub: card.payment_system || card.card_type || ''
+  }));
+
+  const all = [...defaults, ...cardMethods];
+  if (!cardMethods.length) {
+    all.push({ id: 'card', mid: 2, icon: '💳', name: 'Добавить карту', sub: 'Оплата онлайн' });
+  }
+
+  container.innerHTML = all.map(m => {
+    const isSel = S.payMethod === m.id || (S.payMethod === 'sbp' && m.id === 'sbp') || (S.payMethod === 'cash' && m.id === 'cash');
+    return `<div class="pay-m ${isSel?'sel':''}" onclick="selPay('${m.id}',${m.mid},this)">
+      <div class="pay-ico">${m.icon}</div>
+      <div style="flex:1">
+        <div class="pay-nm">${m.name}</div>
+        ${m.sub?`<div class="pay-sub">${m.sub}</div>`:''}
+      </div>
+      <div class="pay-chk">${isSel?'<svg width="10" height="8" fill="none"><path d="M1 4l3 3L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div>
+    </div>`;
+  }).join('');
+}
+
+async function loadPayMethods() {
+  // Для экрана "Способы оплаты" в профиле
+  const container = $('pay-screen-list');
+  if (!container) return;
+
+  const defaults = [
+    { id: 'sbp', mid: 5, icon: '🏦', title: 'СБП', sub: 'Система быстрых платежей' },
+    { id: 'cash', mid: 1, icon: '💵', title: 'Наличные', sub: 'Курьеру при получении' },
+  ];
+
+  // Пробуем загрузить реальные карты
+  const apiMethods = await loadPayMethodsFromAPI();
+  const cards = apiMethods.filter(m =>
+    m.payment_type === 'card' || m.type === 'card' || m.payment_type === 'bank_card'
+  );
+  if (cards.length) {
+    S.savedCards = cards;
+    cards.forEach(c => {
+      defaults.push({
+        id: 'card_' + (c.id || c.card_id || uid4().slice(0,8)),
+        mid: 2, icon: '💳',
+        title: c.masked_number || `Карта •••• ${c.last4||''}`,
+        sub: c.payment_system || c.card_type || ''
+      });
+    });
+  } else {
+    defaults.push({ id: 'card', mid: 2, icon: '💳', title: 'Банковская карта', sub: 'Добавить в настройках Яндекса' });
+  }
+
+  container.innerHTML = defaults.map(m => {
+    const isSel = S.payMethod === m.id;
+    return `<div class="pay-screen-item ${isSel?'sel':''}" onclick="setGlobalPay('${m.id}',${m.mid},this)">
+      <div class="pay-screen-ico">${m.icon}</div>
+      <div class="pay-screen-name">
+        <div class="pay-screen-title">${m.title}</div>
+        ${m.sub?`<div class="pay-screen-sub">${m.sub}</div>`:''}
+      </div>
+      <div class="pay-screen-chk"></div>
+    </div>`;
+  }).join('');
+}
+
+function selPay(id, mid, el) {
+  document.querySelectorAll('.pay-m').forEach(m => {
+    m.classList.remove('sel');
+    m.querySelector('.pay-chk').innerHTML = '';
+  });
+  el.classList.add('sel');
+  el.querySelector('.pay-chk').innerHTML = '<svg width="10" height="8" fill="none"><path d="M1 4l3 3L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  S.payMethod = id; S.payMethodId = mid;
+}
+
+function setGlobalPay(id, mid, el) {
+  S.payMethod = id; S.payMethodId = mid;
+  document.querySelectorAll('.pay-screen-item').forEach(m => {
+    m.classList.remove('sel');
+  });
+  el.classList.add('sel');
+  const labels = { sbp:'СБП выбран', cash:'Наличные выбраны', card:'Карта выбрана' };
+  showToast(labels[id.split('_')[0]] || 'Выбрано');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROMO — через Яндекс Еда API
 // ═══════════════════════════════════════════════════════════════
 function togglePromo() {
   const b = $('promo-block');
-  b.style.display = b.style.display==='none' ? 'block':'none';
+  b.style.display = b.style.display === 'none' ? 'block' : 'none';
 }
 
 async function applyPromo() {
-  const code = $('promo-in').value.trim();
+  const code = ($('promo-in').value || '').trim().toUpperCase();
   if (!code) return;
   const msg = $('promo-msg');
-  msg.textContent='Проверяем...'; msg.className='promo-msg';
+  msg.textContent = 'Проверяем...'; msg.className = 'promo-msg';
+
   try {
+    // Используем корректный эндпоинт Яндекс Еды
     const r = await post('api/v2/apply-promocode', {
       promocode: code,
-      place_slug: S.restaurant?.slug||'',
-      cart: buildCart()
-    }, {'Content-Type':'application/json','X-Idempotency-Token': uid4()});
+      place_slug: S.restaurant?.slug || '',
+      cart: buildCartItems()
+    });
 
-    const disc = r.discount_amount||r.discount||0;
-    if (disc) {
+    const disc = r?.discount_amount || r?.discount || 0;
+    if (disc || r?.status === 'ok') {
       S.promo = code;
       S.promoDisc = disc > 1000 ? disc/100 : disc;
       S.promoOk = true;
-      msg.textContent=`✓ Скидка ${fmtR(S.promoDisc)}`; msg.className='promo-msg ok';
-      $('promo-display').innerHTML=`<span style="color:var(--red)">${code}</span> ✓`;
+      msg.textContent = `✓ Скидка ${fmtR(S.promoDisc)}`; msg.className = 'promo-msg ok';
+      $('promo-display').innerHTML = `<span style="color:var(--red)">${code}</span> ✓`;
       renderCart();
     } else {
-      const errMsg = r.message||r.err||r.error||'Промокод не найден';
-      msg.textContent='✗ '+errMsg; msg.className='promo-msg er';
+      const errMsg = r?.message || r?.err || r?.error || 'Промокод не найден';
+      msg.textContent = '✗ ' + errMsg; msg.className = 'promo-msg er';
     }
-  } catch(e) { msg.textContent='✗ '+e.message; msg.className='promo-msg er'; }
+  } catch(e) { msg.textContent = '✗ ' + e.message; msg.className = 'promo-msg er'; }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PAY
+// BUILD CART — формат Яндекс Еда API
 // ═══════════════════════════════════════════════════════════════
-function selPay(el) {
-  document.querySelectorAll('.pay-m').forEach(m=>{m.classList.remove('sel');m.querySelector('.pay-chk').innerHTML='';});
-  el.classList.add('sel');
-  el.querySelector('.pay-chk').innerHTML='<svg width="10" height="8" fill="none"><path d="M1 4l3 3L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  S.payMethod   = el.dataset.m;
-  S.payMethodId = parseInt(el.dataset.mid);
-  // Синхронизируем экран оплаты
-  syncPayScreen();
-}
-
-function setGlobalPay(method, mid, el) {
-  S.payMethod   = method;
-  S.payMethodId = mid;
-  document.querySelectorAll('.pay-screen-item').forEach(m=>m.classList.remove('sel'));
-  el.classList.add('sel');
-  const labels = {sbp:'СБП выбран', cash:'Наличные выбраны', card:'Карта выбрана'};
-  showToast(labels[method] || 'Выбрано');
-  // Синхронизируем и корзину
-  syncCartPayMethods();
-}
-
-function syncPayScreen() {
-  document.querySelectorAll('.pay-screen-item').forEach(m=>m.classList.remove('sel'));
-  const ids = {sbp:'pm-sbp', cash:'pm-cash', card:'pm-card'};
-  $(ids[S.payMethod] || 'pm-sbp')?.classList.add('sel');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PLACE ORDER
-// ═══════════════════════════════════════════════════════════════
-function buildCart() {
-  return S.cart.map(c=>({
-    id: c.item.id||'',
+function buildCartItems() {
+  return S.cart.map(c => ({
+    id:       c.item.id || '',
     quantity: c.qty,
-    // Передаём цену в копейках как ожидает API (если была в рублях — переводим)
-    price: c.item.price > 500 ? c.item.price : Math.round((c.item.priceR||c.item.price||0) * 100)
+    // Передаём цену в копейках
+    price:    priceKop(c.item.pR || 0)
   }));
 }
 
+// ═══════════════════════════════════════════════════════════════
+// PLACE ORDER — через api/v2/place-order
+// ═══════════════════════════════════════════════════════════════
 async function placeOrder() {
   if (!S.address) { showToast('Укажите адрес доставки'); nav('address','cart'); return; }
   if (!S.cart.length) { showToast('Корзина пуста'); return; }
+
   setBtn('order-btn', true, 'Оформляем...');
-  const idem = uid4();
   const t = cartTotal();
   const a = S.address;
+
+  // Определяем payment_information исходя из выбранного метода
+  let payInfo;
+  if (S.payMethod === 'sbp') {
+    payInfo = { type: 'sbp', id: 'sbp_qr', costForCustomer: t.total.toFixed(2) };
+  } else if (S.payMethod === 'cash') {
+    payInfo = { type: 'cash', id: 'cash', costForCustomer: t.total.toFixed(2) };
+  } else {
+    // Карта
+    const cardId = S.payMethod.startsWith('card_') ? S.payMethod.replace('card_','') : 'card';
+    payInfo = { type: 'card', id: cardId, costForCustomer: t.total.toFixed(2) };
+  }
 
   const body = {
     courier_options:  [],
     persons_quantity: S.persons,
-    location: {
-      latitude:  a.lat||S.lat||55.7558,
-      longitude: a.lon||S.lon||37.6176
-    },
-    comment: $('cmt')?.value||'',
+    location: { latitude: a.lat || S.lat || 55.7558, longitude: a.lon || S.lon || 37.6176 },
+    comment: $('cmt')?.value || '',
     payment: { recently_link_cards: false },
     payment_method_id: S.payMethodId,
-    place_slug: S.restaurant?.slug||'',
-    extended_options: [{type:'delivery_options'}],
+    place_slug: S.restaurant?.slug || '',
+    extended_options: [{ type:'delivery_options' }],
     address: {
-      office:     $('f-flat')?.value||'',
-      floor:      $('f-floor')?.value||'',
-      entrance:   $('f-entr')?.value||'',
-      doorcode:   $('f-door')?.value||'',
-      city:       a.city||'',
-      street:     a.street||'',
-      house:      a.house||'',
-      short_text: a.short_text||a.full_text||'',
-      full_text:  a.full_text||a.short_text||'',
-      title:      a.short_text||a.full_text||'',
-      comment:    $('f-acmt')?.value||'',
+      office:     $('f-flat')?.value  || '',
+      floor:      $('f-floor')?.value || '',
+      entrance:   $('f-entr')?.value  || '',
+      doorcode:   $('f-door')?.value  || '',
+      comment:    $('f-acmt')?.value  || '',
+      city:       a.city    || '',
+      street:     a.street  || '',
+      house:      a.house   || '',
+      short_text: a.short_text || a.full_text || '',
+      full_text:  a.full_text  || a.short_text || '',
+      title:      a.short_text || a.full_text || '',
       country:    'Россия',
-      areas:      a.areas||[],
-      type:       {id:0},
-      location:   {
-        latitude:  a.lat||55.7558,
-        longitude: a.lon||37.6176
-      },
-      ...(a.uri?{uri:a.uri}:{})
+      areas:      a.areas || [],
+      type:       { id: 0 },
+      location:   { latitude: a.lat || 55.7558, longitude: a.lon || 37.6176 },
+      ...(a.uri ? { uri: a.uri } : {}),
     },
-    payment_information: {
-      type: S.payMethod==='sbp' ? 'sbp' : (S.payMethod==='card' ? 'card' : 'cash'),
-      id:   S.payMethod==='sbp' ? 'sbp_qr' : (S.payMethod==='card' ? (S.savedCardId||'card') : 'cash'),
-      costForCustomer: t.total.toFixed(2)
-    },
+    payment_information: payInfo,
     without_callback: true,
     first_order: false,
     currency: 'RUB',
     country_code: 'RU',
-    ...(S.promoOk ? {promo_code: S.promo} : {}),
-    cart: buildCart()
+    ...(S.promoOk ? { promo_code: S.promo } : {}),
+    cart: buildCartItems()
   };
 
   try {
-    const r = await post('api/v2/place-order', body, {'X-Idempotency-Token': idem});
-    if (r?.status==='error' || r?.domain || r?.code) {
-      const errMsg = r?.err||r?.message||r?.description||'Ошибка оформления заказа';
-      showToast(errMsg);
+    const r = await post('api/v2/place-order', body);
+    if (r?.status === 'error' || r?.domain || r?.code) {
+      showToast(r?.err || r?.message || r?.description || 'Ошибка оформления');
       setBtn('order-btn', false, 'Оформить заказ');
       return;
     }
-    S.orderId = r?.order?.order?.order_id||r?.order_id||r?.id||'';
+    S.orderId = r?.order?.order?.order_id || r?.order_id || r?.id || '';
     nav('status');
-    handleOrder(r);
+    handleOrderResponse(r);
   } catch(e) {
-    showToast('Ошибка: '+e.message);
+    showToast('Ошибка: ' + e.message);
     setBtn('order-btn', false, 'Оформить заказ');
   }
 }
 
-function handleOrder(r) {
+function handleOrderResponse(r) {
   const oid = S.orderId;
   $('s-oid').textContent = oid ? `Заказ №${oid}` : '';
-  const pay = r?.order?.payment||r?.payment;
+  const pay = r?.order?.payment || r?.payment;
   const tr  = r?.transparentPayment;
-  if (pay?.status==='sbp_required'||tr||S.payMethod==='sbp') {
-    const url = pay?.payload?.url||tr?.screen?.actions?.[0]?.url||'';
-    S.sbpUrl = url;
-    $('s-ico').textContent='💳'; $('s-ico').classList.add('pulse');
-    $('s-title').textContent='Ожидаем оплату';
-    $('s-desc').textContent=tr?.screen?.text?.text||'Подтвердите платёж в приложении банка';
-    if (url) $('sbp-card').style.display='block';
+
+  if (pay?.status === 'sbp_required' || tr || S.payMethod === 'sbp') {
+    const url = pay?.payload?.url || tr?.screen?.actions?.[0]?.url || '';
+    S.sbpUrl  = url;
+    $('s-ico').textContent = '💳';
+    $('s-ico').classList.add('pulse');
+    $('s-title').textContent = 'Ожидаем оплату';
+    $('s-desc').textContent  = tr?.screen?.text?.text || 'Подтвердите платёж в приложении банка';
+    if (url) { $('sbp-card').style.display = 'block'; $('sbp-desc').textContent = 'Перейдите в приложение банка для оплаты'; }
     if (oid) startPoll(oid);
   } else {
-    $('s-ico').textContent='✅'; $('s-ico').classList.remove('pulse');
-    $('s-title').textContent='Заказ принят!';
-    $('s-desc').textContent='Ресторан уже готовит ваш заказ';
-    S.cart=[]; updateFab();
+    $('s-ico').textContent = '✅'; $('s-ico').classList.remove('pulse');
+    $('s-title').textContent = 'Заказ принят!';
+    $('s-desc').textContent  = 'Ресторан уже готовит ваш заказ';
+    S.cart = []; updateFab();
   }
 }
 
 function openSBP() {
   if (!S.sbpUrl) { showToast('Ссылка для оплаты недоступна'); return; }
-  tg ? tg.openLink(S.sbpUrl) : window.open(S.sbpUrl,'_blank');
+  tg ? tg.openLink(S.sbpUrl) : window.open(S.sbpUrl, '_blank');
 }
 
 function startPoll(oid) {
   if (S.pollTimer) clearInterval(S.pollTimer);
-  S.pollTimer = setInterval(()=>pollOrder(oid), 3000);
-  setTimeout(()=>{ if(S.pollTimer) clearInterval(S.pollTimer); }, 600000);
+  S.pollTimer = setInterval(() => pollOrder(oid), 3000);
+  setTimeout(() => { if(S.pollTimer) clearInterval(S.pollTimer); }, 600000);
 }
 
 async function pollOrder(oid) {
   try {
-    const r = await api(`api/v2/orders/${oid}/info`);
-    const ps = r?.order?.payment?.status||r?.payment_status||'';
-    const os = r?.order?.order?.status||r?.order_status||'';
+    const r  = await api(`api/v2/orders/${oid}/info`);
+    const ps = r?.order?.payment?.status || r?.payment_status || '';
+    const os = r?.order?.order?.status   || r?.order_status   || '';
     if (ps==='paid'||os==='confirmed'||os==='cooking'||os==='delivering') {
       clearInterval(S.pollTimer); S.pollTimer=null;
       $('s-ico').textContent='✅'; $('s-ico').classList.remove('pulse');
-      $('s-title').textContent='Оплата прошла!';
-      $('s-desc').textContent='Ресторан принял заказ';
-      $('sbp-card').style.display='none';
-      S.cart=[]; updateFab();
+      $('s-title').textContent='Оплата прошла!'; $('s-desc').textContent='Ресторан принял заказ';
+      $('sbp-card').style.display='none'; S.cart=[]; updateFab();
     } else if (ps==='failed'||os==='cancelled') {
       clearInterval(S.pollTimer); S.pollTimer=null;
       $('s-ico').textContent='❌'; $('s-ico').classList.remove('pulse');
-      $('s-title').textContent='Оплата не прошла';
-      $('s-desc').textContent='Попробуйте другой способ оплаты';
+      $('s-title').textContent='Оплата не прошла'; $('s-desc').textContent='Попробуйте другой способ';
     }
-  } catch(e){}
+  } catch(e) {}
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1278,35 +1496,37 @@ async function loadOrders() {
   $('orders-content').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем заказы...</div></div>';
   try {
     const d = await api('api/v2/orders/history?page=1&page_size=20');
-    const orders = d?.orders||d?.data||d?.history||[];
+    const orders = d?.orders || d?.data || d?.history || [];
     if (!orders.length) {
       $('orders-content').innerHTML = '<div class="empty"><div class="empty-ico">📦</div>Заказов пока нет</div>';
       return;
     }
-    $('orders-content').innerHTML = `<div class="ord-list page">${orders.map(o=>renderOrder(o)).join('')}</div>`;
+    $('orders-content').innerHTML = `<div class="ord-list page">${orders.map(o => renderOrder(o)).join('')}</div>`;
   } catch(e) {
     $('orders-content').innerHTML = `<div class="err-box">Ошибка загрузки: ${e.message}</div>`;
   }
 }
 
 function renderOrder(o) {
-  const oid   = o.order_id||o.id||'';
-  const rest  = o.place_name||o.restaurant_name||o.place?.name||'Ресторан';
-  const date  = o.created_at ? new Date(o.created_at).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
-  const items = (o.items||o.products||[]).slice(0,3).map(i=>i.name||i.title||'').filter(Boolean).join(', ');
-  const total = o.total_cost||o.total||o.cost||0;
-  const totalR= total>5000?total/100:total;
-  const status= o.status||o.order_status||'';
+  const oid   = o.order_id || o.id || '';
+  const rest  = o.place_name || o.restaurant_name || o.place?.name || 'Ресторан';
+  const date  = o.created_at
+    ? new Date(o.created_at).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
+    : '';
+  const items = (o.items || o.products || []).slice(0,3).map(i => i.name||i.title||'').filter(Boolean).join(', ');
+  const total = o.total_cost || o.total || o.cost || 0;
+  const totalR = total > 5000 ? total/100 : total;
+  const status = o.status || o.order_status || '';
   const statMap = {
     delivered:['done','Доставлен'], completed:['done','Выполнен'],
     cancelled:['wait','Отменён'], delivering:['del','Везут'],
     cooking:['del','Готовится'], confirmed:['del','Принят'],
   };
-  const [cls, label] = statMap[status]||['wait', status||'В обработке'];
+  const [cls, label] = statMap[status] || ['wait', status || 'В обработке'];
   const safeO = encodeURIComponent(JSON.stringify({
-    place_slug: o.place_slug||o.place?.slug||'',
+    place_slug: o.place_slug || o.place?.slug || '',
     place_name: rest,
-    items: (o.items||[]).map(i=>({id:i.id||i.item_id||'',name:i.name||'',price:i.price||0,qty:i.quantity||1}))
+    items: (o.items||[]).map(i => ({ id:i.id||i.item_id||'', name:i.name||'', raw:i.price||0, pR:priceR(i.price||0), qty:i.quantity||1 }))
   }));
   return `<div class="ord-card">
     <div class="ord-head">
@@ -1317,7 +1537,7 @@ function renderOrder(o) {
       <span class="ord-status ${cls}">${label}</span>
     </div>
     <div class="ord-body">
-      ${items?`<div class="ord-items">${items}${(o.items||[]).length>3?` и ещё ${(o.items||[]).length-3}`:''}...</div>`:''}
+      ${items?`<div class="ord-items">${items}${(o.items||[]).length>3?` и ещё ${(o.items||[]).length-3}`:''}</div>`:''}
       <div class="ord-footer">
         <span class="ord-price">${fmtR(totalR)}</span>
       </div>
@@ -1330,31 +1550,28 @@ function repeatOrder(encoded) {
   try {
     const o = JSON.parse(decodeURIComponent(encoded));
     if (!o.place_slug) { showToast('Нет данных о ресторане'); return; }
-    if (!o.items?.length) { showToast('Нет товаров для повтора'); return; }
-    S.restaurant = {slug: o.place_slug, name: o.place_name||'Ресторан'};
-    S.cart = o.items.map(it=>({
-      item: {id:it.id, name:it.name, price:it.price, priceR: it.price>500?it.price/100:it.price},
-      qty: it.qty||1
-    }));
-    updateFab();
-    nav('cart');
+    S.restaurant = { slug: o.place_slug, name: o.place_name||'Ресторан' };
+    S.cart = (o.items||[]).map(it => ({ item:it, qty:it.qty||1 }));
+    updateFab(); nav('cart');
     showToast('Заказ добавлен в корзину');
   } catch(e) { showToast('Ошибка'); }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ADDRESSES
+// SAVED ADDRESSES
 // ═══════════════════════════════════════════════════════════════
 async function loadAddresses() {
   $('addresses-content').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем...</div></div>';
   try {
     const d = await api('api/v2/user/addresses');
-    const addrs = d?.addresses||d?.data||[];
+    const addrs = d?.addresses || d?.data || [];
     if (!addrs.length && S.address) {
-      // Показываем текущий введённый адрес
       $('addresses-content').innerHTML = `<div class="ord-list page">
         <div class="ord-card">
-          <div class="ord-head"><div><div class="ord-rest">Текущий адрес</div><div class="ord-date">${S.address.full_text||S.address.short_text||''}</div></div></div>
+          <div class="ord-head"><div>
+            <div class="ord-rest">Текущий адрес</div>
+            <div class="ord-date">${S.address.full_text||S.address.short_text||''}</div>
+          </div></div>
           <div class="ord-body"><button class="ord-repeat" onclick="nav('address','addresses')">Изменить адрес</button></div>
         </div>
       </div>`;
@@ -1364,11 +1581,16 @@ async function loadAddresses() {
       $('addresses-content').innerHTML = '<div class="empty"><div class="empty-ico">📍</div>Нет сохранённых адресов</div>';
       return;
     }
-    $('addresses-content').innerHTML = `<div class="ord-list page">${addrs.map(a=>{
-      const txt = a.full_text||a.short_text||a.name||a.address||'Адрес';
-      return `<div class="ord-card" onclick="useAddress(${JSON.stringify(JSON.stringify(a))})">
-        <div class="ord-head"><div><div class="ord-rest">${txt}</div>${a.entrance?`<div class="ord-date">Подъезд ${a.entrance}${a.floor?`, этаж ${a.floor}`:''}</div>`:''}</div>
-        <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    $('addresses-content').innerHTML = `<div class="ord-list page">${addrs.map(a => {
+      const txt = a.full_text || a.short_text || a.name || a.address || 'Адрес';
+      const safe = encodeURIComponent(JSON.stringify(a));
+      return `<div class="ord-card" onclick="useAddress('${safe}')">
+        <div class="ord-head"><div>
+          <div class="ord-rest">${txt}</div>
+          ${a.entrance?`<div class="ord-date">Подъезд ${a.entrance}${a.floor?`, этаж ${a.floor}`:''}</div>`:''}
+        </div>
+        <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
       </div>`;
     }).join('')}</div>`;
   } catch(e) {
@@ -1376,30 +1598,26 @@ async function loadAddresses() {
   }
 }
 
-function useAddress(strData) {
+function useAddress(encoded) {
   try {
-    const a = JSON.parse(strData);
+    const a = JSON.parse(decodeURIComponent(encoded));
     S.address = {
-      full_text: a.full_text||a.name||'',
-      short_text: a.short_text||a.name||'',
-      city: a.city||'',
-      street: a.street||'',
-      house: a.house||'',
-      lat: a.lat||a.location?.latitude||55.7558,
-      lon: a.lon||a.location?.longitude||37.6176,
-      entrance: a.entrance||'',
-      floor: a.floor||'',
-      flat: a.flat||a.office||'',
-      doorcode: a.doorcode||'',
-      areas: a.areas||[],
-      uri: a.uri||''
+      full_text:  a.full_text  || a.name || '',
+      short_text: a.short_text || a.name || '',
+      city:    a.city    || '', street:  a.street  || '',
+      house:   a.house   || '',
+      lat:     a.lat || a.location?.latitude  || 55.7558,
+      lon:     a.lon || a.location?.longitude || 37.6176,
+      entrance: a.entrance || '', floor: a.floor || '',
+      flat:    a.flat || a.office || '', doorcode: a.doorcode || '',
+      areas:   a.areas || [], uri: a.uri || ''
     };
-    const disp = S.address.short_text||S.address.full_text;
-    $('addr-top').textContent = disp;
+    const disp = S.address.short_text || S.address.full_text;
+    $('addr-top').textContent  = disp;
     $('addr-cart').textContent = disp;
     showToast('Адрес выбран ✓');
+    _rLoaded = false;
     nav('catalog');
-    _rLoaded = false; // перегружаем каталог с новым адресом
   } catch(e) {}
 }
 
@@ -1407,206 +1625,176 @@ function useAddress(strData) {
 // PROFILE
 // ═══════════════════════════════════════════════════════════════
 async function loadProfile() {
-  // Бот передаёт name и uid прямо в URL — не нужны 403-ящие /eats/ вызовы
   const urlName = decodeURIComponent(P.get('name') || '');
   const urlUid  = P.get('uid') || '';
   const tgUser  = tg?.initDataUnsafe?.user;
   let name = urlName || tgUser?.first_name || '';
   let uid  = urlUid || '';
 
-  // Сразу рисуем если имя уже есть
   if (name) _renderProfile(name, uid);
 
-  // Доп. проверка через /proxy-account (работает без whitelist)
   if (PROXY && CHAT_ID) {
     try {
       const r = await fetch(`${PROXY}/proxy-account?chat_id=${CHAT_ID}`, {
-        headers: {'ngrok-skip-browser-warning':'1', 'X-Chat-Id': CHAT_ID}
+        headers: { 'ngrok-skip-browser-warning':'1', 'X-Chat-Id': CHAT_ID }
       });
       const d = await r.json().catch(()=>({}));
       if (d.name) name = d.name;
       if (d.uid)  uid  = d.uid;
-    } catch(e){}
+      if (d.bank_token && !BANK_TOKEN) {}  // можно использовать
+    } catch(e) {}
   }
   _renderProfile(name, uid);
 }
 
 function _renderProfile(name, uid) {
-  const initials = name ? name[0].toUpperCase() : '?';
-  $('prf-ava').textContent  = initials;
+  $('prf-ava').textContent  = name ? name[0].toUpperCase() : '?';
   $('prf-name').textContent = name || 'Пользователь';
   $('prf-uid').textContent  = uid  ? `UID: ${uid}` : '';
   const badges = [];
-  if (PLUS_TOKEN) badges.push('<span class="prf-badge b">⭐ Яндекс Плюс</span>');
-  if (BANK_TOKEN) badges.push('<span class="prf-badge g">💳 Яндекс Банк</span>');
+  if (PLUS_TOKEN)  badges.push('<span class="prf-badge b">⭐ Яндекс Плюс</span>');
+  if (BANK_TOKEN)  badges.push('<span class="prf-badge g">💳 Яндекс Банк</span>');
   $('prf-badges').innerHTML = badges.join('');
   $('hdr-name').textContent = name ? name.split(' ')[0] : '';
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ADDRESS
+// ADDRESS — suggest + geocode через прокси
 // ═══════════════════════════════════════════════════════════════
-let _sugTimer=null, _ymInited=false;
+let _sugTimer = null, _ymInited = false;
 
 function initAddr() {
   if (S.address) {
-    $('addr-in').value   = S.address.short_text||S.address.full_text||'';
-    $('f-entr').value    = S.address.entrance||'';
-    $('f-floor').value   = S.address.floor||'';
-    $('f-flat').value    = S.address.flat||'';
-    $('f-door').value    = S.address.doorcode||'';
-    $('f-acmt').value    = S.address.comment||'';
+    $('addr-in').value = S.address.short_text || S.address.full_text || '';
+    $('f-entr').value  = S.address.entrance || '';
+    $('f-floor').value = S.address.floor    || '';
+    $('f-flat').value  = S.address.flat     || '';
+    $('f-door').value  = S.address.doorcode || '';
+    $('f-acmt').value  = S.address.comment  || '';
   }
-  if (!_ymInited) { _ymInited=true; loadYmap(); }
-  else if (S.ymapObj && S.address) setPin(S.address.lat, S.address.lon);
+  $('sug-list').innerHTML = '';
+  if (!_ymInited) { _ymInited = true; loadYmap(); }
+  else if (S.ymapReady && S.address?.lat) setPin(S.address.lat, S.address.lon);
 }
 
 function loadYmap() {
-  // Яндекс Карты через прокси не нужны — они работают из браузера
-  // Но API key нужен для геокодирования через наш прокси
   const s = document.createElement('script');
-  s.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=84a7e8e1-6a86-4b9d-b6db-b7c0dcb9c8e1';
-  s.onerror = () => {
-    // Если карта не загрузилась — не критично
-    console.log('[MAP] Яндекс Карты не загрузились');
-  };
+  s.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=' + MAPS_KEY;
   s.onload = () => {
     if (!window.ymaps) return;
     ymaps.ready(() => {
       try {
-        const lat=S.address?.lat||S.lat||55.7558, lon=S.address?.lon||S.lon||37.6176;
-        S.ymapObj = new ymaps.Map('ymap',{center:[lat,lon],zoom:16,controls:['zoomControl']});
-        S.ymapPin = new ymaps.Placemark([lat,lon],{},{preset:'islands#redDotIcon'});
+        const lat = S.address?.lat || S.lat || 55.7558;
+        const lon = S.address?.lon || S.lon || 37.6176;
+        S.ymapObj = new ymaps.Map('ymap', { center:[lat,lon], zoom:16, controls:['zoomControl'] });
+        S.ymapPin = new ymaps.Placemark([lat,lon], {}, { preset:'islands#redDotIcon' });
         S.ymapObj.geoObjects.add(S.ymapPin);
         S.ymapReady = true;
         S.ymapObj.events.add('click', e => {
-          const [la,lo]=e.get('coords'); setPin(la,lo); revGeo(la,lo);
+          const [la,lo] = e.get('coords');
+          setPin(la, lo);
+          revGeo(la, lo);
         });
       } catch(e) { console.log('[MAP ERR]', e); }
     });
   };
+  s.onerror = () => console.log('[MAP] не загрузились');
   document.head.appendChild(s);
 }
 
 function setPin(lat, lon) {
-  if (!S.ymapObj) return;
+  if (!S.ymapReady) return;
   try {
-    S.ymapPin.geometry.setCoordinates([lat,lon]);
-    S.ymapObj.setCenter([lat,lon],16,{duration:300});
-  } catch(e){}
-}
-
-async function revGeo(lat, lon) {
-  try {
-    const r = await geocode(`${lon},${lat}`);
-    const go = r?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject;
-    if (!go) return;
-    const txt = go.metaDataProperty?.GeocoderMetaData?.text||'';
-    $('addr-in').value = txt;
-    parseGeoObj(go, txt, lat, lon);
-  } catch(e){}
-}
-
-function parseGeoObj(go, fullText, fallLat, fallLon) {
-  const addr = go.metaDataProperty?.GeocoderMetaData?.Address||{};
-  const comps = addr.Components||[];
-  const get = kind => comps.find(c=>c.kind===kind)?.name||'';
-  const short = [get('street'),get('house')].filter(Boolean).join(', ');
-  let lat = fallLat||S.address?.lat||55.7558;
-  let lon = fallLon||S.address?.lon||37.6176;
-  const pos = go.Point?.pos;
-  if (pos) { const p=pos.split(' '); lon=parseFloat(p[0]); lat=parseFloat(p[1]); }
-  S.address = {
-    ...S.address,
-    full_text:  fullText,
-    short_text: short||fullText,
-    city:       get('locality')||get('province'),
-    street:     get('street'),
-    house:      get('house'),
-    lat, lon,
-    areas:      [get('province')||get('country')].filter(Boolean),
-    uri:        go.uri||go.metaDataProperty?.GeocoderMetaData?.AddressDetails?.Country?.AddressLine||''
-  };
+    S.ymapPin.geometry.setCoordinates([lat, lon]);
+    S.ymapObj.setCenter([lat, lon], 16, { duration:300 });
+  } catch(e) {}
 }
 
 function onAddrInput(val) {
   clearTimeout(_sugTimer);
-  $('sug-list').innerHTML = '';
-  if (!val||val.length<2) return;
-  _sugTimer = setTimeout(()=>fetchSug(val), 400);
+  if (!val || val.length < 2) { $('sug-list').innerHTML = ''; return; }
+  _sugTimer = setTimeout(() => fetchSug(val), 350);
 }
 
 async function fetchSug(text) {
-  try {
-    const d = await suggest(text);
-    // Яндекс Suggest API возвращает results или suggest
-    const items = d?.results||d?.suggest||d?.items||[];
-    if (!items.length) { $('sug-list').innerHTML=''; return; }
-    $('sug-list').innerHTML = items.slice(0,8).map(it => {
-      const t = it?.title?.text||it?.name||it?.text||'';
-      const s = it?.subtitle?.text||it?.description||it?.displayName||'';
-      const uri = it?.uri||it?.tags?.find?.(t=>t.startsWith('ymapsbm:'))||'';
-      const enc = encodeURIComponent(JSON.stringify({t,s,uri}));
-      return `<div class="sug" onclick="selSug('${enc}')">
-        <svg style="flex-shrink:0;margin-top:2px" width="16" height="20" fill="none"><path d="M8 0C4.7 0 2 2.7 2 6c0 4.5 6 11 6 11S14 10.5 14 6C14 2.7 11.3 0 8 0zm0 8.5A2.5 2.5 0 1 1 8 3.5a2.5 2.5 0 0 1 0 5z" fill="#9E9B98"/></svg>
-        <div><div class="sug-t">${t}</div>${s?`<div class="sug-s">${s}</div>`:''}</div>
-      </div>`;
-    }).join('');
-  } catch(e){ console.log('[SUG ERR]', e); }
+  $('sug-list').innerHTML = '<div style="padding:10px 16px;color:var(--sec);font-size:14px">Ищем...</div>';
+  const items = await proxySuggest(text);
+  if (!items.length) {
+    $('sug-list').innerHTML = '<div style="padding:10px 16px;color:var(--sec);font-size:14px">Ничего не найдено</div>';
+    return;
+  }
+  $('sug-list').innerHTML = items.slice(0,8).map(it => {
+    const title = it?.title?.text || it?.name || it?.text || it?.value || '';
+    const sub   = it?.subtitle?.text || it?.description || it?.displayName || '';
+    const uri   = it?.uri || '';
+    const safe  = encodeURIComponent(JSON.stringify({ title, sub, uri }));
+    return `<div class="sug" onclick="selSug('${safe}')">
+      <svg style="flex-shrink:0;margin-top:2px;opacity:.5" width="14" height="18" fill="none">
+        <path d="M7 0C3.7 0 1 2.7 1 6c0 4.5 6 11 6 11S13 10.5 13 6C13 2.7 10.3 0 7 0zm0 8.5A2.5 2.5 0 1 1 7 3.5a2.5 2.5 0 0 1 0 5z" fill="#9E9B98"/>
+      </svg>
+      <div style="flex:1;min-width:0">
+        <div class="sug-t">${title}</div>
+        ${sub?`<div class="sug-s">${sub}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function selSug(encoded) {
   try {
-    const {t, s, uri} = JSON.parse(decodeURIComponent(encoded));
-    const full = [t, s].filter(Boolean).join(', ');
-    $('addr-in').value = t;
+    const { title, sub, uri } = JSON.parse(decodeURIComponent(encoded));
+    const full = [title, sub].filter(Boolean).join(', ');
+    $('addr-in').value = title;
     $('sug-list').innerHTML = '';
-
-    // Геокодируем выбранный адрес
-    const r = await geocode(full);
-    const go = r?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject;
-    if (go) {
-      parseGeoObj(go, full, null, null);
-      if (S.ymapReady && S.address) setPin(S.address.lat, S.address.lon);
+    const geo = await proxyGeocode(full);
+    if (geo) {
+      S.address = { ...geo, uri: uri || geo.uri };
+      if (S.ymapReady) setPin(geo.lat, geo.lon);
     } else {
-      // Если геокодирование не сработало — сохраняем что есть
-      if (!S.address) S.address = {};
+      S.address = S.address || {};
       S.address.full_text  = full;
-      S.address.short_text = t;
+      S.address.short_text = title;
       S.address.uri        = uri;
+      if (!S.address.lat) S.address.lat = S.lat || 55.7558;
+      if (!S.address.lon) S.address.lon = S.lon || 37.6176;
+      S.address.areas = S.address.areas || [];
     }
-  } catch(e) { console.log('[SEL SUG ERR]', e); }
+  } catch(e) {}
+}
+
+async function revGeo(lat, lon) {
+  const geo = await proxyGeocode(`${lon},${lat}`);
+  if (geo && S.address) {
+    Object.assign(S.address, geo);
+    $('addr-in').value = geo.short_text || geo.full_text || '';
+  }
 }
 
 function confirmAddr() {
-  if (!S.address && !$('addr-in').value) { showToast('Введите адрес'); return; }
+  const inputVal = ($('addr-in').value || '').trim();
+  if (!inputVal && !S.address) { showToast('Введите адрес'); return; }
 
-  // Если адрес введён вручную но не геокодирован
-  if (!S.address) {
-    S.address = {
-      full_text: $('addr-in').value,
-      short_text: $('addr-in').value,
-      lat: S.lat||55.7558,
-      lon: S.lon||37.6176,
-      areas: []
-    };
+  if (!S.address) S.address = {};
+  if (inputVal && inputVal !== S.address.short_text && inputVal !== S.address.full_text) {
+    S.address.full_text  = inputVal;
+    S.address.short_text = inputVal;
+    if (!S.address.lat) S.address.lat = S.lat || 55.7558;
+    if (!S.address.lon) S.address.lon = S.lon || 37.6176;
+    S.address.areas = S.address.areas || [];
   }
 
-  S.address.entrance = $('f-entr').value;
-  S.address.floor    = $('f-floor').value;
-  S.address.flat     = $('f-flat').value;
-  S.address.doorcode = $('f-door').value;
-  S.address.comment  = $('f-acmt').value;
+  S.address.entrance = $('f-entr')?.value  || '';
+  S.address.floor    = $('f-floor')?.value || '';
+  S.address.flat     = $('f-flat')?.value  || '';
+  S.address.doorcode = $('f-door')?.value  || '';
+  S.address.comment  = $('f-acmt')?.value  || '';
 
-  const disp = S.address.short_text||S.address.full_text||'';
+  const disp = S.address.short_text || S.address.full_text || '';
   $('addr-top').textContent  = disp;
   $('addr-cart').textContent = disp;
-
-  // Сбрасываем кеш каталога при смене адреса
   _rLoaded = false;
-
   showToast('Адрес сохранён ✓');
-  nav(S.prevScreen==='address' ? 'catalog' : S.prevScreen);
+  nav(S.prevScreen === 'address' ? 'catalog' : (S.prevScreen || 'catalog'));
 }
 
 // ═══════════════════════════════════════════════════════════════
