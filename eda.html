@@ -661,9 +661,9 @@ window.addEventListener('load', () => {
 // LAUNCH — профиль
 // ══════════════════════════════════════════════════════════
 async function loadLaunch() {
-  // Пробуем получить профиль из launch
   let name = '', uid = '', av = '';
 
+  // Эндпоинт 1: launch/v2/native
   const d = await POST('/eats/v1/launch/v2/native', {experiments:{}});
   if (d?.profile) {
     const p = d.profile;
@@ -672,7 +672,7 @@ async function loadLaunch() {
     av   = p.picture_url || p.avatar_url || '';
   }
 
-  // Fallback: /api/v2/user/info
+  // Эндпоинт 2: /api/v2/user/info (только если имя не получили)
   if (!name) {
     const u = await GET('/api/v2/user/info');
     if (u) {
@@ -682,31 +682,6 @@ async function loadLaunch() {
     }
   }
 
-  // Fallback: Passport login.yandex.ru/info через proxy-get
-  if (!name) {
-    try {
-      const r = await fetch(PX+'/proxy-get', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          path: 'https://login.yandex.ru/info?format=json',
-          bearer: TOKEN, device_id: DEV_ID, session: SES
-        })
-      });
-      if (r.ok) {
-        const u = await r.json().catch(()=>null);
-        if (u) {
-          name = u.display_name || u.real_name || u.first_name || u.login || '';
-          uid  = u.id || uid;
-          av   = u.default_avatar_id
-            ? `https://avatars.yandex.net/get-yapic/${u.default_avatar_id}/islands-200`
-            : av;
-        }
-      }
-    } catch(e) { console.warn('[PASSPORT INFO]', e); }
-  }
-
-  // Применяем данные
   document.getElementById('profNm').textContent = name || 'Пользователь';
   document.getElementById('profUid').textContent = uid ? 'UID: '+uid : '';
   if (av) {
