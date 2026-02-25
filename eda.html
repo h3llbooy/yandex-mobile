@@ -2,1363 +2,1364 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <title>Яндекс Еда</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{--y:#FFE033;--bl:#1A1A1A;--bg:#F5F5F5;--gt:#8C8C8C;--gb:#E8E8E8;--gn:#029154;--rd:#E63946;--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
+:root {
+  --red: #FC3F1D;
+  --red-d: #E8331A;
+  --bg: #F5F4F2;
+  --white: #fff;
+  --text: #21201F;
+  --sec: #9E9B98;
+  --border: #E0DEDA;
+  --green: #1E8B24;
+  --blue: #0F7DE8;
+  --r: 16px;
+  --rs: 10px;
+  --bh: 52px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;background:var(--bg)}
-#app{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-.topbar{background:var(--y);padding:calc(var(--st)+12px) 16px 12px;flex-shrink:0}
-.topbar-inner{display:flex;align-items:center;gap:10px}
-.logo{font-size:22px;font-weight:900;color:var(--bl);flex-shrink:0}
-.addr-btn{flex:1;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.08);border-radius:12px;padding:8px 12px;border:none;text-align:left;min-width:0;cursor:pointer}
-.addr-text{font-size:13px;font-weight:600;color:var(--bl);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
-.profile-btn{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.1);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.tabs{background:var(--y);display:flex;padding:0 16px 12px;gap:8px;flex-shrink:0}
-.tab-btn{padding:7px 16px;border-radius:20px;border:none;font-size:13px;font-weight:600;cursor:pointer}
-.tab-btn.active{background:var(--bl);color:#fff}
-.tab-btn:not(.active){background:rgba(0,0,0,.08);color:var(--bl)}
-.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-.content::-webkit-scrollbar{display:none}
-/* все экраны скрыты по умолчанию */
-.screen{display:none}
-.screen.active{display:block}
-/* поддержка — особый экран с flex layout для чата */
-#screen-support.active{display:flex;flex-direction:column;height:100%}
+html,body{height:100%;overscroll-behavior:none}
+body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
 
-/* МОДАЛЬНОЕ — адрес */
-.addr-modal{position:fixed;inset:0;background:#fff;z-index:300;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .35s ease}
-.addr-modal.open{transform:none}
-.addr-modal-head{padding:calc(var(--st)+16px) 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--gb);flex-shrink:0}
-.addr-back{background:none;border:none;font-size:22px;cursor:pointer;color:var(--bl)}
-.addr-sbox{flex:1;display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:12px;padding:10px 14px}
-.addr-sinp{flex:1;border:none;outline:none;font-size:15px;background:transparent}
-.addr-res{overflow-y:auto;flex:1}
-.addr-ri{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--gb);cursor:pointer}
-.addr-ri:active{background:var(--bg)}
-.ari-ic{font-size:20px;width:38px;height:38px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ari-main{font-size:14px;font-weight:600;color:var(--bl)}
-.ari-sub{font-size:12px;color:var(--gt);margin-top:2px}
+/* ── SCREENS ── */
+.scr{display:none;min-height:100vh;animation:fadeIn .2s ease}
+.scr.on{display:block}
+@keyframes fadeIn{from{opacity:.6;transform:translateY(4px)}to{opacity:1;transform:none}}
 
-/* МОДАЛЬНОЕ — самовывоз */
-.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:250;opacity:0;pointer-events:none;transition:opacity .3s;display:flex;align-items:flex-end}
-.sheet-overlay.open{opacity:1;pointer-events:all}
-.sheet{background:#fff;border-radius:24px 24px 0 0;width:100%;max-height:80vh;overflow-y:auto;padding-bottom:calc(20px + var(--sb));transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
-.sheet-overlay.open .sheet{transform:none}
-.sheet-head{padding:16px 16px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gb);position:sticky;top:0;background:#fff;z-index:1}
-.sheet-title{font-size:18px;font-weight:800}
-.sheet-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--bl)}
-.pickup-item{padding:14px 16px;border-bottom:1px solid var(--gb);cursor:pointer}
-.pickup-item:active{background:var(--bg)}
-.pi-name{font-size:14px;font-weight:700;color:var(--bl)}
-.pi-addr{font-size:12px;color:var(--gt);margin-top:3px}
-.pi-ready{font-size:12px;color:var(--gn);margin-top:2px}
+/* ── HEADER ── */
+.hdr{position:sticky;top:0;z-index:100;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:11px 16px;min-height:52px}
+.hdr-title{font-size:17px;font-weight:600;flex:1}
+.hdr-sub{font-size:12px;color:var(--sec)}
+.back{width:36px;height:36px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
-/* МОДАЛЬНОЕ — блюдо */
-.item-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .3s;display:flex;align-items:flex-end}
-.item-overlay.open{opacity:1;pointer-events:all}
-.item-sheet{background:#fff;border-radius:24px 24px 0 0;width:100%;max-height:90vh;overflow-y:auto;padding-bottom:calc(20px + var(--sb));transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
-.item-overlay.open .item-sheet{transform:none}
-.item-img{width:100%;height:220px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:80px;border-radius:24px 24px 0 0;overflow:hidden;position:relative}
-.item-img img{width:100%;height:100%;object-fit:cover}
-.item-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.4);border:none;cursor:pointer;color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center}
-.item-body{padding:20px}
-.item-name{font-size:22px;font-weight:800;margin-bottom:8px}
-.item-desc{font-size:14px;color:var(--gt);line-height:1.5;margin-bottom:6px}
-.item-w{font-size:12px;color:#bbb;margin-bottom:16px}
-.item-opts-title{font-size:15px;font-weight:700;margin-bottom:10px}
-.item-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
-.io{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;border:2px solid var(--gb);cursor:pointer}
-.io.sel{border-color:var(--bl);background:#f8f8f8}
-.ion{font-size:14px}.iop{font-size:13px;color:var(--gt);font-weight:600}
-.item-add-row{display:flex;align-items:center;gap:12px}
-.mqc{display:flex;align-items:center;gap:10px}
-.mqb{width:36px;height:36px;border-radius:10px;background:var(--bg);border:none;cursor:pointer;font-size:20px;font-weight:700;color:var(--bl);display:flex;align-items:center;justify-content:center}
-.mqn{font-size:18px;font-weight:800;min-width:24px;text-align:center}
-.item-add-btn{flex:1;background:var(--y);color:var(--bl);border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+/* ── BOTTOM NAV ── */
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--white);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-b)}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0;border:none;background:none;cursor:pointer;color:var(--sec);font-size:10px;font-weight:500;transition:color .15s}
+.bn.on{color:var(--red)}
+.bn svg{transition:transform .15s}
+.bn.on svg{transform:scale(1.1)}
 
-/* CATALOG */
-.srch-wrap{padding:12px 16px 8px}
-.srch-box{display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.srch-inp{flex:1;border:none;outline:none;font-size:15px;background:transparent}
-.srch-inp::placeholder{color:#b0b0b0}
-.banners{display:flex;gap:12px;padding:8px 16px 12px;overflow-x:auto;scrollbar-width:none}
-.banners::-webkit-scrollbar{display:none}
-.banner{min-width:240px;height:100px;border-radius:20px;display:flex;align-items:flex-end;padding:14px;flex-shrink:0;cursor:pointer;position:relative;overflow:hidden}
-.banner:active{transform:scale(.97)}
-.b1{background:linear-gradient(135deg,#ff6b35,#ff3d3d)}
-.b2{background:linear-gradient(135deg,#6c5ce7,#a29bfe)}
-.b3{background:linear-gradient(135deg,#00b894,#00cec9)}
-.bn-txt{color:#fff;font-weight:800;font-size:14px;line-height:1.2}
-.bn-ico{position:absolute;right:12px;top:10px;font-size:38px}
-.cats{display:flex;gap:10px;padding:4px 16px 12px;overflow-x:auto;scrollbar-width:none}
+/* ── CONTENT PAD (under bottom nav) ── */
+.page{padding-bottom:calc(62px + var(--safe-b))}
+
+/* ── LOADER ── */
+.loader{display:flex;flex-direction:column;align-items:center;gap:12px;padding:60px 20px}
+.spin{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loader-t{font-size:14px;color:var(--sec)}
+
+/* ── ERROR ── */
+.err-box{margin:16px;padding:14px;border-radius:var(--r);background:#FFF3F0;border:1px solid #FFCDC5;font-size:14px;color:#C0392B;line-height:1.5}
+
+/* ── SEARCH ── */
+.search-wrap{padding:10px 16px;background:var(--white);border-bottom:1px solid var(--border)}
+.search{width:100%;height:40px;padding:0 12px 0 38px;border:none;border-radius:var(--rs);background:var(--bg);font-size:15px;outline:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none'%3E%3Ccircle cx='7' cy='7' r='5.5' stroke='%239E9B98' stroke-width='1.5'/%3E%3Cpath d='m13 13-2.5-2.5' stroke='%239E9B98' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:12px center}
+
+/* ── ADDR BAR ── */
+.addr-bar{background:var(--white);padding:11px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);cursor:pointer}
+.addr-bar .av{flex:1;min-width:0}
+.addr-bar .al{font-size:11px;color:var(--sec)}
+.addr-bar .at{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── SECTION TITLE ── */
+.sec-t{padding:18px 16px 10px;font-size:20px;font-weight:700}
+.sec-t2{font-size:16px;font-weight:600;padding:16px 16px 8px}
+
+/* ── RESTAURANT CARDS ── */
+.r-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
+.r-card{background:var(--white);border-radius:var(--r);overflow:hidden;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.07);transition:transform .12s,box-shadow .12s}
+.r-card:active{transform:scale(.98);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.r-img{width:100%;height:156px;object-fit:cover;background:var(--bg)}
+.r-img-ph{width:100%;height:156px;background:linear-gradient(135deg,#f0ede8,#e0dbd3);display:flex;align-items:center;justify-content:center;font-size:50px}
+.r-body{padding:12px 14px 14px}
+.r-name{font-size:16px;font-weight:600;margin-bottom:4px}
+.r-meta{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--sec)}
+.dot{width:3px;height:3px;border-radius:50%;background:var(--sec)}
+.r-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.tag{padding:3px 8px;border-radius:6px;background:var(--bg);font-size:12px;color:var(--sec)}
+.tag.g{background:#EDFBEE;color:var(--green)}
+.tag.r{background:#FFF0ED;color:var(--red)}
+
+/* ── RESTAURANT HERO ── */
+.menu-hero{width:100%;height:190px;object-fit:cover;background:linear-gradient(135deg,#f0ede8,#e0dbd3);display:flex;align-items:center;justify-content:center;font-size:60px}
+.menu-info{background:var(--white);padding:14px 16px}
+.menu-info h1{font-size:21px;font-weight:700}
+.menu-info .mm{font-size:13px;color:var(--sec);margin-top:4px;display:flex;gap:10px}
+
+/* ── CATEGORIES ── */
+.cats{display:flex;gap:8px;padding:11px 16px;overflow-x:auto;scrollbar-width:none;background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:50}
 .cats::-webkit-scrollbar{display:none}
-.cat-btn{display:flex;flex-direction:column;align-items:center;gap:4px;background:#fff;border-radius:16px;padding:10px 14px;min-width:68px;border:none;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.06);flex-shrink:0;transition:all .15s}
-.cat-btn.active{background:var(--bl)}.cat-btn.active .cat-nm{color:#fff}
-.cat-ic{font-size:24px}.cat-nm{font-size:11px;font-weight:600;color:var(--bl);white-space:nowrap}
-.rests{padding:0 16px;display:flex;flex-direction:column;gap:14px}
-.rest-card{background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer}
-.rest-card:active{transform:scale(.98)}
-.rc-img{width:100%;height:150px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:60px;position:relative;overflow:hidden}
-.rc-img img{width:100%;height:100%;object-fit:cover}
-.rc-badge{position:absolute;top:10px;left:10px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:var(--gn);color:#fff}
-.rc-closed{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700}
-.rc-info{padding:12px 14px}
-.rc-name{font-size:16px;font-weight:700;margin-bottom:5px}
-.rc-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.rc-star{font-size:13px;font-weight:600}.rc-time{font-size:13px;color:var(--gt)}.rc-free{font-size:13px;font-weight:600;color:var(--gn)}
-.rc-tags{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
-.rc-tag{font-size:11px;color:var(--gt);background:var(--bg);border-radius:6px;padding:2px 7px}
+.cat{padding:7px 14px;border-radius:20px;border:none;background:var(--bg);font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--sec);transition:background .15s,color .15s}
+.cat.on{background:var(--text);color:#fff}
 
-/* MENU */
-.menu-hero{position:relative}
-.menu-hero-img{width:100%;height:190px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:70px;overflow:hidden}
-.menu-hero-img img{width:100%;height:100%;object-fit:cover}
-.menu-back-btn{position:absolute;top:calc(var(--st)+12px);left:12px;width:38px;height:38px;border-radius:50%;background:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
-.menu-info{padding:14px 16px 10px;background:#fff}
-.menu-nm{font-size:22px;font-weight:800;margin-bottom:6px}
-.menu-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.m-bdg{font-size:12px;font-weight:600;padding:3px 10px;border-radius:10px}
-.mb-g{background:#e8f8ee;color:var(--gn)}.mb-y{background:#fff5d0;color:#b8860b}
-.mcats{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;border-top:1px solid var(--gb);background:#fff;position:sticky;top:0;z-index:20}
-.mcats::-webkit-scrollbar{display:none}
-.mcat{padding:6px 14px;border-radius:20px;border:none;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0}
-.mcat.active{background:var(--bl);color:#fff}
-.mcat:not(.active){background:var(--bg);color:var(--bl)}
-.msec{padding:16px 16px 0}
-.msec-title{font-size:18px;font-weight:800;margin-bottom:12px}
-.mi-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
-.mi{background:#fff;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:flex-start;box-shadow:0 1px 4px rgba(0,0,0,.05);cursor:pointer}
-.mi:active{transform:scale(.98)}
-.mi-img{width:88px;height:88px;border-radius:12px;flex-shrink:0;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden}
-.mi-img img{width:100%;height:100%;object-fit:cover}
-.mi-body{flex:1;min-width:0}
-.mi-name{font-size:14px;font-weight:700;margin-bottom:4px;line-height:1.3}
-.mi-desc{font-size:12px;color:var(--gt);line-height:1.4;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.mi-w{font-size:11px;color:#bbb;margin-bottom:6px}
-.mi-foot{display:flex;align-items:center;justify-content:space-between}
-.mi-price{font-size:15px;font-weight:800}
-.add-btn{width:32px;height:32px;border-radius:10px;background:var(--y);border:none;cursor:pointer;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.add-btn:active{transform:scale(.88)}
-.qc{display:flex;align-items:center;gap:8px}
-.qb{width:30px;height:30px;border-radius:8px;background:var(--bg);border:none;cursor:pointer;font-size:18px;font-weight:700;color:var(--bl);display:flex;align-items:center;justify-content:center}
-.qn{font-size:15px;font-weight:800;min-width:20px;text-align:center}
+/* ── MENU ITEMS ── */
+.menu-sec{padding:0 16px}
+.menu-sec-t{font-size:18px;font-weight:700;padding:18px 0 10px}
+.m-items{display:flex;flex-direction:column;gap:1px;margin-bottom:16px}
+.m-item{background:var(--white);display:flex;align-items:center;gap:11px;padding:13px}
+.m-item:first-child{border-radius:var(--r) var(--r) 0 0}
+.m-item:last-child{border-radius:0 0 var(--r) var(--r)}
+.m-item:only-child{border-radius:var(--r)}
+.m-item:active{background:var(--bg)}
+.m-img{width:78px;height:78px;border-radius:11px;object-fit:cover;background:var(--bg);flex-shrink:0}
+.m-img-ph{width:78px;height:78px;border-radius:11px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0}
+.m-info{flex:1;min-width:0}
+.m-name{font-size:15px;font-weight:500;margin-bottom:3px}
+.m-desc{font-size:13px;color:var(--sec);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:5px}
+.m-price{font-size:15px;font-weight:600}
+.add-btn{width:36px;height:36px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:22px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:transform .1s,background .1s}
+.add-btn:active{transform:scale(.88);background:var(--red-d)}
+.qty{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.qb{width:30px;height:30px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--text)}
+.qn{font-size:15px;font-weight:600;min-width:18px;text-align:center}
 
-/* CART */
-.cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center;gap:12px}
-.ce-ico{font-size:64px}.ce-t{font-size:20px;font-weight:800}.ce-s{font-size:14px;color:var(--gt)}
-.cart-go{margin-top:8px;background:var(--y);color:var(--bl);border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer}
-.cart-body{padding:16px}
-.cart-rlbl{font-size:13px;color:var(--gt);margin-bottom:12px}
-.ci-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
-.ci{background:#fff;border-radius:16px;padding:12px;display:flex;gap:10px;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.ci-img{width:48px;height:48px;border-radius:10px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden}
-.ci-img img{width:100%;height:100%;object-fit:cover}
-.ci-body{flex:1;min-width:0}
-.ci-name{font-size:13px;font-weight:700;line-height:1.3}
-.ci-opt{font-size:11px;color:var(--gt)}
-.cqb{width:26px;height:26px;border-radius:7px;background:var(--bg);border:none;cursor:pointer;font-size:16px;font-weight:700;color:var(--bl);display:flex;align-items:center;justify-content:center}
-.cqn{font-size:14px;font-weight:800;min-width:18px;text-align:center}
-.promo-row{background:#fff;border-radius:16px;padding:14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.promo-inp{flex:1;border:none;outline:none;font-size:14px;background:transparent}
-.promo-apply{background:var(--y);border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer}
-.sum-box{background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.sr{display:flex;justify-content:space-between;margin-bottom:10px}
-.sr:last-child{margin-bottom:0}
-.sl{font-size:14px;color:var(--gt)}.sv{font-size:14px;font-weight:600}
-.st-row .sl,.st-row .sv{font-size:16px;font-weight:800}
-.sdiv{height:1px;background:var(--gb);margin:10px 0}
-.sfree{color:var(--gn)}
-.co-btn{width:100%;background:var(--y);color:var(--bl);border:none;border-radius:16px;padding:16px;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+/* ── CART FAB ── */
+.cart-fab{position:fixed;bottom:calc(62px + var(--safe-b) + 12px);left:16px;right:16px;z-index:150}
+.cart-fab-btn{width:100%;height:var(--bh);background:var(--red);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0 20px;box-shadow:0 4px 20px rgba(252,63,29,.4);transition:background .15s,transform .1s}
+.cart-fab-btn:active{background:var(--red-d);transform:scale(.98)}
+.cfb-c{background:rgba(255,255,255,.25);border-radius:8px;padding:4px 10px;font-size:14px}
 
-/* CHECKOUT */
-.co-sec{background:#fff;border-radius:20px;margin:12px 16px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.co-title{font-size:15px;font-weight:800;margin-bottom:12px}
-.co-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gb);cursor:pointer}
-.co-row:last-child{border-bottom:none;padding-bottom:0}
-.co-icon{font-size:20px;width:36px;height:36px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.co-body{flex:1}.co-l{font-size:12px;color:var(--gt)}.co-v{font-size:14px;font-weight:600}
-.pay-opts{display:flex;gap:8px;flex-wrap:wrap}
-.pay-opt{flex:1;min-width:80px;padding:10px;border-radius:12px;border:2px solid var(--gb);text-align:center;cursor:pointer}
-.pay-opt.sel{border-color:var(--bl);background:var(--bl);color:#fff}
-.po-i{font-size:20px;margin-bottom:2px}.po-n{font-size:11px;font-weight:600}
-.place-btn{margin:12px 16px calc(12px + var(--sb));width:calc(100% - 32px);background:var(--y);color:var(--bl);border:none;border-radius:16px;padding:17px;font-size:17px;font-weight:800;cursor:pointer;display:block}
-.place-btn:disabled{opacity:.6}
+/* ── CART ── */
+.cart-list{padding:10px 16px;display:flex;flex-direction:column;gap:1px}
+.ci{background:var(--white);display:flex;align-items:center;gap:11px;padding:13px}
+.ci:first-child{border-radius:var(--r) var(--r) 0 0}
+.ci:last-child{border-radius:0 0 var(--r) var(--r)}
+.ci:only-child{border-radius:var(--r)}
+.ci-img{width:54px;height:54px;border-radius:9px;object-fit:cover;background:var(--bg);flex-shrink:0}
+.ci-name{flex:1;font-size:15px}
+.ci-p{font-size:13px;color:var(--sec);margin-top:2px}
 
-/* ORDER */
-.ord-wrap{padding:20px 16px;text-align:center}
-.ord-ico{font-size:64px;margin-bottom:16px}
-.ord-t{font-size:24px;font-weight:900;margin-bottom:8px}
-.ord-s{font-size:15px;color:var(--gt);margin-bottom:24px}
-.ord-nr{background:#fff;border-radius:16px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:12px}
-.onl{font-size:12px;color:var(--gt);margin-bottom:4px}.onv{font-size:20px;font-weight:900}
-.track-box{background:#fff;border-radius:16px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:20px;text-align:left}
-.ts{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;position:relative}
-.ts:last-child{margin-bottom:0}
-.ts-line{position:absolute;left:14px;top:30px;width:2px;height:calc(100% + 4px);background:var(--gb)}
-.ts:last-child .ts-line{display:none}
-.ts-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;z-index:1}
-.td-done{background:var(--gn);color:#fff}.td-act{background:var(--y);animation:pulse 1.5s infinite}.td-pend{background:var(--gb)}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
-.ts-lbl{font-size:14px;font-weight:700}.ts-tm{font-size:12px;color:var(--gt);margin-top:2px}
-.ts-body{padding-top:4px}
-.back-main{width:100%;background:var(--y);color:var(--bl);border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:800;cursor:pointer}
+/* ── CARD ── */
+.card{background:var(--white);border-radius:var(--r);overflow:hidden;margin:0 16px 12px}
+.card-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)}
+.card-row:last-child{border-bottom:none}
+.card-row-lbl{font-size:15px}
+.card-row-val{font-size:15px;font-weight:500}
+.card-row-val.g{color:var(--green)}
+.card-row-val.total{font-size:17px;font-weight:700}
+.card-row-val.s{color:var(--sec)}
+.card-btn{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;background:none;border-top:none;border-left:none;border-right:none;width:100%;text-align:left}
+.card-btn:last-child{border-bottom:none}
+.card-btn:active{background:var(--bg)}
+.cb-l{font-size:15px;color:var(--text)}
+.cb-v{font-size:14px;color:var(--sec);display:flex;align-items:center;gap:5px}
 
-/* PROFILE */
-.prof-head{background:var(--y);padding:calc(var(--st)+20px) 16px 24px}
-.ph-row{display:flex;align-items:center;gap:12px;margin-bottom:20px}
-.ph-av{width:72px;height:72px;border-radius:50%;background:rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;overflow:hidden}
-.ph-av img{width:100%;height:100%;object-fit:cover}
-.ph-nm{font-size:20px;font-weight:800}.ph-uid{font-size:12px;color:rgba(0,0,0,.45);margin-top:2px}
-.prof-plus{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.08);border-radius:14px;padding:10px 14px;cursor:pointer}
-.pp-ic{font-size:20px}.pp-tx{font-size:13px;font-weight:600;flex:1}
-.pp-st{font-size:11px;font-weight:700;background:#fff;border-radius:8px;padding:3px 8px;color:var(--gt)}
-.prof-body{padding:16px;display:flex;flex-direction:column;gap:10px}
-.prof-sec{background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.pmi{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:1px solid var(--gb)}
-.pmi:last-child{border-bottom:none}.pmi:active{background:var(--bg)}
-.pmi-ic{font-size:22px;width:40px;height:40px;background:var(--bg);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.pmi-bd{flex:1}.pmi-tx{font-size:15px;font-weight:600}.pmi-sb{font-size:12px;color:var(--gt);margin-top:1px}
-.pmi-ar{color:var(--gt);font-size:18px}
+/* ── PROMO ── */
+.promo-wrap{display:flex;gap:9px;padding:10px 16px 0}
+.promo-in{flex:1;height:44px;padding:0 13px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;outline:none;background:var(--white);transition:border-color .2s}
+.promo-in:focus{border-color:var(--red)}
+.promo-btn{height:44px;padding:0 16px;background:var(--text);color:#fff;border:none;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.promo-btn:active{background:#3a3a3a}
+.promo-msg{padding:7px 16px 0;font-size:13px}
+.promo-msg.ok{color:var(--green)}
+.promo-msg.er{color:var(--red)}
 
-/* SUB */
-.scr-hdr{display:flex;align-items:center;gap:10px;padding:calc(var(--st)+12px) 16px 12px;background:#fff;border-bottom:1px solid var(--gb);position:sticky;top:0;z-index:10;flex-shrink:0}
-.back-btn{background:none;border:none;font-size:22px;cursor:pointer;padding:0;color:var(--bl)}
-.scr-title{font-size:18px;font-weight:800}
-.ord-list{padding:12px 16px;display:flex;flex-direction:column;gap:12px}
-.ord-card{background:#fff;border-radius:20px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.05);cursor:pointer}
-.oc-head{display:flex;justify-content:space-between;margin-bottom:8px}
-.oc-nr{font-size:14px;font-weight:800}.oc-dt{font-size:12px;color:var(--gt)}
-.oc-rest{font-size:14px;color:var(--gt);margin-bottom:6px}
-.oc-items{font-size:13px;font-weight:600;margin-bottom:8px}
-.oc-foot{display:flex;align-items:center;justify-content:space-between}
-.oc-tot{font-size:15px;font-weight:800}
-.ob{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px}
-.ob-ok{background:#e8f8ee;color:var(--gn)}.ob-no{background:#fee;color:var(--rd)}.ob-pend{background:#fff5d0;color:#b8860b}
-.addr-card{background:#fff;border-radius:16px;padding:14px 16px;margin:0 16px 10px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.05);cursor:pointer}
-.addr-card:active{background:#f9f9f9}
-.ac-ic{font-size:22px;width:40px;height:40px;background:var(--bg);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ac-bd{flex:1}.ac-nm{font-size:14px;font-weight:700}.ac-fl{font-size:12px;color:var(--gt);margin-top:2px}
-.pay-card{background:#fff;border-radius:16px;padding:14px 16px;margin:0 16px 10px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.pc-ic{font-size:22px;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.pc-bd{flex:1}.pc-nm{font-size:14px;font-weight:700}.pc-sb{font-size:12px;color:var(--gt);margin-top:2px}
-.promo-card{background:#fff;border-radius:16px;padding:16px;margin:0 16px 10px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.promo-code{font-size:16px;font-weight:800;font-family:monospace;letter-spacing:1px;margin-bottom:4px}
-.promo-desc{font-size:13px;color:var(--gt)}
-.promo-bdg{display:inline-block;margin-top:8px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;background:#e8f8ee;color:var(--gn)}
+/* ── PAY METHODS ── */
+.pay-m{background:var(--white);display:flex;align-items:center;gap:13px;padding:13px 16px;cursor:pointer;transition:background .1s;border-bottom:1px solid var(--border)}
+.pay-m:last-child{border-bottom:none}
+.pay-m:first-child{border-radius:var(--r) var(--r) 0 0}
+.pay-m:last-child{border-radius:0 0 var(--r) var(--r)}
+.pay-m:only-child{border-radius:var(--r)}
+.pay-m:active{background:var(--bg)}
+.pay-ico{width:42px;height:30px;border-radius:5px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.pay-nm{flex:1;font-size:15px}
+.pay-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,border-color .15s}
+.pay-m.sel .pay-chk{background:var(--red);border-color:var(--red)}
 
-/* SUPPORT */
-.sup-chat{padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;flex:1}
-.sm{max-width:80%;padding:12px 14px;border-radius:16px;font-size:14px;line-height:1.4}
-.sm-b{background:#fff;align-self:flex-start;border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.sm-u{background:var(--bl);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
-.sup-row{padding:12px 16px calc(12px + var(--sb));background:#fff;border-top:1px solid var(--gb);display:flex;gap:10px;align-items:center;flex-shrink:0}
-.sup-inp{flex:1;border:1px solid var(--gb);border-radius:20px;padding:10px 14px;font-size:14px;outline:none;background:var(--bg)}
-.sup-send{width:40px;height:40px;border-radius:50%;background:var(--y);border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* ── PERSONS ── */
+.pers{display:flex;align-items:center;gap:11px}
+.pb{width:32px;height:32px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--text)}
+.pb:active{background:var(--border)}
+.pn{font-size:16px;font-weight:600;min-width:22px;text-align:center}
 
-/* NAV */
-.bnav{display:flex;background:#fff;border-top:1px solid var(--gb);padding:8px 0 calc(8px + var(--sb));flex-shrink:0;z-index:100}
-.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;background:transparent;cursor:pointer;padding:4px 0}
-.nb-ic{font-size:22px;position:relative;display:inline-block}
-.nb-lbl{font-size:10px;font-weight:600;color:var(--gt)}.nb.active .nb-lbl{color:var(--bl)}
-.cbadge{position:absolute;top:-4px;right:-8px;background:var(--rd);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;border:2px solid #fff}
+/* ── COMMENT ── */
+.cmt-ta{width:100%;min-height:72px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;resize:none;outline:none;background:var(--white);font-family:inherit;line-height:1.5;transition:border-color .2s}
+.cmt-ta:focus{border-color:var(--red)}
+.chips{display:flex;gap:7px;flex-wrap:wrap;padding:6px 0 0}
+.chip{padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--white);font-size:13px;cursor:pointer;font-weight:500;transition:all .15s}
+.chip.on{background:var(--text);color:#fff;border-color:var(--text)}
 
-/* MISC */
-.loading{position:fixed;inset:0;background:var(--y);display:flex;align-items:center;justify-content:center;z-index:1000;transition:opacity .4s;flex-direction:column;gap:12px}
-.loading-logo{font-size:42px;font-weight:900}.loading-sub{font-size:14px;color:rgba(0,0,0,.4)}
-.toast{position:fixed;bottom:calc(80px + var(--sb));left:50%;transform:translateX(-50%) translateY(20px);background:var(--bl);color:#fff;border-radius:14px;padding:12px 20px;font-size:14px;font-weight:600;z-index:600;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.spin-wrap{display:flex;justify-content:center;padding:40px}
-.spin{width:32px;height:32px;border:3px solid var(--gb);border-top-color:var(--bl);border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.empty{text-align:center;padding:60px 32px;color:var(--gt)}
-.e-ic{font-size:48px;margin-bottom:12px}.e-t{font-size:15px;font-weight:600;color:var(--bl)}.e-s{font-size:13px;margin-top:6px}
+/* ── ADDRESS ── */
+.addr-in{width:100%;height:44px;padding:0 12px 0 36px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;outline:none;background:var(--bg);transition:border-color .2s;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='20' fill='none'%3E%3Cpath d='M8 0C4.7 0 2 2.7 2 6c0 4.5 6 11 6 11S14 10.5 14 6C14 2.7 11.3 0 8 0zm0 8.5A2.5 2.5 0 1 1 8 3.5a2.5 2.5 0 0 1 0 5z' fill='%23FC3F1D'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:10px center}
+.addr-in:focus{border-color:var(--red);background-color:var(--white)}
+.sug-list{background:var(--white)}
+.sug{padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:flex-start;gap:11px}
+.sug:last-child{border-bottom:none}
+.sug:active{background:var(--bg)}
+.sug-t{font-size:15px;font-weight:500}
+.sug-s{font-size:13px;color:var(--sec);margin-top:2px}
+.map-wrap{height:240px;background:#e8e4dc;position:relative}
+#ymap{width:100%;height:100%}
+.addr-flds{padding:14px 16px;display:flex;flex-direction:column;gap:9px}
+.fld{display:flex;flex-direction:column;gap:3px}
+.fld label{font-size:11px;color:var(--sec);font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+.fld input{height:42px;padding:0 11px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;outline:none;background:var(--white);transition:border-color .2s}
+.fld input:focus{border-color:var(--red)}
+.fld-row{display:flex;gap:9px}
+.fld-row .fld{flex:1}
+
+/* ── STATUS ── */
+.status-wrap{display:flex;flex-direction:column;align-items:center;padding:36px 20px;gap:0}
+.s-icon{width:80px;height:80px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:38px;margin-bottom:18px}
+.s-icon.pulse{animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.s-title{font-size:22px;font-weight:700;text-align:center;margin-bottom:8px}
+.s-desc{font-size:15px;color:var(--sec);text-align:center;line-height:1.5;margin-bottom:6px}
+.s-oid{font-size:13px;color:var(--sec)}
+.sbp-card{width:100%;background:var(--white);border-radius:var(--r);padding:18px;margin-top:20px;text-align:center}
+.sbp-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.sbp-desc{font-size:13px;color:var(--sec);line-height:1.5;margin-bottom:14px}
+.sbp-btn{width:100%;height:48px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;transition:background .15s}
+.sbp-btn:active{background:#0c5fc4}
+
+/* ── PROFILE ── */
+.profile-head{background:var(--white);padding:20px 16px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border)}
+.avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,var(--red),#ff6b4a);display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;font-weight:700;flex-shrink:0}
+.prf-name{font-size:19px;font-weight:700}
+.prf-uid{font-size:13px;color:var(--sec);margin-top:2px}
+.prf-status{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+.prf-badge{padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600}
+.prf-badge.g{background:#EDFBEE;color:var(--green)}
+.prf-badge.r{background:#FFF0ED;color:var(--red)}
+.prf-badge.b{background:#EFF6FF;color:var(--blue)}
+.menu-list{margin:12px 16px;background:var(--white);border-radius:var(--r);overflow:hidden}
+.ml-item{display:flex;align-items:center;gap:13px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.ml-item:last-child{border-bottom:none}
+.ml-item:active{background:var(--bg)}
+.ml-ico{width:38px;height:38px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ml-txt{flex:1;font-size:15px;font-weight:500}
+.ml-arr{color:var(--sec)}
+
+/* ── ORDERS HISTORY ── */
+.ord-list{padding:10px 16px;display:flex;flex-direction:column;gap:10px}
+.ord-card{background:var(--white);border-radius:var(--r);overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.ord-card:active{transform:scale(.99)}
+.ord-head{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.ord-rest{font-size:15px;font-weight:600}
+.ord-date{font-size:13px;color:var(--sec)}
+.ord-body{padding:12px 16px}
+.ord-items{font-size:14px;color:var(--sec);margin-bottom:6px;line-height:1.4}
+.ord-footer{display:flex;align-items:center;justify-content:space-between}
+.ord-price{font-size:16px;font-weight:700}
+.ord-status{font-size:13px;padding:3px 10px;border-radius:10px;font-weight:500}
+.ord-status.done{background:#EDFBEE;color:var(--green)}
+.ord-status.wait{background:#FFF0ED;color:var(--red)}
+.ord-status.del{background:#EFF6FF;color:var(--blue)}
+.ord-repeat{width:100%;height:42px;background:var(--bg);color:var(--text);border:none;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;margin-top:10px;transition:background .15s}
+.ord-repeat:active{background:var(--border)}
+
+/* ── BOTTOM BUTTON ── */
+.bot-wrap{padding:12px 16px calc(12px + var(--safe-b))}
+.btn{width:100%;height:var(--bh);background:var(--red);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,transform .1s}
+.btn:active{background:var(--red-d);transform:scale(.98)}
+.btn:disabled{background:var(--border);color:var(--sec);transform:none;cursor:default}
+.btn.sec{background:var(--bg);color:var(--text)}
+.btn.sec:active{background:var(--border)}
+
+/* ── GAP ── */
+.gap{height:14px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:calc(70px + var(--safe-b));left:50%;transform:translateX(-50%);background:rgba(33,32,31,.92);color:#fff;padding:10px 20px;border-radius:22px;font-size:14px;z-index:9999;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:calc(100vw - 40px);text-align:center}
+.toast.on{opacity:1}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:50px 20px;color:var(--sec);font-size:15px}
+.empty-ico{font-size:48px;margin-bottom:12px}
 </style>
 </head>
 <body>
-<div class="loading" id="loading">
-  <div class="loading-logo">🍔 Еда</div>
-  <div class="loading-sub">Загрузка...</div>
-</div>
+
 <div class="toast" id="toast"></div>
 
-<!-- ADDRESS MODAL -->
-<div class="addr-modal" id="addrModal">
-  <div class="addr-modal-head">
-    <button class="addr-back" onclick="closeAddr()">←</button>
-    <div class="addr-sbox">
-      <span>🔍</span>
-      <input class="addr-sinp" id="addrInp" placeholder="Москва, Тверская 1..." oninput="onAddrInput(this.value)" autocomplete="off">
+<!-- ═══════ SCREEN: CATALOG ═══════ -->
+<div class="scr on" id="s-catalog">
+  <div class="hdr" style="justify-content:space-between">
+    <div>
+      <div class="hdr-title">Яндекс Еда</div>
     </div>
+    <div id="hdr-name" style="font-size:14px;color:var(--sec)"></div>
   </div>
-  <div class="addr-res" id="addrRes"></div>
-</div>
-
-<!-- PICKUP SHEET -->
-<div class="sheet-overlay" id="pickupSheet" onclick="closePickup(event)">
-  <div class="sheet">
-    <div class="sheet-head">
-      <span class="sheet-title">🏪 Самовывоз</span>
-      <button class="sheet-close" onclick="closePickup()">✕</button>
-    </div>
-    <div id="pickupList"><div class="spin-wrap"><div class="spin"></div></div></div>
+  <div class="addr-bar" onclick="nav('address','catalog')">
+    <svg width="16" height="20" fill="none"><path d="M8 0C4.7 0 2 2.7 2 6c0 4.5 6 11 6 11S14 10.5 14 6C14 2.7 11.3 0 8 0zm0 8.5A2.5 2.5 0 1 1 8 3.5a2.5 2.5 0 0 1 0 5z" fill="#FC3F1D"/></svg>
+    <div class="av"><div class="al">Доставить по адресу</div><div class="at" id="addr-top">Укажите адрес доставки</div></div>
+    <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </div>
-</div>
-
-<!-- ITEM MODAL -->
-<div class="item-overlay" id="itemOverlay" onclick="closeItem(event)">
-  <div class="item-sheet">
-    <div class="item-img" id="iImg"></div>
-    <div class="item-body">
-      <div class="item-name" id="iName"></div>
-      <div class="item-desc" id="iDesc"></div>
-      <div class="item-w" id="iW"></div>
-      <div id="iOptsW" style="display:none">
-        <div class="item-opts-title" id="iOptsT"></div>
-        <div class="item-opts" id="iOpts"></div>
-      </div>
-      <div class="item-add-row">
-        <div class="mqc">
-          <button class="mqb" onclick="mqAdj(-1)">−</button>
-          <span class="mqn" id="mqN">1</span>
-          <button class="mqb" onclick="mqAdj(1)">+</button>
-        </div>
-        <button class="item-add-btn" onclick="addFromModal()">
-          <span>В корзину</span><span id="iPrice"></span>
-        </button>
-      </div>
-    </div>
+  <div class="search-wrap">
+    <input class="search" id="search" type="text" placeholder="Рестораны и магазины" oninput="filterR(this.value)">
+  </div>
+  <div class="sec-t">Рядом с вами</div>
+  <div class="r-list page" id="r-list">
+    <div class="loader"><div class="spin"></div><div class="loader-t">Загружаем рестораны...</div></div>
   </div>
 </div>
 
-<div id="app">
-  <!-- TOPBAR (только на главной) -->
-  <div class="topbar" id="topbar">
-    <div class="topbar-inner">
-      <div class="logo">Еда</div>
-      <button class="addr-btn" onclick="openAddr()">
-        <span>📍</span>
-        <span class="addr-text" id="addrTxt">Загрузка...</span>
-        <span style="opacity:.4;font-size:10px">▾</span>
+<!-- ═══════ SCREEN: MENU ═══════ -->
+<div class="scr" id="s-menu">
+  <div class="hdr">
+    <button class="back" onclick="nav('catalog')">
+      <svg width="9" height="16" fill="none"><path d="M8 1L1 8l7 7" stroke="#21201F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="hdr-title" id="menu-hdr-name">Меню</div>
+  </div>
+  <div id="menu-hero" class="menu-hero">🍔</div>
+  <div class="menu-info">
+    <h1 id="menu-name">Ресторан</h1>
+    <div class="mm">
+      <span id="menu-rating">⭐ 4.8</span>
+      <span id="menu-time">30 мин</span>
+      <span id="menu-deliv" class="tag g" style="padding:0">Бесплатно</span>
+    </div>
+  </div>
+  <div class="cats" id="menu-cats"></div>
+  <div class="page" id="menu-content">
+    <div class="loader"><div class="spin"></div><div class="loader-t">Загружаем меню...</div></div>
+  </div>
+  <div class="cart-fab" id="cart-fab" style="display:none">
+    <button class="cart-fab-btn" onclick="nav('cart')">
+      <span id="fab-cnt" class="cfb-c">0</span>
+      <span>Корзина</span>
+      <span id="fab-price">0 ₽</span>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════ SCREEN: CART ═══════ -->
+<div class="scr" id="s-cart">
+  <div class="hdr">
+    <button class="back" id="cart-back"></button>
+    <div><div class="hdr-title">Корзина</div></div>
+  </div>
+  <div class="addr-bar" onclick="nav('address','cart')">
+    <svg width="16" height="18" fill="none"><path d="M8 0C5.2 0 3 2.2 3 5c0 3.7 5 9 5 9s5-5.3 5-9c0-2.8-2.2-5-5-5zm0 6.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" fill="#9E9B98"/></svg>
+    <div class="av"><div class="al">Адрес доставки</div><div class="at" id="addr-cart">Укажите адрес</div></div>
+    <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <div class="cart-list page" id="cart-list"></div>
+
+  <!-- промокод -->
+  <div id="promo-section">
+    <div class="card">
+      <button class="card-btn" onclick="togglePromo()">
+        <span class="cb-l">Промокод</span>
+        <span class="cb-v" id="promo-display">Добавить <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       </button>
-      <button class="profile-btn" onclick="goTo('profile')">
-        <span id="topAvatar">👤</span>
-      </button>
+    </div>
+    <div id="promo-block" style="display:none;padding-bottom:4px">
+      <div class="promo-wrap">
+        <input class="promo-in" id="promo-in" type="text" placeholder="Введите промокод">
+        <button class="promo-btn" onclick="applyPromo()">Применить</button>
+      </div>
+      <div class="promo-msg" id="promo-msg"></div>
     </div>
   </div>
-  <div class="tabs" id="tabs">
-    <button class="tab-btn active" id="tabDel" onclick="selTab('delivery',this)">Доставка</button>
-    <button class="tab-btn" id="tabPick" onclick="selTab('pickup',this)">Самовывоз</button>
+
+  <div class="gap"></div>
+
+  <!-- оплата -->
+  <div class="sec-t2">Способ оплаты</div>
+  <div id="pay-methods" style="margin:0 16px 12px">
+    <div class="pay-m sel" data-m="sbp" data-mid="5" onclick="selPay(this)">
+      <div class="pay-ico">🏦</div>
+      <div class="pay-nm">СБП</div>
+      <div class="pay-chk"><svg width="10" height="8" fill="none"><path d="M1 4l3 3L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="pay-m" data-m="cash" data-mid="1" onclick="selPay(this)">
+      <div class="pay-ico">💵</div>
+      <div class="pay-nm">Наличными курьеру</div>
+      <div class="pay-chk"></div>
+    </div>
   </div>
 
-  <div class="content" id="content">
+  <div class="gap"></div>
 
-    <!-- CATALOG -->
-    <div class="screen active" id="screen-catalog">
-      <div class="srch-wrap">
-        <div class="srch-box"><span>🔍</span><input class="srch-inp" placeholder="Ресторан или блюдо" oninput="filterR(this.value)"></div>
-      </div>
-      <div class="banners">
-        <div class="banner b1" onclick="filterCat(null,'Бургеры')"><span class="bn-ico">🔥</span><div class="bn-txt">Бесплатная<br>доставка</div></div>
-        <div class="banner b2" onclick="filterCat(null,'Суши')"><span class="bn-ico">⚡</span><div class="bn-txt">30 минут<br>или скидка</div></div>
-        <div class="banner b3" onclick="filterCat(null,'Пицца')"><span class="bn-ico">🎁</span><div class="bn-txt">Акции<br>и скидки</div></div>
-      </div>
-      <div class="cats" id="catsList"></div>
-      <div style="padding:0 16px 8px;font-size:18px;font-weight:800">Рестораны <span id="restsCount" style="font-size:13px;color:var(--gt);font-weight:600"></span></div>
-      <div class="rests" id="restsList"><div class="spin-wrap"><div class="spin"></div></div></div>
-      <div style="height:20px"></div>
-    </div>
-
-    <!-- MENU -->
-    <div class="screen" id="screen-menu">
-      <div class="menu-hero">
-        <div class="menu-hero-img" id="mhImg">🍽️</div>
-        <button class="menu-back-btn" onclick="goTo('catalog')">←</button>
-      </div>
-      <div class="menu-info">
-        <div class="menu-nm" id="mhName"></div>
-        <div class="menu-meta" id="mhMeta"></div>
-      </div>
-      <div class="mcats" id="menuCats"></div>
-      <div id="menuItems"></div>
-      <div style="height:80px"></div>
-    </div>
-
-    <!-- CART -->
-    <div class="screen" id="screen-cart">
-      <div class="scr-hdr"><button class="back-btn" onclick="goTo('catalog')">←</button><span class="scr-title">Корзина</span></div>
-      <div class="cart-empty" id="cartEmpty">
-        <div class="ce-ico">🛒</div><div class="ce-t">Корзина пустая</div>
-        <div class="ce-s">Добавьте блюда из ресторана</div>
-        <button class="cart-go" onclick="goTo('catalog')">К ресторанам</button>
-      </div>
-      <div id="cartFilled" style="display:none">
-        <div class="cart-body">
-          <div class="cart-rlbl" id="cRestLbl"></div>
-          <div class="ci-list" id="cList"></div>
-          <div class="promo-row"><span>🏷️</span><input class="promo-inp" placeholder="Промокод" id="promoInp"><button class="promo-apply" onclick="applyPromo()">Применить</button></div>
-          <div class="sum-box">
-            <div class="sr"><span class="sl">Товары</span><span class="sv" id="sItems">0 ₽</span></div>
-            <div class="sr"><span class="sl">Доставка</span><span class="sv sfree" id="sDel">Бесплатно</span></div>
-            <div class="sr"><span class="sl">Сервисный сбор (5%)</span><span class="sv" id="sFee">0 ₽</span></div>
-            <div class="sdiv"></div>
-            <div class="sr st-row"><span class="sl">Итого</span><span class="sv" id="sTotal">0 ₽</span></div>
-          </div>
-          <button class="co-btn" onclick="goTo('checkout')"><span>Оформить заказ</span><span id="coBtnT">0 ₽</span></button>
-        </div>
+  <!-- приборы + коммент -->
+  <div class="card" style="margin:0 16px 12px">
+    <div class="card-row">
+      <span class="card-row-lbl">Приборы</span>
+      <div class="pers">
+        <button class="pb" onclick="cPers(-1)">−</button>
+        <span class="pn" id="pers-n">2</span>
+        <button class="pb" onclick="cPers(1)">+</button>
       </div>
     </div>
-
-    <!-- CHECKOUT -->
-    <div class="screen" id="screen-checkout">
-      <div class="scr-hdr"><button class="back-btn" onclick="goTo('cart')">←</button><span class="scr-title">Оформление</span></div>
-      <div class="co-sec">
-        <div class="co-title">📦 Доставка</div>
-        <div class="co-row" onclick="openAddr()">
-          <div class="co-icon">📍</div>
-          <div class="co-body"><div class="co-l">Адрес</div><div class="co-v" id="coAddr">—</div></div>
-          <div style="color:var(--gt)">›</div>
-        </div>
-        <div class="co-row">
-          <div class="co-icon">⏱️</div>
-          <div class="co-body"><div class="co-l">Время</div><div class="co-v" id="coTime">~30 мин</div></div>
-        </div>
-      </div>
-      <div class="co-sec">
-        <div class="co-title">💳 Оплата</div>
-        <div class="pay-opts" id="payOpts">
-          <div class="pay-opt sel" onclick="selPay(this,'sbp','sbp')"><div class="po-i">⚡</div><div class="po-n">СБП</div></div>
-          <div class="pay-opt" onclick="selPay(this,'card','card')"><div class="po-i">💳</div><div class="po-n">Карта</div></div>
-          <div class="pay-opt" onclick="selPay(this,'cash','cash')"><div class="po-i">💵</div><div class="po-n">Наличные</div></div>
-        </div>
-      </div>
-      <div class="co-sec">
-        <div class="co-title">📝 Комментарий</div>
-        <input id="coComment" style="width:100%;border:1px solid var(--gb);border-radius:10px;padding:10px 12px;font-size:14px;outline:none;background:var(--bg)" placeholder="Этаж, домофон, пожелания...">
-      </div>
-      <div class="co-sec">
-        <div class="co-title">🧾 Состав</div>
-        <div id="coItems"></div>
-        <div class="sdiv"></div>
-        <div class="sr st-row" style="margin-top:10px"><span class="sl">Итого</span><span class="sv" id="coTotal">0 ₽</span></div>
-      </div>
-      <button class="place-btn" id="placeBtn" onclick="placeOrder()">Заказать · <span id="placeBtnT">0 ₽</span></button>
-    </div>
-
-    <!-- ORDER -->
-    <div class="screen" id="screen-order">
-      <div class="ord-wrap">
-        <div class="ord-ico">✅</div>
-        <div class="ord-t">Заказ принят!</div>
-        <div class="ord-s">Ресторан начал готовить</div>
-        <div class="ord-nr"><div class="onl">Номер заказа</div><div class="onv" id="orderNr">—</div></div>
-        <div class="track-box">
-          <div class="ts"><div class="ts-dot td-done" id="s1">✓</div><div class="ts-line"></div><div class="ts-body"><div class="ts-lbl">Заказ принят</div><div class="ts-tm" id="s1t"></div></div></div>
-          <div class="ts"><div class="ts-dot td-act" id="s2">🍳</div><div class="ts-line"></div><div class="ts-body"><div class="ts-lbl">Ресторан готовит</div><div class="ts-tm">~20 мин</div></div></div>
-          <div class="ts"><div class="ts-dot td-pend" id="s3">🛵</div><div class="ts-line"></div><div class="ts-body"><div class="ts-lbl">Курьер в пути</div><div class="ts-tm" id="s3t"></div></div></div>
-          <div class="ts"><div class="ts-dot td-pend" id="s4">🎉</div><div class="ts-body"><div class="ts-lbl">Доставлено</div><div class="ts-tm" id="s4t"></div></div></div>
-        </div>
-        <button class="back-main" onclick="goTo('catalog');clearCart()">На главную</button>
+    <div style="padding:12px 16px">
+      <div style="font-size:13px;color:var(--sec);margin-bottom:7px">Комментарий</div>
+      <textarea class="cmt-ta" id="cmt" placeholder="Пожелания к заказу..."></textarea>
+      <div class="chips">
+        <div class="chip" onclick="addCmt('Побольше соуса')">Побольше соуса</div>
+        <div class="chip" onclick="addCmt('Без лука')">Без лука</div>
+        <div class="chip" onclick="addCmt('Позвоните в дверь')">Позвонить в дверь</div>
+        <div class="chip" onclick="addCmt('Не звонить')">Не звонить</div>
       </div>
     </div>
+  </div>
 
-    <!-- PROFILE -->
-    <div class="screen" id="screen-profile">
-      <div class="prof-head">
-        <div class="ph-row">
-          <button class="back-btn" onclick="goTo('catalog')">←</button>
-          <div class="ph-av" id="profAv">👤</div>
-          <div><div class="ph-nm" id="profNm">...</div><div class="ph-uid" id="profUid"></div></div>
-        </div>
-        <div class="prof-plus"><span class="pp-ic">⭐</span><span class="pp-tx">Яндекс Плюс</span><span class="pp-st" id="plusSt">—</span></div>
-      </div>
-      <div class="prof-body">
-        <div class="prof-sec">
-          <div class="pmi" onclick="goTo('orders')"><div class="pmi-ic">📦</div><div class="pmi-bd"><div class="pmi-tx">Мои заказы</div><div class="pmi-sb" id="piOrd">История</div></div><span class="pmi-ar">›</span></div>
-          <div class="pmi" onclick="goTo('addresses')"><div class="pmi-ic">📍</div><div class="pmi-bd"><div class="pmi-tx">Адреса доставки</div><div class="pmi-sb" id="piAddr">Мои адреса</div></div><span class="pmi-ar">›</span></div>
-          <div class="pmi" onclick="goTo('payments')"><div class="pmi-ic">💳</div><div class="pmi-bd"><div class="pmi-tx">Способы оплаты</div><div class="pmi-sb">Карты и СБП</div></div><span class="pmi-ar">›</span></div>
-        </div>
-        <div class="prof-sec">
-          <div class="pmi" onclick="goTo('promos')"><div class="pmi-ic">🏷️</div><div class="pmi-bd"><div class="pmi-tx">Промокоды</div><div class="pmi-sb" id="piPromo">Скидки и бонусы</div></div><span class="pmi-ar">›</span></div>
-          <div class="pmi" onclick="goTo('support')"><div class="pmi-ic">💬</div><div class="pmi-bd"><div class="pmi-tx">Поддержка</div><div class="pmi-sb">Задать вопрос</div></div><span class="pmi-ar">›</span></div>
-        </div>
-      </div>
-      <div style="height:20px"></div>
+  <!-- итого -->
+  <div class="card" style="margin:0 16px 12px">
+    <div class="card-row">
+      <span class="card-row-lbl">Товары</span>
+      <span class="card-row-val" id="sum-items">0 ₽</span>
     </div>
-
-    <div class="screen" id="screen-orders">
-      <div class="scr-hdr"><button class="back-btn" onclick="goTo('profile')">←</button><span class="scr-title">Мои заказы</span></div>
-      <div id="ordersC"></div>
+    <div class="card-row">
+      <span class="card-row-lbl">Доставка</span>
+      <span class="card-row-val g" id="sum-deliv">Бесплатно</span>
     </div>
-
-    <div class="screen" id="screen-addresses">
-      <div class="scr-hdr"><button class="back-btn" onclick="goTo('profile')">←</button><span class="scr-title">Адреса доставки</span></div>
-      <div style="height:12px"></div>
-      <div id="addressesC"></div>
+    <div class="card-row" id="disc-row" style="display:none">
+      <span class="card-row-lbl">Промокод</span>
+      <span class="card-row-val g" id="sum-disc">−0 ₽</span>
     </div>
-
-    <div class="screen" id="screen-payments">
-      <div class="scr-hdr"><button class="back-btn" onclick="goTo('profile')">←</button><span class="scr-title">Оплата</span></div>
-      <div style="height:12px"></div>
-      <div id="paymentsC"></div>
+    <div class="card-row" style="border-bottom:none">
+      <span class="card-row-lbl" style="font-size:17px;font-weight:700">Итого</span>
+      <span class="card-row-val total" id="sum-total">0 ₽</span>
     </div>
+  </div>
 
-    <div class="screen" id="screen-promos">
-      <div class="scr-hdr"><button class="back-btn" onclick="goTo('profile')">←</button><span class="scr-title">Промокоды</span></div>
-      <div style="height:12px"></div>
-      <div id="promosC"></div>
-    </div>
-
-    <!-- SUPPORT: только здесь показывается чат -->
-    <div class="screen" id="screen-support">
-      <div class="scr-hdr" style="position:relative;top:auto;flex-shrink:0"><button class="back-btn" onclick="goTo('profile')">←</button><span class="scr-title">Поддержка</span></div>
-      <div class="sup-chat" id="supChat">
-        <div class="sm sm-b">Привет! Помогу с вопросами по заказу. Чем могу помочь?</div>
-      </div>
-      <div class="sup-row">
-        <input class="sup-inp" id="supInp" placeholder="Напишите..." onkeydown="if(event.key==='Enter')sendSup()">
-        <button class="sup-send" onclick="sendSup()">➤</button>
-      </div>
-    </div>
-
-  </div><!-- /content -->
-
-  <div class="bnav" id="bnav">
-    <button class="nb active" id="nb-catalog" onclick="goTo('catalog')"><span class="nb-ic">🏠</span><span class="nb-lbl">Главная</span></button>
-    <button class="nb" id="nb-cart" onclick="goTo('cart')"><span class="nb-ic">🛒<span class="cbadge" id="cBadge"></span></span><span class="nb-lbl">Корзина</span></button>
-    <button class="nb" id="nb-profile" onclick="goTo('profile')"><span class="nb-ic">👤</span><span class="nb-lbl">Профиль</span></button>
+  <div class="bot-wrap">
+    <button class="btn" id="order-btn" onclick="placeOrder()">Оформить заказ</button>
   </div>
 </div>
+
+<!-- ═══════ SCREEN: ADDRESS ═══════ -->
+<div class="scr" id="s-address">
+  <div class="hdr">
+    <button class="back" id="addr-back"></button>
+    <div><div class="hdr-title">Адрес доставки</div></div>
+  </div>
+  <div style="padding:10px 16px;background:var(--white);border-bottom:1px solid var(--border)">
+    <input class="addr-in" id="addr-in" type="text" placeholder="Введите адрес..." oninput="onAddrInput(this.value)" autocomplete="off">
+  </div>
+  <div id="sug-list" class="sug-list"></div>
+  <div class="map-wrap"><div id="ymap"></div></div>
+  <div class="addr-flds">
+    <div class="fld-row">
+      <div class="fld"><label>Подъезд</label><input id="f-entr" type="text" placeholder="1"></div>
+      <div class="fld"><label>Этаж</label><input id="f-floor" type="text" placeholder="3"></div>
+      <div class="fld"><label>Квартира</label><input id="f-flat" type="text" placeholder="77"></div>
+    </div>
+    <div class="fld"><label>Домофон</label><input id="f-door" type="text" placeholder="1234#"></div>
+    <div class="fld"><label>Комментарий курьеру</label><input id="f-acmt" type="text" placeholder="Домофон не работает, звоните"></div>
+  </div>
+  <div class="bot-wrap">
+    <button class="btn" onclick="confirmAddr()">Подтвердить адрес</button>
+  </div>
+</div>
+
+<!-- ═══════ SCREEN: STATUS ═══════ -->
+<div class="scr" id="s-status">
+  <div class="hdr">
+    <button class="back" onclick="nav('catalog')">
+      <svg width="9" height="16" fill="none"><path d="M8 1L1 8l7 7" stroke="#21201F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div><div class="hdr-title">Заказ</div></div>
+  </div>
+  <div class="status-wrap page">
+    <div class="s-icon" id="s-ico">⏳</div>
+    <div class="s-title" id="s-title">Обрабатываем</div>
+    <div class="s-desc" id="s-desc">Ждём подтверждения ресторана</div>
+    <div class="s-oid" id="s-oid"></div>
+    <div class="sbp-card" id="sbp-card" style="display:none">
+      <div class="sbp-title">Оплата СБП</div>
+      <div class="sbp-desc" id="sbp-desc">Перейдите в приложение банка для подтверждения оплаты</div>
+      <button class="sbp-btn" onclick="openSBP()">Перейти в банк →</button>
+    </div>
+    <div style="width:100%;margin-top:20px;display:flex;flex-direction:column;gap:10px">
+      <button class="btn sec" onclick="nav('orders')">История заказов</button>
+      <button class="btn sec" onclick="nav('catalog')">На главную</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SCREEN: ORDERS ═══════ -->
+<div class="scr" id="s-orders">
+  <div class="hdr">
+    <button class="back" id="orders-back"></button>
+    <div><div class="hdr-title">Мои заказы</div></div>
+  </div>
+  <div class="page" id="orders-content">
+    <div class="loader"><div class="spin"></div><div class="loader-t">Загружаем заказы...</div></div>
+  </div>
+</div>
+
+<!-- ═══════ SCREEN: PROFILE ═══════ -->
+<div class="scr" id="s-profile">
+  <div class="hdr">
+    <div class="hdr-title">Профиль</div>
+  </div>
+  <div class="profile-head">
+    <div class="avatar" id="prf-ava">?</div>
+    <div>
+      <div class="prf-name" id="prf-name">Загружаем...</div>
+      <div class="prf-uid" id="prf-uid"></div>
+      <div class="prf-status" id="prf-badges"></div>
+    </div>
+  </div>
+  <div class="menu-list">
+    <div class="ml-item" onclick="nav('orders')">
+      <div class="ml-ico">📦</div>
+      <div class="ml-txt">Мои заказы</div>
+      <svg class="ml-arr" width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="ml-item" onclick="nav('addresses')">
+      <div class="ml-ico">📍</div>
+      <div class="ml-txt">Мои адреса</div>
+      <svg class="ml-arr" width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="ml-item" onclick="showLoyalty()">
+      <div class="ml-ico">⭐</div>
+      <div class="ml-txt">Яндекс Плюс</div>
+      <span id="plus-badge" style="font-size:13px;color:var(--sec)"></span>
+    </div>
+    <div class="ml-item" onclick="showBankInfo()">
+      <div class="ml-ico">💳</div>
+      <div class="ml-txt">Яндекс Банк</div>
+      <span id="bank-badge" style="font-size:13px;color:var(--sec)"></span>
+    </div>
+  </div>
+  <div style="margin:4px 16px">
+    <button class="btn sec" onclick="showToast('Токен скопирован в буфер');copyToken()">📋 Скопировать токен</button>
+  </div>
+</div>
+
+<!-- ═══════ BOTTOM NAV ═══════ -->
+<nav class="bnav" id="bnav">
+  <button class="bn on" id="bn-catalog" onclick="nav('catalog')">
+    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
+    Рестораны
+  </button>
+  <button class="bn" id="bn-cart" onclick="nav('cart')">
+    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 6h18" stroke="currentColor" stroke-width="1.8"/><path d="M16 10a4 4 0 01-8 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    Корзина
+    <span id="bn-cart-cnt" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700"></span>
+  </button>
+  <button class="bn" id="bn-orders" onclick="nav('orders')">
+    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 7H4a2 2 0 00-2 2v11a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="7" y="3" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>
+    Заказы
+  </button>
+  <button class="bn" id="bn-profile" onclick="nav('profile')">
+    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    Профиль
+  </button>
+</nav>
 
 <script>
-// ══════════════════════════════════════════════════════════
-// КОНФИГ
-// ══════════════════════════════════════════════════════════
-const _p      = new URLSearchParams(location.search);
-const TOKEN   = _p.get('token')    || '';
-const DEV_ID  = _p.get('device_id')|| '9B57D76B-908D-4504-915D-381D08676F44';
-const PX      = (_p.get('proxy')   || 'http://localhost:8888').replace(/\/$/,'');
-const IMG     = 'https://eda.yandex.ru';
-const SES     = crypto.randomUUID().toUpperCase().replace(/-/g,'');
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#FFFFFF'); }
 
-let LAT = 55.7558, LON = 37.6176;
-let ADDR = {short:'Москва', full:'Москва', city:'Москва', street:'', house:'', country:'Россия'};
-let shipType = 'delivery';
-let cart = {}, curRest = null, curScreen = 'catalog';
-let mItem = null, mQty = 1, mOpt = null;
-let payId = 'sbp', payType = 'sbp';
-let ALL_RESTS = [], RESTS = [], addrTimer = null;
+const P   = new URLSearchParams(location.search);
+const CHAT_ID   = P.get('chat_id') || '';
+const TOKEN     = P.get('token')   || '';
+const DEVICE_ID = P.get('device_id') || '';
+const AM_UUID   = P.get('appmetrica_uuid') || '';
+const PROXY     = (P.get('proxy') || '').replace(/\/$/, '');
+const BANK_TOKEN = P.get('bank_token') || '';
+const PLUS_TOKEN = P.get('plus_token') || '';
 
-const CATS = [
-  {e:'🍔',n:'Бургеры'},{e:'🍣',n:'Суши'},{e:'🍕',n:'Пицца'},
-  {e:'🍗',n:'Курица'},{e:'🥗',n:'Здоровое'},{e:'🍜',n:'Азия'},
-  {e:'🌮',n:'Фастфуд'},{e:'🍦',n:'Десерты'},{e:'🥤',n:'Напитки'},
-  {e:'🛒',n:'Продукты'}
-];
+const $ = id => document.getElementById(id);
 
-// ══════════════════════════════════════════════════════════
+const S = {
+  screen: 'catalog',
+  prevScreen: 'catalog',
+  cart: [],
+  restaurant: null,
+  address: null,
+  payMethod: 'sbp',
+  payMethodId: 5,
+  persons: 2,
+  promo: '',
+  promoDisc: 0,
+  promoOk: false,
+  orderId: null,
+  sbpUrl: null,
+  pollTimer: null,
+  lat: null,
+  lon: null,
+  ymapReady: false,
+  ymapInited: false,
+  ymapObj: null,
+  ymapPin: null,
+  cartVersion: 0,
+  idem: '',
+  profile: null,
+};
+
+// ─── back buttons init ───
+$('cart-back').onclick  = () => nav('menu');
+$('addr-back').onclick  = () => nav(S.prevScreen === 'address' ? 'catalog' : S.prevScreen);
+$('orders-back').onclick= () => nav(S.prevScreen === 'orders' ? 'catalog' : S.prevScreen);
+
+// ═══════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════
+function fmtR(rub) {
+  if (rub === null || rub === undefined) return '—';
+  return parseFloat(rub).toLocaleString('ru-RU', {maximumFractionDigits:2}) + ' ₽';
+}
+function fmtK(kop) { return fmtR(kop / 100); }
+function uid4() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+}
+function showToast(msg, d=2500) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), d);
+}
+function copyToken() {
+  navigator.clipboard?.writeText(TOKEN).catch(()=>{});
+}
+function setBtn(id, loading, txt) {
+  const b = $(id); if (!b) return;
+  b.disabled = loading; b.textContent = loading ? '...' : txt;
+}
+function emoji(cats=[]) {
+  const s = cats.join(' ').toLowerCase();
+  if (s.includes('пицц')||s.includes('pizza')) return '🍕';
+  if (s.includes('бургер')||s.includes('burger')) return '🍔';
+  if (s.includes('суши')||s.includes('рол')) return '🍣';
+  if (s.includes('шаурм')) return '🌯';
+  if (s.includes('паст')||s.includes('итальян')) return '🍝';
+  if (s.includes('китай')||s.includes('лапш')) return '🍜';
+  if (s.includes('десерт')||s.includes('торт')) return '🍰';
+  if (s.includes('кофе')||s.includes('напит')) return '☕';
+  return '🍽️';
+}
+
+// ═══════════════════════════════════════════════════════════════
 // API
-// POST → /proxy/path  (для POST запросов к Яндексу)
-// GET  → /proxy-get   (POST-обёртка! см. bot.py)
-//
-// Почему /proxy-get:
-//   Браузер делает CORS preflight для кастомных заголовков.
-//   ngrok иногда блокирует или кешируется по-другому.
-//   Решение: шлём POST без кастомных заголовков, токен
-//   кладём в JSON тело — прокси сам добавляет все заголовки.
-// ══════════════════════════════════════════════════════════
-// ngrok-skip-browser-warning: true — обязателен!
-// Без него ngrok возвращает HTML страницу "Browser Warning" вместо JSON
-const NGROK_HDR = {'ngrok-skip-browser-warning': 'true'};
-
-async function POST(path, body={}) {
-  if (!TOKEN) return null;
-  try {
-    const r = await fetch(PX+'/proxy'+path, {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'X-Bearer':TOKEN,
-        'X-Device-Id':DEV_ID,
-        'X-Client-Session':SES,
-        ...NGROK_HDR,
-      },
-      body: JSON.stringify(body)
-    });
-    if (!r.ok) {
-      const txt = await r.text().catch(()=>'');
-      console.warn('[POST]', r.status, path, txt.slice(0,200));
-      return null;
-    }
-    return r.json();
-  } catch(e) {console.error('[POST]',path,e); return null;}
-}
-
-async function GET(path) {
-  // /proxy-get: POST-обёртка для GET запросов (обходит CORS preflight)
-  // ngrok-skip-browser-warning нужен чтобы ngrok не вернул HTML страницу
-  if (!TOKEN) return null;
-  try {
-    const r = await fetch(PX+'/proxy-get', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        ...NGROK_HDR,
-      },
-      body: JSON.stringify({path, bearer:TOKEN, device_id:DEV_ID, session:SES})
-    });
-    if (!r.ok) {
-      const txt = await r.text().catch(()=>'');
-      console.warn('[GET]', r.status, path, txt.slice(0,200));
-      return null;
-    }
-    return r.json();
-  } catch(e) {console.error('[GET]',path,e); return null;}
-}
-
-function iurl(uri,w,h) {
-  if (!uri) return '';
-  if (uri.startsWith('http')) return uri;
-  return IMG+uri.replace('{w}',w||300).replace('{h}',h||200);
-}
-function addrObj() {
-  return {
-    location:{longitude:LON,latitude:LAT},
-    house:ADDR.house||'', short_text:ADDR.short,
-    full_text:ADDR.full, city:ADDR.city||'',
-    street:ADDR.street||'', country:ADDR.country||'Россия', type:{id:0}
+// ═══════════════════════════════════════════════════════════════
+function hdrs(extra={}) {
+  const h = {
+    'X-Bearer': TOKEN,
+    'X-Device-Id': DEVICE_ID,
+    'X-Appmetrica-Uuid': AM_UUID,
+    'X-Chat-Id': CHAT_ID,
   };
+  if (S.lat && S.lon) h['X-User-Coords'] = `${S.lat},${S.lon}`;
+  return {...h, ...extra};
 }
 
-// ══════════════════════════════════════════════════════════
-// СТАРТ
-// ══════════════════════════════════════════════════════════
-window.addEventListener('load', () => {
-  document.getElementById('catsList').innerHTML = CATS.map((c,i)=>
-    `<button class="cat-btn ${i===0?'active':''}" onclick="filterCat(this,'${c.n}')">
-      <span class="cat-ic">${c.e}</span><span class="cat-nm">${c.n}</span>
-    </button>`).join('');
-
-  resetAddrResults(); // показать список городов сразу
-
-  if (TOKEN) {
-    loadLaunch();
-    loadRests();
-  } else {
-    document.getElementById('restsList').innerHTML =
-      '<div class="empty"><div class="e-ic">🔐</div><div class="e-t">Войдите через бота</div><div class="e-s">Откройте меню через Telegram бота</div></div>';
-    document.getElementById('addrTxt').textContent='Укажите адрес';
-  }
-  setTimeout(()=>{const l=document.getElementById('loading');l.style.opacity='0';setTimeout(()=>l.style.display='none',400);},800);
-});
-
-// ══════════════════════════════════════════════════════════
-// LAUNCH
-// ══════════════════════════════════════════════════════════
-async function loadLaunch() {
-  const d = await POST('/eats/v1/launch/v2/native', {experiments:{}});
-  if (d?.profile) {
-    const p=d.profile;
-    document.getElementById('profNm').textContent = p.name||'Пользователь';
-    document.getElementById('profUid').textContent = p.passport_uid?'UID: '+p.passport_uid:'';
-    const av = p.picture_url||p.avatar_url||'';
-    if (av) {
-      document.getElementById('profAv').innerHTML = `<img src="${av}" onerror="this.parentElement.textContent='👤'">`;
-      document.getElementById('topAvatar').innerHTML = `<img src="${av}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.parentElement.textContent='👤'">`;
-    }
-  } else {
-    document.getElementById('profNm').textContent='Пользователь';
-  }
-  document.getElementById('addrTxt').textContent = ADDR.short;
-
-  // Плюс
-  const plus = await GET(`/eats/v1/persey/info?latitude=${LAT}&longitude=${LON}&currency=RUB`);
-  const el = document.getElementById('plusSt');
-  const active = plus?.subscription_status==='active'||plus?.subscription_status==='trial';
-  el.textContent = active?'✓ Активен':'Не активен';
-  if (active) {el.style.background='#e8f8ee';el.style.color='#029154';}
-}
-
-// ══════════════════════════════════════════════════════════
-// РЕСТОРАНЫ
-// ══════════════════════════════════════════════════════════
-async function loadRests() {
-  document.getElementById('restsList').innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-  document.getElementById('addrTxt').textContent=ADDR.short;
-  document.getElementById('restsCount').textContent='';
-
-  const d = await POST('/eats/v1/layout-constructor/v1/layout', {
-    filters_v2:{filters:[]}, sort:'default', is_bottomsheet:false,
-    selected_state:'online',
-    location:{longitude:LON, latitude:LAT},
-    region_id:17, shipping_type:shipType
+async function api(path, opts={}) {
+  const url = PROXY + '/proxy/' + path.replace(/^\//, '');
+  const res = await fetch(url, {
+    method: opts.method || 'GET',
+    headers: hdrs(opts.headers || {}),
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
+  return res.json().catch(() => ({}));
+}
 
-  const ps = d?.data ? parsePlaces(d.data) : [];
-  if (ps.length) {
-    ALL_RESTS=ps; RESTS=ps;
-    document.getElementById('restsCount').textContent='('+ps.length+')';
-    renderRests(ps);
-  } else {
-    document.getElementById('restsList').innerHTML=
-      '<div class="empty"><div class="e-ic">😔</div><div class="e-t">Нет ресторанов</div><div class="e-s">По этому адресу нет доставки.<br>Попробуйте другой адрес.</div></div>';
+async function post(path, body={}, extra={}) {
+  return api(path, {method:'POST', headers:{'Content-Type':'application/json',...extra}, body});
+}
+
+async function suggest(text) {
+  const r = await fetch(PROXY + '/proxy-suggest', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({text, lat: S.lat||55.7558, lon: S.lon||37.6176})
+  });
+  return r.json().catch(()=>({}));
+}
+
+async function geocode(text) {
+  const r = await fetch(PROXY + '/proxy-geocode', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({text})
+  });
+  return r.json().catch(()=>({}));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+const NAVSCREENS = ['catalog','menu','cart','address','status','orders','profile','addresses'];
+const BN_MAP = {catalog:'catalog',menu:'catalog',cart:'cart',orders:'orders',profile:'profile',status:'catalog',address:null,addresses:'profile'};
+
+function nav(screen, from) {
+  if (from) S.prevScreen = from;
+  else S.prevScreen = S.screen;
+  S.screen = screen;
+
+  NAVSCREENS.forEach(s => $('s-'+s)?.classList.remove('on'));
+  $('s-'+screen)?.classList.add('on');
+  window.scrollTo(0,0);
+
+  // bottom nav
+  document.querySelectorAll('.bn').forEach(b => b.classList.remove('on'));
+  const bnId = BN_MAP[screen];
+  if (bnId) $('bn-'+bnId)?.classList.add('on');
+  $('bnav').style.display = screen === 'address' ? 'none' : 'flex';
+
+  if (screen === 'catalog') loadCatalog();
+  if (screen === 'cart')    renderCart();
+  if (screen === 'profile') loadProfile();
+  if (screen === 'orders')  loadOrders();
+  if (screen === 'address') initAddr();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GEO
+// ═══════════════════════════════════════════════════════════════
+function initGeo() {
+  if (tg?.LocationManager?.isInited) {
+    tg.LocationManager.getLocation(l => { if(l){S.lat=l.latitude;S.lon=l.longitude;} });
+  } else if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      p => { S.lat=p.coords.latitude; S.lon=p.coords.longitude; },
+      () => {}
+    );
   }
 }
 
-function parsePlaces(data) {
-  const secs=[
-    ...(data.places_v2_lists||[]),
-    ...(data.places_v2_medium_carousels||[]),
-    ...(data.places_v2_ultima_list||[]),
-    ...(data.mini_places_carousels||[]),
-    ...(data.places_v2_large_carousels||[]),
-  ];
-  const seen=new Set(), res=[];
-  for (const s of secs) {
-    for (const p of (s.payload?.places||s.places||[])) {
-      if (!p.slug||seen.has(p.slug)) continue;
-      seen.add(p.slug);
-      const name = typeof p.name==='object'?(p.name.value||p.name.text||''):(p.name||'—');
-      let time='';
-      for (const m of (p.left_meta||[])) if(m.type==='info'){time=m.payload?.text?.value||m.payload?.text?.text||'';break;}
-      let tagsStr='';
-      for (const m of (p.right_meta||[])) if(m.type==='info'){tagsStr=m.payload?.text?.value||m.payload?.text?.text||'';break;}
-      const tags=tagsStr.split(/[,·]/).map(t=>t.trim()).filter(t=>t&&t.length<30);
-      const free=(p.chips||[]).some(c=>{const t=c.payload?.prefix?.text?.value||c.payload?.text?.value||'';return t.toLowerCase().includes('бесплатн');});
-      const rm=p.features?.rating?.text?.value||'';
-      const rating=(rm.match(/[\d.]+/)||[''])[0];
-      const pic=p.picture?.image||p.logo||p.picture_url||'';
-      const closed=p.is_closed||p.selected_state==='offline'||false;
-      const minOrder=p.features?.min_order?.text?.value||'';
-      res.push({slug:p.slug,name,pic,time,tags,free,rating,closed,minOrder});
+// ═══════════════════════════════════════════════════════════════
+// CATALOG
+// ═══════════════════════════════════════════════════════════════
+let _rAll = [];
+let _rLoaded = false;
+
+async function loadCatalog() {
+  if (_rLoaded && _rAll.length) { renderR(_rAll); return; }
+  $('r-list').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем рестораны...</div></div>';
+  try {
+    const lat = S.lat||55.7558, lon = S.lon||37.6176;
+    const d = await api(`eats/v1/layout-constructor/v1/layout?latitude=${lat}&longitude=${lon}&region_id=1`);
+    let list = [];
+    for (const blk of (d?.payload?.blocks||d?.blocks||[])) {
+      for (const it of (blk?.payload?.places||blk?.places||blk?.items||[])) {
+        const p = it?.place||it;
+        if (p?.slug||p?.place_slug) list.push(p);
+      }
     }
+    if (!list.length) list = d?.places||d?.payload?.places||[];
+    if (!list.length) {
+      $('r-list').innerHTML = `<div class="err-box">Рестораны не найдены. <a onclick="nav('address','catalog')" style="color:var(--red);cursor:pointer">Укажите адрес</a></div>`;
+      return;
+    }
+    _rAll = list; _rLoaded = true;
+    renderR(list);
+  } catch(e) {
+    $('r-list').innerHTML = `<div class="err-box">Ошибка: ${e.message}</div>`;
   }
-  return res;
 }
 
-function filterCat(btn, cat) {
-  if (btn) {document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
-  const q=cat.toLowerCase();
-  const f=ALL_RESTS.filter(r=>r.tags.some(t=>t.toLowerCase().includes(q))||r.name.toLowerCase().includes(q));
-  RESTS=f.length?f:ALL_RESTS; renderRests(RESTS);
+function renderR(list) {
+  if (!list.length) { $('r-list').innerHTML='<div class="empty"><div class="empty-ico">🔍</div>Ничего не найдено</div>'; return; }
+  $('r-list').innerHTML = list.map(r => {
+    const name = r.name||r.title||'—';
+    const slug = r.slug||r.place_slug||r.id||'';
+    const rating = r.rating?.value||r.rating||'';
+    const mn = r.delivery?.min_time||r.min_time||'';
+    const mx = r.delivery?.max_time||r.max_time||'';
+    const free = !r.delivery?.price||r.delivery?.price===0;
+    const dp = r.delivery?.price ? fmtK(r.delivery.price) : 'Бесплатно';
+    const img = r.logo_url||r.image_url||r.logo||'';
+    const cats = (r.categories||r.tags||[]).slice(0,3).map(c=>c.name||c).filter(Boolean);
+    const imgH = img
+      ? `<img class="r-img" src="${img}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\\'r-img-ph\\'>${emoji(cats)}</div>'">`
+      : `<div class="r-img-ph">${emoji(cats)}</div>`;
+    return `<div class="r-card" onclick="openR('${slug}','${encodeURIComponent(name)}')">
+      ${imgH}
+      <div class="r-body">
+        <div class="r-name">${name}</div>
+        <div class="r-meta">
+          ${rating?`<span>⭐ ${rating}</span><div class="dot"></div>`:''}
+          ${mn?`<span>${mn}–${mx} мин</span><div class="dot"></div>`:''}
+          <span class="${free?'tag g':'tag'}" style="padding:2px 7px">${dp}</span>
+        </div>
+        ${cats.length?`<div class="r-tags">${cats.map(c=>`<span class="tag">${c}</span>`).join('')}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
 }
+
 function filterR(q) {
-  if (!q){RESTS=ALL_RESTS;renderRests(RESTS);return;}
-  q=q.toLowerCase();
-  RESTS=ALL_RESTS.filter(r=>r.name.toLowerCase().includes(q)||r.tags.some(t=>t.toLowerCase().includes(q)));
-  renderRests(RESTS);
-}
-function renderRests(list) {
-  const el=document.getElementById('restsList');
-  if (!list.length){el.innerHTML='<div class="empty"><div class="e-ic">🔍</div><div class="e-t">Ничего не найдено</div></div>';return;}
-  el.innerHTML=list.map(r=>{
-    const pu=iurl(r.pic,600,300);
-    return `<div class="rest-card" onclick="openRest('${r.slug}')">
-      <div class="rc-img">
-        ${pu?`<img src="${pu}" loading="lazy" onerror="this.style.display='none'">`:r.name[0]||'🍽️'}
-        ${r.free?'<div class="rc-badge">Бесплатно</div>':''}
-        ${r.closed?'<div class="rc-closed">Закрыто</div>':''}
-      </div>
-      <div class="rc-info">
-        <div class="rc-name">${r.name}</div>
-        <div class="rc-meta">
-          ${r.rating?`<span class="rc-star">★ ${r.rating}</span>`:''}
-          ${r.time?`<span class="rc-time">⏱ ${r.time}</span>`:''}
-          ${r.free?'<span class="rc-free">Бесплатная доставка</span>':''}
-          ${r.minOrder?`<span class="rc-time">от ${r.minOrder}</span>`:''}
-        </div>
-        ${r.tags.length?`<div class="rc-tags">${r.tags.slice(0,4).map(t=>`<span class="rc-tag">${t}</span>`).join('')}</div>`:''}
-      </div>
-    </div>`;
-  }).join('');
+  if (!q) { renderR(_rAll); return; }
+  const f = q.toLowerCase();
+  renderR(_rAll.filter(r => (r.name||r.title||'').toLowerCase().includes(f) ||
+    (r.categories||r.tags||[]).map(c=>(c.name||c).toLowerCase()).join(' ').includes(f)));
 }
 
-// ══════════════════════════════════════════════════════════
-// САМОВЫВОЗ
-// ══════════════════════════════════════════════════════════
-function selTab(type, btn) {
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  if (type==='pickup') {openPickup(); return;}
-  shipType='delivery'; ALL_RESTS=[]; RESTS=[]; loadRests();
-}
-async function openPickup() {
-  document.getElementById('pickupSheet').classList.add('open');
-  const el=document.getElementById('pickupList');
-  el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-  const d=await POST('/eats/v1/layout-constructor/v1/layout',{
-    filters_v2:{filters:[]},sort:'default',is_bottomsheet:false,
-    selected_state:'online',location:{longitude:LON,latitude:LAT},
-    region_id:17,shipping_type:'pickup'
-  });
-  const places=d?.data?parsePlaces(d.data):[];
-  if (!places.length){el.innerHTML='<div class="empty"><div class="e-ic">📦</div><div class="e-t">Нет точек самовывоза</div></div>';return;}
-  el.innerHTML=places.map(p=>
-    `<div class="pickup-item" onclick="closePickup();openRest('${p.slug}','pickup')">
-      <div class="pi-name">${p.name}</div>
-      ${p.time?`<div class="pi-ready">⏱ Готовность через ${p.time}</div>`:''}
-      ${p.tags.length?`<div class="pi-addr">${p.tags.slice(0,3).join(' · ')}</div>`:''}
-    </div>`).join('');
-  // Возвращаем таб на доставку
-  document.getElementById('tabPick').classList.remove('active');
-  document.getElementById('tabDel').classList.add('active');
-}
-function closePickup(e) {
-  if (e && e.target!==document.getElementById('pickupSheet')) return;
-  document.getElementById('pickupSheet').classList.remove('open');
-}
+// ═══════════════════════════════════════════════════════════════
+// MENU
+// ═══════════════════════════════════════════════════════════════
+async function openR(slug, name) {
+  S.restaurant = { slug, name: decodeURIComponent(name) };
+  $('menu-hdr-name').textContent = decodeURIComponent(name);
+  $('menu-name').textContent = decodeURIComponent(name);
+  $('menu-content').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем меню...</div></div>';
+  $('menu-cats').innerHTML = '';
+  $('cart-fab').style.display = 'none';
+  nav('menu');
+  try {
+    const lat=S.lat||55.7558, lon=S.lon||37.6176;
+    const d = await api(`eats/v1/menu/v2/menu?placeSlug=${slug}&latitude=${lat}&longitude=${lon}`);
+    const cats = d?.payload?.categories||d?.categories||d?.menu||[];
+    if (!cats.length) { $('menu-content').innerHTML='<div class="err-box">Меню недоступно</div>'; return; }
 
-// ══════════════════════════════════════════════════════════
-// МЕНЮ — через GET /api/v2/menu/retrieve/{slug}
-// ══════════════════════════════════════════════════════════
-async function openRest(slug, sType) {
-  curRest=ALL_RESTS.find(r=>r.slug===slug)||{slug,name:slug,pic:'',time:'',tags:[],free:false,rating:''};
-  goTo('menu');
-  document.getElementById('mhName').textContent=curRest.name;
-  const pu=iurl(curRest.pic,800,400);
-  document.getElementById('mhImg').innerHTML=pu?`<img src="${pu}" onerror="this.innerHTML='🍽️'">`:curRest.name[0]||'🍽️';
-  document.getElementById('mhMeta').innerHTML=
-    `${curRest.free?'<span class="m-bdg mb-g">Бесплатная доставка</span>':''}
-     ${curRest.time?`<span class="m-bdg mb-y">⏱ ${curRest.time}</span>`:''}
-     ${curRest.rating?`<span class="m-bdg mb-y">★ ${curRest.rating}</span>`:''}`;
-  document.getElementById('menuCats').innerHTML='';
-  document.getElementById('menuItems').innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
+    const pl = d?.payload?.place||d?.place||{};
+    if (pl.rating?.value) $('menu-rating').textContent = `⭐ ${pl.rating.value}`;
+    if (pl.delivery?.min_time) $('menu-time').textContent = `${pl.delivery.min_time}–${pl.delivery.max_time} мин`;
+    $('menu-deliv').textContent = pl.delivery?.price ? fmtK(pl.delivery.price) : 'Бесплатно';
 
-  const st=sType||shipType||'delivery';
-  // ИСПОЛЬЗУЕМ GET через /proxy-get
-  const d=await GET(`/api/v2/menu/retrieve/${slug}?shippingType=${st}&longitude=${LON}&latitude=${LAT}&is_ad=false`);
+    const hero = $('menu-hero');
+    const heroImg = pl.logo_url||pl.cover_url||'';
+    if (heroImg) { hero.style.backgroundImage=`url(${heroImg})`;hero.style.backgroundSize='cover';hero.style.backgroundPosition='center';hero.textContent=''; }
 
-  if (!d?.payload?.categories) {
-    document.getElementById('menuItems').innerHTML=
-      `<div class="empty"><div class="e-ic">😔</div><div class="e-t">Меню недоступно</div>
-       <div class="e-s">Ошибка загрузки меню.<br>Прокси: ${PX}</div></div>`;
-    console.error('[MENU] No data for', slug, d);
-    return;
-  }
-  const cats=d.payload.categories
-    .filter(c=>c.available!==false)
-    .map(c=>({
-      n:c.name,
-      items:(c.items||[]).filter(i=>i.available!==false).map(i=>({
-        id:i.id||i.item_id,
-        n:i.name, desc:i.description||'', p:i.price||0,
-        img:i.picture?.uri?iurl(i.picture.uri,400,400):'',
-        w:i.weightInGrams?i.weightInGrams+' г':'',
-        opts:(i.optionsGroups||[]).map(g=>({
-          g:g.name,req:g.required,
-          i:(g.options||[]).map(o=>({id:o.id,n:o.name,p:o.price||0}))
-        })).filter(g=>g.i.length>0)
-      }))
-    })).filter(c=>c.items.length>0);
-
-  if (!cats.length) {
-    document.getElementById('menuItems').innerHTML='<div class="empty"><div class="e-ic">🍽️</div><div class="e-t">Меню пустое</div></div>';
-    return;
-  }
-  curRest.cats=cats;
-  document.getElementById('menuCats').innerHTML=cats.map((c,i)=>
-    `<button class="mcat ${i===0?'active':''}" onclick="scrollCat(${i},this)">${c.n}</button>`).join('');
-  renderMenu();
-}
-
-function renderMenu() {
-  document.getElementById('menuItems').innerHTML=
-    curRest.cats.map((c,ci)=>`
-      <div class="msec" id="ms${ci}">
-        <div class="msec-title">${c.n}</div>
-        <div class="mi-list">${c.items.map(i=>renderMI(i)).join('')}</div>
-      </div>`).join('');
-}
-function renderMI(item) {
-  const q=getQ(item.id);
-  return `<div class="mi" onclick='openItem(${JSON.stringify(item)})'>
-    <div class="mi-img">${item.img?`<img src="${item.img}" loading="lazy" onerror="this.parentElement.innerHTML='🍽️'">`:''}</div>
-    <div class="mi-body">
-      <div class="mi-name">${item.n}</div>
-      ${item.desc?`<div class="mi-desc">${item.desc}</div>`:''}
-      ${item.w?`<div class="mi-w">${item.w}</div>`:''}
-      <div class="mi-foot">
-        <div class="mi-price">${item.p} ₽</div>
-        ${q>0
-          ?`<div class="qc"><button class="qb" onclick="event.stopPropagation();adjQ('${item.id}',-1)">−</button><span class="qn">${q}</span><button class="qb" onclick="event.stopPropagation();adjQ('${item.id}',1)">+</button></div>`
-          :`<button class="add-btn" onclick='event.stopPropagation();quickAdd(${JSON.stringify(item)})'>+</button>`}
-      </div>
-    </div>
-  </div>`;
-}
-function scrollCat(i,btn) {
-  document.querySelectorAll('.mcat').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('ms'+i)?.scrollIntoView({behavior:'smooth',block:'start'});
-}
-
-// ══════════════════════════════════════════════════════════
-// ITEM MODAL
-// ══════════════════════════════════════════════════════════
-function openItem(item) {
-  mItem=item; mQty=1; mOpt=null;
-  document.getElementById('iImg').innerHTML=
-    (item.img?`<img src="${item.img}"`:'<span style="font-size:80px">🍽️</span>')+
-    `<button class="item-close" onclick="closeItem()">✕</button>`;
-  document.getElementById('iName').textContent=item.n;
-  document.getElementById('iDesc').textContent=item.desc||'';
-  document.getElementById('iW').textContent=item.w||'';
-  document.getElementById('mqN').textContent='1';
-  if (item.opts?.length) {
-    const g=item.opts[0];
-    document.getElementById('iOptsT').textContent=g.g;
-    document.getElementById('iOpts').innerHTML=g.i.map((o,i)=>
-      `<div class="io ${i===0?'sel':''}" onclick='pickOpt(this,${JSON.stringify(o)})'>
-        <span class="ion">${o.n}</span>
-        <span class="iop">${o.p>0?'+'+o.p+' ₽':'бесплатно'}</span>
-      </div>`).join('');
-    mOpt=g.i[0]; document.getElementById('iOptsW').style.display='block';
-  } else document.getElementById('iOptsW').style.display='none';
-  updIPrice();
-  document.getElementById('itemOverlay').classList.add('open');
-}
-function pickOpt(el,opt) {
-  document.querySelectorAll('.io').forEach(e=>e.classList.remove('sel'));
-  el.classList.add('sel'); mOpt=opt; updIPrice();
-}
-function updIPrice() {
-  if (!mItem) return;
-  const p=mItem.p+(mOpt?.p>0?mOpt.p:0);
-  document.getElementById('iPrice').textContent=(p*mQty)+' ₽';
-}
-function mqAdj(d) {mQty=Math.max(1,mQty+d);document.getElementById('mqN').textContent=mQty;updIPrice();}
-function addFromModal() {
-  if (!mItem||!curRest) return;
-  for(let i=0;i<mQty;i++) addToCart(mItem,mOpt?.n||'',mOpt?.p||0);
-  closeItem(); toast(mItem.n+' добавлен ✓');
-}
-function closeItem(e) {
-  if (e&&e.target!==document.getElementById('itemOverlay')) return;
-  document.getElementById('itemOverlay').classList.remove('open'); mItem=null;
-}
-function quickAdd(item) {
-  if (item.opts?.length){openItem(item);return;}
-  addToCart(item,'',0); toast(item.n+' ✓'); renderMenu();
-}
-
-// ══════════════════════════════════════════════════════════
-// КОРЗИНА
-// ══════════════════════════════════════════════════════════
-function addToCart(item,on,op) {
-  if (!cart.items) cart={slug:curRest.slug,rn:curRest.name,items:[]};
-  if (cart.slug!==curRest.slug) {
-    if (!confirm(`Очистить корзину от "${cart.rn}"?`)) return;
-    cart={slug:curRest.slug,rn:curRest.name,items:[]};
-  }
-  const key=item.id+'_'+on;
-  const ex=cart.items.find(i=>i.key===key);
-  if (ex) ex.qty++;
-  else cart.items.push({key,iid:item.id,n:item.n,p:item.p+op,img:item.img||'',on,qty:1});
-  updBadge();
-}
-function adjQ(iid,d) {
-  if (!cart.items) return;
-  const i=cart.items.findIndex(x=>x.iid==iid); if(i<0)return;
-  cart.items[i].qty+=d;
-  if (cart.items[i].qty<=0) cart.items.splice(i,1);
-  if (!cart.items.length) cart={};
-  updBadge();
-  if (curScreen==='menu'&&curRest?.cats) renderMenu();
-  if (curScreen==='cart') renderCart();
-}
-function getQ(iid){return cart.items?cart.items.filter(i=>i.iid==iid).reduce((s,i)=>s+i.qty,0):0;}
-function getTotal(){return cart.items?cart.items.reduce((s,i)=>s+i.p*i.qty,0):0;}
-function getCount(){return cart.items?cart.items.reduce((s,i)=>s+i.qty,0):0;}
-function updBadge(){const c=getCount();document.getElementById('cBadge').textContent=c>0?c:'';}
-function clearCart(){cart={};updBadge();}
-
-function renderCart() {
-  if (!cart.items?.length) {
-    document.getElementById('cartEmpty').style.display='flex';
-    document.getElementById('cartFilled').style.display='none'; return;
-  }
-  document.getElementById('cartEmpty').style.display='none';
-  document.getElementById('cartFilled').style.display='block';
-  document.getElementById('cRestLbl').textContent='📦 '+(cart.rn||'');
-  document.getElementById('cList').innerHTML=cart.items.map(ci=>`
-    <div class="ci">
-      <div class="ci-img">${ci.img?`<img src="${ci.img}" onerror="this.parentElement.innerHTML='🍽️'">`:''}</div>
-      <div class="ci-body"><div class="ci-name">${ci.n}</div>${ci.on?`<div class="ci-opt">${ci.on}</div>`:''}</div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-        <div style="font-size:14px;font-weight:800">${ci.p*ci.qty} ₽</div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <button class="cqb" onclick="adjQ('${ci.iid}',-1)">−</button>
-          <span class="cqn">${ci.qty}</span>
-          <button class="cqb" onclick="adjQ('${ci.iid}',1)">+</button>
-        </div>
-      </div>
-    </div>`).join('');
-  const sub=getTotal(),fee=Math.round(sub*.05),tot=sub+fee;
-  document.getElementById('sItems').textContent=sub+' ₽';
-  document.getElementById('sFee').textContent=fee+' ₽';
-  document.getElementById('sTotal').textContent=tot+' ₽';
-  document.getElementById('coBtnT').textContent=tot+' ₽';
-}
-async function applyPromo() {
-  const code=document.getElementById('promoInp').value.trim().toUpperCase();
-  if (!code) {toast('❌ Введите промокод');return;}
-  toast('⏳ Проверяю...');
-  const d=await POST(`/api/v2/cart/promocode?shippingType=${shipType}&placeSlug=${cart.slug||''}`,
-    {code,place_slug:cart.slug||'',location:{latitude:LAT,longitude:LON}});
-  toast(d&&(d.discount||d.applied)?'✅ Применён!':'❌ Промокод не найден');
-}
-
-// ══════════════════════════════════════════════════════════
-// ОФОРМЛЕНИЕ
-// ══════════════════════════════════════════════════════════
-async function renderCO() {
-  const sub=getTotal(),fee=Math.round(sub*.05),tot=sub+fee;
-  document.getElementById('coTotal').textContent=tot+' ₽';
-  document.getElementById('placeBtnT').textContent=tot+' ₽';
-  document.getElementById('coItems').innerHTML=(cart.items||[]).map(ci=>
-    `<div class="sr"><span class="sl">${ci.n}${ci.on?' ('+ci.on+')':''} × ${ci.qty}</span><span class="sv">${ci.p*ci.qty} ₽</span></div>`).join('');
-  document.getElementById('coAddr').textContent=ADDR.short;
-
-  if (cart.slug) {
-    const d=await POST('/api/v2/cart/go-checkout',{place_slug:cart.slug,address:addrObj()});
-    if (d?.address?.short_text) document.getElementById('coAddr').textContent=d.address.short_text;
-    if (d?.delivery_time) document.getElementById('coTime').textContent='~'+d.delivery_time+' мин';
-    if (d?.payment_methods?.length) {
-      const icons={sbp:'⚡',card:'💳',cash:'💵',wallet:'👛'};
-      let first=true;
-      document.getElementById('payOpts').innerHTML=d.payment_methods.slice(0,4).map(m=>{
-        const t=m.type||'card',id=m.payment_method_id||t;
-        const n=m.name||{sbp:'СБП',card:'Карта',cash:'Наличные'}[t]||t;
-        const sel=first?'sel':''; if(first){payId=id;payType=t;first=false;}
-        return `<div class="pay-opt ${sel}" onclick="selPay(this,'${id}','${t}')"><div class="po-i">${icons[t]||'💳'}</div><div class="po-n">${n}</div></div>`;
-      }).join('');
-    }
-  }
-}
-function selPay(el,id,type) {
-  document.querySelectorAll('.pay-opt').forEach(o=>o.classList.remove('sel'));
-  el.classList.add('sel'); payId=id; payType=type;
-}
-async function placeOrder() {
-  const btn=document.getElementById('placeBtn');
-  btn.disabled=true; btn.textContent='⏳ Оформляю...';
-  let nr=null;
-  if (cart.slug) {
-    const d=await POST('/api/v1/orders',{
-      persons_quantity:1,
-      location:{latitude:LAT,longitude:LON},
-      comment:document.getElementById('coComment').value||'',
-      payment:{recently_link_cards:false},
-      payment_method_id:payType==='sbp'?5:payType==='cash'?1:2,
-      place_slug:cart.slug, phone:'+70000000000',
-      address:addrObj(),
-      payment_information:{type:payType,id:payId,costForCustomer:String(getTotal())}
-    });
-    if (d?.order_nr) nr=d.order_nr;
-  }
-  if (!nr) {
-    const d=new Date();
-    nr=`${String(d.getDate()).padStart(2,'0')}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getFullYear()).slice(-2)}-${Math.floor(1000000+Math.random()*9000000)}`;
-  }
-  clearCart(); trackOrder(nr); btn.disabled=false;
-}
-function trackOrder(nr) {
-  document.getElementById('orderNr').textContent=nr;
-  const fmt=d=>d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
-  document.getElementById('s1t').textContent=fmt(new Date());
-  goTo('order');
-  setTimeout(()=>{document.getElementById('s2').textContent='✓';document.getElementById('s2').className='ts-dot td-done';document.getElementById('s3').className='ts-dot td-act';document.getElementById('s3t').textContent='~10 мин';},8000);
-  setTimeout(()=>{document.getElementById('s3').textContent='✓';document.getElementById('s3').className='ts-dot td-done';document.getElementById('s4').className='ts-dot td-act';document.getElementById('s4t').textContent=fmt(new Date(Date.now()+5*60000));},18000);
-}
-
-// ══════════════════════════════════════════════════════════
-// АДРЕС — поиск через POST /eats/v1/eats-addresses/v1/suggest
-// ══════════════════════════════════════════════════════════
-const CITIES = [
-  {n:'Москва',lat:55.7558,lon:37.6176},{n:'Санкт-Петербург',lat:59.9343,lon:30.3351},
-  {n:'Нижний Новгород',lat:56.3269,lon:44.0059},{n:'Екатеринбург',lat:56.8389,lon:60.6057},
-  {n:'Казань',lat:55.7887,lon:49.1221},{n:'Новосибирск',lat:54.9884,lon:82.9657},
-  {n:'Краснодар',lat:45.0355,lon:38.9753},{n:'Ростов-на-Дону',lat:47.2357,lon:39.7015},
-  {n:'Воронеж',lat:51.6683,lon:39.1922},{n:'Самара',lat:53.1959,lon:50.1801},
-  {n:'Уфа',lat:54.7353,lon:55.9587},{n:'Омск',lat:54.9885,lon:73.3242},
-  {n:'Красноярск',lat:56.0184,lon:92.8672},{n:'Волгоград',lat:48.7081,lon:44.5133},
-];
-
-function resetAddrResults() {
-  const el=document.getElementById('addrRes');
-  el.innerHTML=`
-    <div class="addr-ri" onclick="useGeo()">
-      <div class="ari-ic">🎯</div>
-      <div><div class="ari-main">Моё местоположение</div><div class="ari-sub">Определить автоматически</div></div>
-    </div>
-    <div style="padding:12px 16px 4px;font-size:12px;font-weight:700;color:var(--gt);text-transform:uppercase;letter-spacing:.5px">Популярные города</div>
-    ${CITIES.map(c=>`
-      <div class="addr-ri" onclick="setCity('${c.n}',${c.lat},${c.lon})">
-        <div class="ari-ic">🏙️</div>
-        <div><div class="ari-main">${c.n}</div><div class="ari-sub">Выбрать город</div></div>
-      </div>`).join('')}`;
-}
-
-function openAddr() {
-  document.getElementById('addrModal').classList.add('open');
-  setTimeout(()=>document.getElementById('addrInp').focus(),350);
-}
-function closeAddr() {
-  document.getElementById('addrModal').classList.remove('open');
-  document.getElementById('addrInp').value='';
-  resetAddrResults();
-}
-function onAddrInput(v) {
-  clearTimeout(addrTimer);
-  if (v.length<2){resetAddrResults();return;}
-  addrTimer=setTimeout(()=>suggestAddr(v),450);
-}
-
-async function suggestAddr(text) {
-  const el=document.getElementById('addrRes');
-  el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-
-  // POST /eats/v1/eats-addresses/v1/suggest — без фильтра types чтобы искать по всей РФ
-  const d=await POST('/eats/v1/eats-addresses/v1/suggest', {
-    text,
-    location:{latitude:LAT, longitude:LON},
-    locale:'ru'
-  });
-
-  const geo=`<div class="addr-ri" onclick="useGeo()"><div class="ari-ic">🎯</div><div><div class="ari-main">Моё местоположение</div><div class="ari-sub">Определить автоматически</div></div></div>`;
-
-  // Поддержка разных форматов ответа Яндекс API
-  const items=d?.suggests||d?.items||d?.results||[];
-
-  console.log('[SUGGEST] resp:', JSON.stringify(d).slice(0,300));
-
-  if (!items.length) {
-    el.innerHTML=geo+`<div style="text-align:center;padding:24px 16px;color:var(--gt)">
-      Адрес не найден по запросу "<b>${text}</b>"<br><br>
-      <span style="font-size:12px">Попробуйте: "Москва Тверская 1" или выберите город ниже</span></div>`+
-      CITIES.slice(0,6).map(c=>`<div class="addr-ri" onclick="setCity('${c.n}',${c.lat},${c.lon})"><div class="ari-ic">🏙️</div><div><div class="ari-main">${c.n}</div></div></div>`).join('');
-    return;
-  }
-
-  el.innerHTML=geo+items.slice(0,12).map(s=>{
-    const title=s.title?.text||s.title||s.full_text||s.short_text||s.text||s.name||'';
-    const sub=s.subtitle?.text||s.subtitle||s.description||'';
-    const lat=s.point?.lat||s.point?.latitude||s.coordinates?.latitude||s.location?.latitude||0;
-    const lon=s.point?.lon||s.point?.longitude||s.coordinates?.longitude||s.location?.longitude||0;
-    // Парсим компоненты
-    const comps=s.component||s.address_components||[];
-    const gc=kind=>comps.find?.(c=>c.kind===kind||c.type===kind)?.name||'';
-    const city=s.city||gc('locality')||gc('city')||'';
-    const street=s.street||gc('street')||'';
-    const house=s.house||gc('house')||gc('number')||'';
-    const ad={title:title||sub,sub:sub||title,lat,lon,city,street,house};
-    return `<div class="addr-ri" onclick='selAddr(${JSON.stringify(ad)})'>
-      <div class="ari-ic">📍</div>
-      <div>
-        <div class="ari-main">${title||sub}</div>
-        ${sub&&sub!==title?`<div class="ari-sub">${sub}</div>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function selAddr(data) {
-  if (typeof data==='string') data=JSON.parse(data);
-  const lat=parseFloat(data.lat), lon=parseFloat(data.lon);
-  if (lat&&lon) {LAT=lat;LON=lon;}
-  ADDR={
-    short:data.title||data.sub||'Адрес',
-    full:data.sub||data.title||'',
-    city:data.city||'', street:data.street||'',
-    house:data.house||'', country:'Россия'
-  };
-  document.getElementById('addrTxt').textContent=ADDR.short;
-  document.getElementById('coAddr').textContent=ADDR.short;
-  closeAddr();
-  toast('📍 '+ADDR.short);
-  ALL_RESTS=[]; RESTS=[];
-  loadRests();
-}
-function setCity(name,lat,lon) {
-  LAT=parseFloat(lat); LON=parseFloat(lon);
-  ADDR={short:name,full:name,city:name,street:'',house:'',country:'Россия'};
-  document.getElementById('addrTxt').textContent=name;
-  document.getElementById('coAddr').textContent=name;
-  closeAddr(); toast('📍 '+name);
-  ALL_RESTS=[]; RESTS=[]; loadRests();
-}
-function useGeo() {
-  if (!navigator.geolocation){toast('Геолокация недоступна');return;}
-  toast('⏳ Определяю...');
-  navigator.geolocation.getCurrentPosition(async pos=>{
-    LAT=pos.coords.latitude; LON=pos.coords.longitude;
-    const d=await POST('/eats/v1/eats-addresses/v1/geocode',{point:{lat:LAT,lon:LON},locale:'ru'});
-    const a=d?.address||{};
-    const short=a.short_text||a.title||`${LAT.toFixed(4)}, ${LON.toFixed(4)}`;
-    ADDR={short,full:a.full_text||short,city:a.city||'',street:a.street||'',house:a.house||'',country:'Россия'};
-    document.getElementById('addrTxt').textContent=short;
-    document.getElementById('coAddr').textContent=short;
-    closeAddr(); toast('📍 '+short);
-    ALL_RESTS=[]; RESTS=[]; loadRests();
-  },()=>toast('❌ Нет доступа к геолокации'));
-}
-
-// ══════════════════════════════════════════════════════════
-// ПРОФИЛЬ: ЗАКАЗЫ
-// ══════════════════════════════════════════════════════════
-async function loadOrders() {
-  const el=document.getElementById('ordersC');
-  el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-  const d=await GET('/api/v1/user/orders?page=1&limit=20');
-  if (d?.orders?.length) {
-    el.innerHTML='<div class="ord-list">'+d.orders.map(o=>{
-      const dt=o.created_at?new Date(o.created_at).toLocaleDateString('ru',{day:'numeric',month:'long'}):'';
-      const st=o.status||'delivered';
-      const sc={delivered:'ob-ok',cancelled:'ob-no',pending:'ob-pend',cooking:'ob-pend'};
-      const sl={delivered:'Доставлен',cancelled:'Отменён',pending:'В обработке',cooking:'Готовится'};
-      const items=(o.items||[]).slice(0,2).map(i=>i.name||i.n||'').join(', ');
-      return `<div class="ord-card">
-        <div class="oc-head"><span class="oc-nr">№ ${o.order_nr||o.id||'—'}</span><span class="oc-dt">${dt}</span></div>
-        <div class="oc-rest">${o.place_name||''}</div>
-        ${items?`<div class="oc-items">${items}${(o.items||[]).length>2?'...':''}</div>`:''}
-        <div class="oc-foot"><span class="oc-tot">${o.total||o.cost||0} ₽</span><span class="ob ${sc[st]||'ob-ok'}">${sl[st]||'Доставлен'}</span></div>
-      </div>`;
-    }).join('')+'</div>';
-    document.getElementById('piOrd').textContent=d.orders.length+' заказов';
-  } else {
-    el.innerHTML='<div class="empty"><div class="e-ic">📦</div><div class="e-t">Заказов нет</div><div class="e-s">Сделайте первый заказ!</div></div>';
-  }
-}
-
-// ══════════════════════════════════════════════════════════
-// ПРОФИЛЬ: АДРЕСА
-// ══════════════════════════════════════════════════════════
-async function loadAddresses() {
-  const el=document.getElementById('addressesC');
-  el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-  const d=await GET('/eats/v1/eats-addresses/v1/addresses');
-  const addrs=d?.addresses||[];
-  let html=`<div class="addr-card" onclick="openAddr()">
-    <div class="ac-ic">📍</div>
-    <div class="ac-bd"><div class="ac-nm">Текущий адрес</div><div class="ac-fl">${ADDR.full||ADDR.short}</div></div>
-    <div style="color:var(--gt);font-size:12px;margin-left:auto;flex-shrink:0">Изменить</div>
-  </div>`;
-  if (addrs.length) {
-    html+=addrs.map(a=>{
-      const ic={home:'🏠',work:'🏢',other:'📍'}[a.type]||'📍';
-      const ad={title:a.short_text||a.full_text||'Адрес',sub:a.full_text||'',
-        lat:a.coordinates?.latitude||LAT,lon:a.coordinates?.longitude||LON,
-        city:a.city||'',street:a.street||'',house:a.house||''};
-      return `<div class="addr-card" onclick='selAddr(${JSON.stringify(ad)})'>
-        <div class="ac-ic">${ic}</div>
-        <div class="ac-bd"><div class="ac-nm">${a.title||a.short_text||'Адрес'}</div><div class="ac-fl">${a.full_text||''}</div></div>
+    $('menu-cats').innerHTML = cats.map((c,i)=>`<button class="cat ${i===0?'on':''}" onclick="scrollCat('cat${i}',this)">${c.name||c.category||''}</button>`).join('');
+    $('menu-content').innerHTML = cats.map((c,i)=>{
+      const items = c.items||c.products||[];
+      return `<div class="menu-sec" id="cat${i}">
+        <div class="menu-sec-t">${c.name||c.category||''}</div>
+        <div class="m-items">${items.map(it=>menuItem(it)).join('')}</div>
       </div>`;
     }).join('');
-    document.getElementById('piAddr').textContent=addrs.length+' адресов';
-  }
-  el.innerHTML=html;
+    updateFab();
+  } catch(e) { $('menu-content').innerHTML=`<div class="err-box">Ошибка: ${e.message}</div>`; }
 }
 
-// ══════════════════════════════════════════════════════════
-// ПРОФИЛЬ: ОПЛАТА
-// ══════════════════════════════════════════════════════════
-async function loadPayments() {
-  const el=document.getElementById('paymentsC');
-  el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-  const slug=cart.slug||(ALL_RESTS[0]?.slug)||'';
-  const d=slug?await POST('/api/v2/cart/go-checkout',{place_slug:slug,address:addrObj()}):null;
-  const icons={sbp:'⚡',card:'💳',cash:'💵',wallet:'👛'};
-  const cols={sbp:'#e8f8ee',card:'#eef2ff',cash:'#fff5d0',wallet:'#fef9ee'};
-  if (d?.payment_methods?.length) {
-    el.innerHTML=d.payment_methods.map(m=>{const t=m.type||'card';return`<div class="pay-card">
-      <div class="pc-ic" style="background:${cols[t]||'#f5f5f5'}">${icons[t]||'💳'}</div>
-      <div class="pc-bd"><div class="pc-nm">${m.name||t}</div>${m.account?`<div class="pc-sb">${m.account}</div>`:''}</div>
-    </div>`;}).join('');
+function menuItem(it) {
+  const id   = it.id||it.item_id||'';
+  const name = it.name||it.title||'—';
+  const desc = it.description||it.description_text||'';
+  const price= it.price||it.price_info?.price||0;
+  const priceR = price > 200 ? price/100 : price; // иногда в копейках, иногда в рублях
+  const img  = it.picture_url||it.picture?.uri||it.image_url||'';
+  const inC  = S.cart.find(c=>c.item.id===id);
+  const imgH = img
+    ? `<img class="m-img" src="${img}" loading="lazy" onerror="this.style.display='none'">`
+    : `<div class="m-img-ph">🍽️</div>`;
+  const ctrl = inC
+    ? `<div class="qty" id="qc-${id}"><button class="qb" onclick="cQ('${id}',-1,event)">−</button><span class="qn">${inC.qty}</span><button class="qb" onclick="cQ('${id}',1,event)">+</button></div>`
+    : `<button class="add-btn" id="qc-${id}" onclick="addItem(${JSON.stringify(JSON.stringify({id,name,desc,price,img}))},event)">+</button>`;
+  return `<div class="m-item">${imgH}<div class="m-info"><div class="m-name">${name}</div>${desc?`<div class="m-desc">${desc}</div>`:''}<div class="m-price">${fmtR(priceR)}</div></div>${ctrl}</div>`;
+}
+
+function scrollCat(id, btn) {
+  document.querySelectorAll('.cat').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  $(`${id}`)?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CART LOGIC
+// ═══════════════════════════════════════════════════════════════
+function addItem(strData, e) {
+  e.stopPropagation();
+  const it = JSON.parse(strData);
+  const ex = S.cart.find(c=>c.item.id===it.id);
+  if (ex) ex.qty++;
+  else S.cart.push({item:it, qty:1});
+  refreshQC(it.id);
+  updateFab();
+  showToast((it.name||'Товар') + ' добавлен');
+}
+
+function cQ(id, d, e) {
+  e.stopPropagation();
+  const i = S.cart.findIndex(c=>c.item.id===id);
+  if (i<0) return;
+  S.cart[i].qty += d;
+  if (S.cart[i].qty<=0) S.cart.splice(i,1);
+  refreshQC(id);
+  updateFab();
+}
+
+function refreshQC(id) {
+  const el = $(`qc-${id}`);
+  if (!el) return;
+  const inC = S.cart.find(c=>c.item.id===id);
+  if (inC) {
+    el.outerHTML = `<div class="qty" id="qc-${id}"><button class="qb" onclick="cQ('${id}',-1,event)">−</button><span class="qn">${inC.qty}</span><button class="qb" onclick="cQ('${id}',1,event)">+</button></div>`;
   } else {
-    el.innerHTML='<div class="pay-card"><div class="pc-ic" style="background:#e8f8ee">⚡</div><div class="pc-bd"><div class="pc-nm">СБП</div></div></div>'+
-      '<div class="pay-card"><div class="pc-ic" style="background:#eef2ff">💳</div><div class="pc-bd"><div class="pc-nm">Банковская карта</div></div></div>'+
-      '<div class="pay-card"><div class="pc-ic" style="background:#fff5d0">💵</div><div class="pc-bd"><div class="pc-nm">Наличные</div></div></div>';
+    el.outerHTML = `<button class="add-btn" id="qc-${id}" onclick="addItem(${JSON.stringify(JSON.stringify({id}))},event)">+</button>`;
   }
 }
 
-// ══════════════════════════════════════════════════════════
-// ПРОФИЛЬ: ПРОМОКОДЫ
-// ══════════════════════════════════════════════════════════
-async function loadPromos() {
-  const el=document.getElementById('promosC');
-  el.innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
-  const d=await POST('/api/v1/user/promocodes',{payment:{payment_method_id:payId||'sbp',type:payType||'sbp'}});
-  if (d?.promocodes?.length) {
-    el.innerHTML=d.promocodes.map(p=>
-      `<div class="promo-card">
-        <div class="promo-code">${p.code||''}</div>
-        <div class="promo-desc">${p.description||p.title||''}</div>
-        ${p.discount?`<span class="promo-bdg">−${p.discount}</span>`:''}
-      </div>`).join('');
-    document.getElementById('piPromo').textContent=d.promocodes.length+' промокода(ов)';
+function updateFab() {
+  const cnt   = S.cart.reduce((s,c)=>s+c.qty, 0);
+  const total = cartTotal().items;
+  const fab = $('cart-fab');
+  if (cnt > 0) {
+    fab.style.display='block';
+    $('fab-cnt').textContent = cnt;
+    $('fab-price').textContent = fmtR(total);
   } else {
-    el.innerHTML='<div class="empty"><div class="e-ic">🏷️</div><div class="e-t">Промокодов нет</div><div class="e-s">Введите промокод при оформлении заказа</div></div>';
+    fab.style.display='none';
+  }
+  // badge on bnav
+  const bnCnt = $('bn-cart-cnt');
+  if (cnt > 0) { bnCnt.style.display='inline'; bnCnt.textContent=cnt; }
+  else bnCnt.style.display='none';
+}
+
+function cartTotal() {
+  const items = S.cart.reduce((s,c) => {
+    const p = c.item.price||0;
+    const r = p > 200 ? p/100 : p;
+    return s + r * c.qty;
+  }, 0);
+  return {items, discount: S.promoDisc, total: Math.max(0, items - S.promoDisc)};
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CART RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderCart() {
+  const el = $('cart-list');
+  if (!S.cart.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">🛒</div>Корзина пуста</div>';
+  } else {
+    el.innerHTML = S.cart.map((c,i) => {
+      const it = c.item;
+      const p  = it.price||0; const r = p>200?p/100:p;
+      const img= it.img||it.picture_url||it.image_url||'';
+      const imgH = img
+        ? `<img class="ci-img" src="${img}" onerror="this.style.display='none'">`
+        : `<div class="ci-img" style="display:flex;align-items:center;justify-content:center;font-size:22px">🍽️</div>`;
+      return `<div class="ci">${imgH}
+        <div style="flex:1;min-width:0">
+          <div class="ci-name">${it.name||'—'}</div>
+          <div class="ci-p">${fmtR(r*c.qty)}</div>
+        </div>
+        <div class="qty">
+          <button class="qb" onclick="cCart(${i},-1)">−</button>
+          <span class="qn">${c.qty}</span>
+          <button class="qb" onclick="cCart(${i},1)">+</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const t = cartTotal();
+  $('sum-items').textContent = fmtR(t.items);
+  $('sum-total').textContent = fmtR(t.total);
+  $('disc-row').style.display = t.discount>0 ? 'flex':'none';
+  if (t.discount>0) $('sum-disc').textContent = '−' + fmtR(t.discount);
+
+  const aT = S.address?.short_text||S.address?.full_text||'Укажите адрес';
+  $('addr-cart').textContent = aT;
+  $('addr-top').textContent  = aT;
+}
+
+function cCart(i, d) {
+  S.cart[i].qty += d;
+  if (S.cart[i].qty<=0) S.cart.splice(i,1);
+  renderCart(); updateFab();
+  if (!S.cart.length) nav('menu');
+}
+
+function cPers(d) { S.persons = Math.max(0,(S.persons||2)+d); $('pers-n').textContent=S.persons; }
+function addCmt(t) { const ta=$('cmt'); ta.value=ta.value?ta.value+', '+t:t; }
+
+// ═══════════════════════════════════════════════════════════════
+// PROMO
+// ═══════════════════════════════════════════════════════════════
+function togglePromo() {
+  const b = $('promo-block');
+  b.style.display = b.style.display==='none' ? 'block':'none';
+}
+
+async function applyPromo() {
+  const code = $('promo-in').value.trim();
+  if (!code) return;
+  const msg = $('promo-msg');
+  msg.textContent='Проверяем...'; msg.className='promo-msg';
+  try {
+    const r = await post('api/v2/apply-promocode', {
+      promocode: code,
+      place_slug: S.restaurant?.slug||'',
+      cart: buildCart()
+    }, {'Content-Type':'application/json','X-Idempotency-Token': uid4()});
+
+    const disc = r.discount_amount||r.discount||0;
+    if (disc) {
+      S.promo = code; S.promoDisc = disc>500?disc/100:disc; S.promoOk=true;
+      msg.textContent=`✓ Скидка ${fmtR(S.promoDisc)}`; msg.className='promo-msg ok';
+      $('promo-display').innerHTML=`<span style="color:var(--red)">${code}</span> ✓`;
+      renderCart();
+    } else {
+      msg.textContent='✗ '+(r.message||r.err||'Промокод не найден'); msg.className='promo-msg er';
+    }
+  } catch(e) { msg.textContent='✗ '+e.message; msg.className='promo-msg er'; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAY
+// ═══════════════════════════════════════════════════════════════
+function selPay(el) {
+  document.querySelectorAll('.pay-m').forEach(m=>{m.classList.remove('sel');m.querySelector('.pay-chk').innerHTML='';});
+  el.classList.add('sel');
+  el.querySelector('.pay-chk').innerHTML='<svg width="10" height="8" fill="none"><path d="M1 4l3 3L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  S.payMethod   = el.dataset.m;
+  S.payMethodId = parseInt(el.dataset.mid);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PLACE ORDER
+// ═══════════════════════════════════════════════════════════════
+function buildCart() {
+  return S.cart.map(c=>({id:c.item.id||'',quantity:c.qty,price:c.item.price||0}));
+}
+
+async function placeOrder() {
+  if (!S.address) { showToast('Укажите адрес доставки'); nav('address','cart'); return; }
+  if (!S.cart.length) { showToast('Корзина пуста'); return; }
+  setBtn('order-btn', true, 'Оформляем...');
+  S.idem = uid4();
+  const t   = cartTotal();
+  const a   = S.address;
+
+  const body = {
+    courier_options:  [],
+    persons_quantity: S.persons,
+    location: { latitude: a.lat||S.lat||55.7558, longitude: a.lon||S.lon||37.6176 },
+    comment: $('cmt')?.value||'',
+    payment: { recently_link_cards: false },
+    payment_method_id: S.payMethodId,
+    place_slug: S.restaurant?.slug||'',
+    phone: tg?.initDataUnsafe?.user?.phone_number||'',
+    extended_options: [{type:'delivery_options'}],
+    address: {
+      office:     $('f-flat')?.value||'',
+      floor:      $('f-floor')?.value||'',
+      entrance:   $('f-entr')?.value||'',
+      doorcode:   $('f-door')?.value||'',
+      city:       a.city||'',
+      street:     a.street||'',
+      house:      a.house||'',
+      short_text: a.short_text||a.full_text||'',
+      full_text:  a.full_text||a.short_text||'',
+      title:      a.short_text||a.full_text||'',
+      comment:    $('f-acmt')?.value||'',
+      country:    'Россия',
+      areas:      a.areas||[],
+      type:       {id:0},
+      location:   {latitude:a.lat||55.7558, longitude:a.lon||37.6176},
+      ...(a.uri?{uri:a.uri,log:JSON.stringify({uri:a.uri})}:{})
+    },
+    payment_information: {
+      type: S.payMethod==='sbp'?'sbp':'cash',
+      id:   S.payMethod==='sbp'?'sbp_qr':'cash',
+      costForCustomer: t.total.toFixed(2)
+    },
+    without_callback: true,
+    first_order: false,
+    currency: 'RUB',
+    country_code: 'RU',
+    ...(S.promoOk?{promo_code:S.promo}:{}),
+    cart: buildCart()
+  };
+
+  try {
+    const r = await post('api/v2/place-order', body, {'X-Idempotency-Token': S.idem});
+    if (r?.status==='error'||r?.domain) {
+      showToast(r?.err||r?.message||'Ошибка заказа');
+      setBtn('order-btn',false,'Оформить заказ'); return;
+    }
+    S.orderId = r?.order?.order?.order_id||r?.order_id||r?.id||'';
+    nav('status');
+    handleOrder(r);
+  } catch(e) {
+    showToast('Ошибка: '+e.message);
+    setBtn('order-btn',false,'Оформить заказ');
   }
 }
 
-// ══════════════════════════════════════════════════════════
-// ПОДДЕРЖКА
-// ══════════════════════════════════════════════════════════
-function sendSup() {
-  const inp=document.getElementById('supInp');
-  const text=inp.value.trim(); if (!text) return;
-  const c=document.getElementById('supChat');
-  c.innerHTML+=`<div class="sm sm-u">${text}</div>`;
-  inp.value=''; c.scrollTop=c.scrollHeight;
-  const rs=['Спасибо за обращение! Передаю оператору.',
-    'Понял вас. Обычно отвечаем в течение 5 минут.',
-    'Ваш запрос зарегистрирован под #'+Math.floor(10000+Math.random()*90000),
-    'Рассмотрим вашу проблему как можно скорее!'];
-  setTimeout(()=>{
-    c.innerHTML+=`<div class="sm sm-b">${rs[Math.floor(Math.random()*rs.length)]}</div>`;
-    c.scrollTop=c.scrollHeight;
-  },1500);
+function handleOrder(r) {
+  const oid = S.orderId;
+  $('s-oid').textContent = oid ? `Заказ №${oid}` : '';
+  const pay = r?.order?.payment||r?.payment;
+  const tr  = r?.transparentPayment;
+  if (pay?.status==='sbp_required'||tr) {
+    const url = pay?.payload?.url||tr?.screen?.actions?.[0]?.url||'';
+    S.sbpUrl = url;
+    $('s-ico').textContent='💳'; $('s-ico').classList.add('pulse');
+    $('s-title').textContent='Ожидаем оплату';
+    $('s-desc').textContent=tr?.screen?.text?.text||'Подтвердите платёж в вашем банке';
+    $('sbp-card').style.display='block';
+    if (oid) startPoll(oid);
+  } else {
+    $('s-ico').textContent='✅'; $('s-ico').classList.remove('pulse');
+    $('s-title').textContent='Заказ принят!';
+    $('s-desc').textContent='Ресторан уже готовит ваш заказ';
+    S.cart=[]; updateFab();
+  }
 }
 
-// ══════════════════════════════════════════════════════════
-// НАВИГАЦИЯ
-// ══════════════════════════════════════════════════════════
-const PROF_SCREENS=new Set(['profile','orders','addresses','payments','promos','support']);
-const NO_NAV=new Set(['checkout','order']);
-const NO_TOPBAR=new Set(['menu','cart','checkout','order','profile','orders','addresses','payments','promos','support']);
-
-function goTo(screen) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-'+screen)?.classList.add('active');
-
-  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
-  document.getElementById('nb-'+screen)?.classList.add('active');
-  if (PROF_SCREENS.has(screen)) document.getElementById('nb-profile')?.classList.add('active');
-
-  document.getElementById('topbar').style.display=NO_TOPBAR.has(screen)?'none':'block';
-  document.getElementById('tabs').style.display=NO_TOPBAR.has(screen)?'none':'flex';
-  document.getElementById('bnav').style.display=NO_NAV.has(screen)?'none':'flex';
-
-  if (screen==='cart') renderCart();
-  if (screen==='checkout') renderCO();
-  if (screen==='orders') loadOrders();
-  if (screen==='addresses') loadAddresses();
-  if (screen==='payments') loadPayments();
-  if (screen==='promos') loadPromos();
-
-  curScreen=screen;
-  document.getElementById('content').scrollTo(0,0);
+function openSBP() {
+  if (!S.sbpUrl) return;
+  tg ? tg.openLink(S.sbpUrl) : window.open(S.sbpUrl,'_blank');
 }
 
-let toastT;
-function toast(msg) {
-  const el=document.getElementById('toast');
-  el.textContent=msg; el.classList.add('show');
-  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),2800);
+function startPoll(oid) {
+  if (S.pollTimer) clearInterval(S.pollTimer);
+  S.pollTimer = setInterval(()=>pollOrder(oid), 3000);
+  setTimeout(()=>clearInterval(S.pollTimer), 600000);
 }
 
-goTo('catalog');
+async function pollOrder(oid) {
+  try {
+    const r = await api(`api/v2/orders/${oid}/info`);
+    const ps = r?.order?.payment?.status||r?.payment_status||'';
+    const os = r?.order?.order?.status||r?.order_status||'';
+    if (ps==='paid'||os==='confirmed'||os==='cooking'||os==='delivering') {
+      clearInterval(S.pollTimer);
+      $('s-ico').textContent='✅'; $('s-ico').classList.remove('pulse');
+      $('s-title').textContent='Оплата прошла!';
+      $('s-desc').textContent='Ресторан принял заказ';
+      $('sbp-card').style.display='none';
+      S.cart=[]; updateFab();
+    } else if (ps==='failed'||os==='cancelled') {
+      clearInterval(S.pollTimer);
+      $('s-ico').textContent='❌'; $('s-ico').classList.remove('pulse');
+      $('s-title').textContent='Оплата не прошла';
+      $('s-desc').textContent='Попробуйте другой способ';
+    }
+  } catch(e){}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ORDERS HISTORY
+// ═══════════════════════════════════════════════════════════════
+async function loadOrders() {
+  $('orders-content').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем заказы...</div></div>';
+  try {
+    const d = await api('api/v2/orders/history?page=1&page_size=20');
+    const orders = d?.orders||d?.data||d?.history||[];
+    if (!orders.length) {
+      $('orders-content').innerHTML = '<div class="empty"><div class="empty-ico">📦</div>Заказов пока нет</div>';
+      return;
+    }
+    $('orders-content').innerHTML = `<div class="ord-list page">${orders.map(o=>renderOrder(o)).join('')}</div>`;
+  } catch(e) {
+    $('orders-content').innerHTML = `<div class="err-box">Ошибка загрузки: ${e.message}</div>`;
+  }
+}
+
+function renderOrder(o) {
+  const oid   = o.order_id||o.id||'';
+  const rest  = o.place_name||o.restaurant_name||o.place?.name||'Ресторан';
+  const date  = o.created_at ? new Date(o.created_at).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+  const items = (o.items||o.products||[]).slice(0,3).map(i=>i.name||i.title||'').filter(Boolean).join(', ');
+  const total = o.total_cost||o.total||o.cost||0;
+  const totalR= total>5000?total/100:total;
+  const status= o.status||o.order_status||'';
+  const statMap = {
+    delivered:['done','Доставлен'],
+    completed:['done','Выполнен'],
+    cancelled:['wait','Отменён'],
+    delivering:['del','Везут'],
+    cooking:['del','Готовится'],
+    confirmed:['del','Принят'],
+  };
+  const [cls, label] = statMap[status]||['wait', status||'В обработке'];
+  return `<div class="ord-card">
+    <div class="ord-head">
+      <div>
+        <div class="ord-rest">${rest}</div>
+        <div class="ord-date">${date}${oid?' · №'+oid:''}</div>
+      </div>
+      <span class="ord-status ${cls}">${label}</span>
+    </div>
+    <div class="ord-body">
+      ${items?`<div class="ord-items">${items}${(o.items||[]).length>3?` и ещё ${(o.items||[]).length-3}`:''}...</div>`:''}
+      <div class="ord-footer">
+        <span class="ord-price">${fmtR(totalR)}</span>
+      </div>
+      <button class="ord-repeat" onclick="repeatOrder(${JSON.stringify(JSON.stringify(o))})">Повторить заказ</button>
+    </div>
+  </div>`;
+}
+
+async function repeatOrder(strData) {
+  const o = JSON.parse(strData);
+  const slug = o.place_slug||o.place?.slug||'';
+  if (!slug) { showToast('Нет данных о ресторане'); return; }
+  const items = o.items||o.products||[];
+  if (!items.length) { showToast('Нет товаров для повтора'); return; }
+  S.restaurant = {slug, name: o.place_name||o.place?.name||'Ресторан'};
+  S.cart = items.map(it=>({ item:{id:it.id||it.item_id||'',name:it.name||it.title||'',price:it.price||0}, qty:it.quantity||it.qty||1 }));
+  updateFab();
+  nav('cart');
+  showToast('Заказ добавлен в корзину');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROFILE
+// ═══════════════════════════════════════════════════════════════
+async function loadProfile() {
+  // Базовые данные из URL
+  const tgUser = tg?.initDataUnsafe?.user;
+  let name = tgUser?.first_name || '';
+  let uid  = '';
+
+  try {
+    const d = await api('eats/v1/launch/v2/native', {method:'POST', headers:{'Content-Type':'application/json'}, body:{experiments:{}}});
+    const p = d?.profile||{};
+    name = p.name||p.display_name||p.first_name||name;
+    uid  = String(p.passport_uid||p.uid||'');
+    S.profile = p;
+  } catch(e){}
+
+  if (!name) { try { const d2=await api('api/v2/user/info'); name=d2.name||d2.display_name||name; uid=String(d2.passport_uid||d2.uid||uid); } catch(e){} }
+
+  const initials = name ? name[0].toUpperCase() : '?';
+  $('prf-ava').textContent   = initials;
+  $('prf-name').textContent  = name||'Пользователь';
+  $('prf-uid').textContent   = uid ? `UID: ${uid}` : '';
+
+  const badges = [];
+  if (PLUS_TOKEN) badges.push('<span class="prf-badge b">⭐ Плюс</span>');
+  if (BANK_TOKEN) badges.push('<span class="prf-badge g">💳 Банк</span>');
+  $('prf-badges').innerHTML = badges.join('');
+  $('plus-badge').textContent = PLUS_TOKEN ? '✅' : '—';
+  $('bank-badge').textContent = BANK_TOKEN ? '✅' : '—';
+  $('hdr-name').textContent = name ? name.split(' ')[0] : '';
+}
+
+function showLoyalty() {
+  showToast(PLUS_TOKEN ? 'Яндекс Плюс подключён ✅' : 'Яндекс Плюс не подключён');
+}
+function showBankInfo() {
+  showToast(BANK_TOKEN ? 'Яндекс Банк подключён ✅' : 'Яндекс Банк не подключён');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADDRESS
+// ═══════════════════════════════════════════════════════════════
+let _sugTimer=null, _ymInited=false;
+
+function initAddr() {
+  if (S.address) {
+    $('addr-in').value        = S.address.short_text||S.address.full_text||'';
+    $('f-entr').value         = S.address.entrance||'';
+    $('f-floor').value        = S.address.floor||'';
+    $('f-flat').value         = S.address.flat||'';
+    $('f-door').value         = S.address.doorcode||'';
+    $('f-acmt').value         = S.address.comment||'';
+  }
+  if (!_ymInited) { _ymInited=true; loadYmap(); }
+  else if (S.ymapObj && S.address) setPin(S.address.lat, S.address.lon);
+}
+
+function loadYmap() {
+  const s = document.createElement('script');
+  s.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=84a7e8e1-6a86-4b9d-b6db-b7c0dcb9c8e1';
+  s.onload = () => ymaps.ready(() => {
+    const lat=S.address?.lat||S.lat||55.7558, lon=S.address?.lon||S.lon||37.6176;
+    S.ymapObj = new ymaps.Map('ymap',{center:[lat,lon],zoom:16,controls:['zoomControl']});
+    S.ymapPin = new ymaps.Placemark([lat,lon],{},{preset:'islands#redDotIcon'});
+    S.ymapObj.geoObjects.add(S.ymapPin);
+    S.ymapReady = true;
+    S.ymapObj.events.add('click', e => {
+      const [la,lo]=e.get('coords'); setPin(la,lo); revGeo(la,lo);
+    });
+  });
+  document.head.appendChild(s);
+}
+
+function setPin(lat, lon) {
+  if (!S.ymapObj) return;
+  S.ymapPin.geometry.setCoordinates([lat,lon]);
+  S.ymapObj.setCenter([lat,lon],16,{duration:300});
+}
+
+async function revGeo(lat, lon) {
+  try {
+    const r = await geocode(`${lon},${lat}`);
+    const go = r?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject;
+    if (!go) return;
+    const txt = go.metaDataProperty?.GeocoderMetaData?.text||'';
+    $('addr-in').value = txt;
+    parseGeoObj(go, txt);
+  } catch(e){}
+}
+
+function parseGeoObj(go, fullText) {
+  const addr = go.metaDataProperty?.GeocoderMetaData?.Address||{};
+  const comps = addr.Components||[];
+  const get = kind => comps.find(c=>c.kind===kind)?.name||'';
+  const short = [get('street'),get('house')].filter(Boolean).join(', ');
+  let lat=S.address?.lat||55.7558, lon=S.address?.lon||37.6176;
+  const pos = go.Point?.pos;
+  if (pos) { const p=pos.split(' '); lon=parseFloat(p[0]); lat=parseFloat(p[1]); }
+  S.address = { ...S.address, full_text:fullText, short_text:short||fullText, city:get('locality')||get('province'), street:get('street'), house:get('house'), lat, lon, areas:[get('province')||get('country')].filter(Boolean), uri:go.uri||'' };
+}
+
+function onAddrInput(val) {
+  clearTimeout(_sugTimer);
+  if (!val||val.length<2) { $('sug-list').innerHTML=''; return; }
+  _sugTimer = setTimeout(()=>fetchSug(val), 320);
+}
+
+async function fetchSug(text) {
+  try {
+    const d = await suggest(text);
+    const items = d?.results||d?.suggest||d?.items||[];
+    if (!items.length) { $('sug-list').innerHTML=''; return; }
+    $('sug-list').innerHTML = items.map(it => {
+      const t=it?.title?.text||it?.name||'', s=it?.subtitle?.text||it?.description||'';
+      return `<div class="sug" onclick="selSug(${JSON.stringify(JSON.stringify({t,s,uri:it?.uri||''}))})">
+        <svg style="flex-shrink:0;margin-top:2px" width="16" height="20" fill="none"><path d="M8 0C4.7 0 2 2.7 2 6c0 4.5 6 11 6 11S14 10.5 14 6C14 2.7 11.3 0 8 0zm0 8.5A2.5 2.5 0 1 1 8 3.5a2.5 2.5 0 0 1 0 5z" fill="#9E9B98"/></svg>
+        <div><div class="sug-t">${t}</div>${s?`<div class="sug-s">${s}</div>`:''}</div>
+      </div>`;
+    }).join('');
+  } catch(e){}
+}
+
+async function selSug(strData) {
+  const {t,s,uri} = JSON.parse(strData);
+  const full = [t,s].filter(Boolean).join(', ');
+  $('addr-in').value = t;
+  $('sug-list').innerHTML = '';
+  try {
+    const r = await geocode(full);
+    const go = r?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject;
+    if (go) {
+      parseGeoObj(go, full);
+      if (S.ymapReady && S.address) setPin(S.address.lat, S.address.lon);
+    } else {
+      S.address = {...S.address, full_text:full, short_text:t, uri};
+    }
+  } catch(e) { S.address={...S.address, full_text:full, short_text:t, uri}; }
+}
+
+function confirmAddr() {
+  if (!S.address) { showToast('Введите адрес'); return; }
+  S.address.entrance = $('f-entr').value;
+  S.address.floor    = $('f-floor').value;
+  S.address.flat     = $('f-flat').value;
+  S.address.doorcode = $('f-door').value;
+  S.address.comment  = $('f-acmt').value;
+  const disp = S.address.short_text||S.address.full_text||'';
+  $('addr-top').textContent   = disp;
+  $('addr-cart').textContent  = disp;
+  showToast('Адрес сохранён ✓');
+  nav(S.prevScreen==='address'?'catalog':S.prevScreen);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LAUNCH
+// ═══════════════════════════════════════════════════════════════
+initGeo();
+
+if (!TOKEN && !PROXY) {
+  $('r-list').innerHTML = '<div class="err-box">Откройте приложение через Telegram-бота</div>';
+} else {
+  loadCatalog();
+  loadProfile(); // загружаем профиль в фоне
+}
 </script>
 </body>
 </html>
