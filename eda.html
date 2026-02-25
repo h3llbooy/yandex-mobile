@@ -25,53 +25,43 @@
 html,body{height:100%;overscroll-behavior:none}
 body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
 
-/* ── SCREENS ── */
 .scr{display:none;min-height:100vh;animation:fadeIn .2s ease}
 .scr.on{display:block}
 @keyframes fadeIn{from{opacity:.6;transform:translateY(4px)}to{opacity:1;transform:none}}
 
-/* ── HEADER ── */
 .hdr{position:sticky;top:0;z-index:100;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:11px 16px;min-height:52px}
 .hdr-title{font-size:17px;font-weight:600;flex:1}
 .hdr-sub{font-size:12px;color:var(--sec)}
 .back{width:36px;height:36px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
-/* ── BOTTOM NAV ── */
 .bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--white);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-b)}
 .bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0;border:none;background:none;cursor:pointer;color:var(--sec);font-size:10px;font-weight:500;transition:color .15s}
 .bn.on{color:var(--red)}
 .bn svg{transition:transform .15s}
 .bn.on svg{transform:scale(1.1)}
 
-/* ── CONTENT PAD (under bottom nav) ── */
 .page{padding-bottom:calc(62px + var(--safe-b))}
 
-/* ── LOADER ── */
 .loader{display:flex;flex-direction:column;align-items:center;gap:12px;padding:60px 20px}
 .spin{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .loader-t{font-size:14px;color:var(--sec)}
 
-/* ── ERROR ── */
 .err-box{margin:16px;padding:14px;border-radius:var(--r);background:#FFF3F0;border:1px solid #FFCDC5;font-size:14px;color:#C0392B;line-height:1.5}
 
-/* ── SEARCH ── */
 .search-wrap{padding:10px 16px;background:var(--white);border-bottom:1px solid var(--border)}
 .search{width:100%;height:40px;padding:0 12px 0 38px;border:none;border-radius:var(--rs);background:var(--bg);font-size:15px;outline:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none'%3E%3Ccircle cx='7' cy='7' r='5.5' stroke='%239E9B98' stroke-width='1.5'/%3E%3Cpath d='m13 13-2.5-2.5' stroke='%239E9B98' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:12px center}
 
-/* ── ADDR BAR ── */
 .addr-bar{background:var(--white);padding:11px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);cursor:pointer}
 .addr-bar .av{flex:1;min-width:0}
 .addr-bar .al{font-size:11px;color:var(--sec)}
 .addr-bar .at{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ── SECTION TITLE ── */
 .sec-t{padding:18px 16px 10px;font-size:20px;font-weight:700}
 .sec-t2{font-size:16px;font-weight:600;padding:16px 16px 8px}
 
-/* ── RESTAURANT CARDS ── */
 .r-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
 .r-card{background:var(--white);border-radius:var(--r);overflow:hidden;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.07);transition:transform .12s,box-shadow .12s}
 .r-card:active{transform:scale(.98);box-shadow:0 1px 2px rgba(0,0,0,.05)}
@@ -86,19 +76,16 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .tag.g{background:#EDFBEE;color:var(--green)}
 .tag.r{background:#FFF0ED;color:var(--red)}
 
-/* ── RESTAURANT HERO ── */
 .menu-hero{width:100%;height:190px;object-fit:cover;background:linear-gradient(135deg,#f0ede8,#e0dbd3);display:flex;align-items:center;justify-content:center;font-size:60px}
 .menu-info{background:var(--white);padding:14px 16px}
 .menu-info h1{font-size:21px;font-weight:700}
 .menu-info .mm{font-size:13px;color:var(--sec);margin-top:4px;display:flex;gap:10px}
 
-/* ── CATEGORIES ── */
 .cats{display:flex;gap:8px;padding:11px 16px;overflow-x:auto;scrollbar-width:none;background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:50}
 .cats::-webkit-scrollbar{display:none}
 .cat{padding:7px 14px;border-radius:20px;border:none;background:var(--bg);font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--sec);transition:background .15s,color .15s}
 .cat.on{background:var(--text);color:#fff}
 
-/* ── MENU ITEMS ── */
 .menu-sec{padding:0 16px}
 .menu-sec-t{font-size:18px;font-weight:700;padding:18px 0 10px}
 .m-items{display:flex;flex-direction:column;gap:1px;margin-bottom:16px}
@@ -119,13 +106,11 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .qb{width:30px;height:30px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--text)}
 .qn{font-size:15px;font-weight:600;min-width:18px;text-align:center}
 
-/* ── CART FAB ── */
 .cart-fab{position:fixed;bottom:calc(62px + var(--safe-b) + 12px);left:16px;right:16px;z-index:150}
 .cart-fab-btn{width:100%;height:var(--bh);background:var(--red);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0 20px;box-shadow:0 4px 20px rgba(252,63,29,.4);transition:background .15s,transform .1s}
 .cart-fab-btn:active{background:var(--red-d);transform:scale(.98)}
 .cfb-c{background:rgba(255,255,255,.25);border-radius:8px;padding:4px 10px;font-size:14px}
 
-/* ── CART ── */
 .cart-list{padding:10px 16px;display:flex;flex-direction:column;gap:1px}
 .ci{background:var(--white);display:flex;align-items:center;gap:11px;padding:13px}
 .ci:first-child{border-radius:var(--r) var(--r) 0 0}
@@ -135,7 +120,6 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .ci-name{flex:1;font-size:15px}
 .ci-p{font-size:13px;color:var(--sec);margin-top:2px}
 
-/* ── CARD ── */
 .card{background:var(--white);border-radius:var(--r);overflow:hidden;margin:0 16px 12px}
 .card-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)}
 .card-row:last-child{border-bottom:none}
@@ -150,7 +134,6 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .cb-l{font-size:15px;color:var(--text)}
 .cb-v{font-size:14px;color:var(--sec);display:flex;align-items:center;gap:5px}
 
-/* ── PROMO ── */
 .promo-wrap{display:flex;gap:9px;padding:10px 16px 0}
 .promo-in{flex:1;height:44px;padding:0 13px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;outline:none;background:var(--white);transition:border-color .2s}
 .promo-in:focus{border-color:var(--red)}
@@ -160,7 +143,6 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .promo-msg.ok{color:var(--green)}
 .promo-msg.er{color:var(--red)}
 
-/* ── PAY METHODS ── */
 .pay-m{background:var(--white);display:flex;align-items:center;gap:13px;padding:13px 16px;cursor:pointer;transition:background .1s;border-bottom:1px solid var(--border)}
 .pay-m:last-child{border-bottom:none}
 .pay-m:first-child{border-radius:var(--r) var(--r) 0 0}
@@ -172,13 +154,11 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .pay-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,border-color .15s}
 .pay-m.sel .pay-chk{background:var(--red);border-color:var(--red)}
 
-/* ── PERSONS ── */
 .pers{display:flex;align-items:center;gap:11px}
 .pb{width:32px;height:32px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--text)}
 .pb:active{background:var(--border)}
 .pn{font-size:16px;font-weight:600;min-width:22px;text-align:center}
 
-/* ── COMMENT ── */
 .cmt-ta{width:100%;min-height:72px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;resize:none;outline:none;background:var(--white);font-family:inherit;line-height:1.5;transition:border-color .2s}
 .cmt-ta:focus{border-color:var(--red)}
 .chips{display:flex;gap:7px;flex-wrap:wrap;padding:6px 0 0}
@@ -196,7 +176,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .sug:active{background:var(--bg)}
 .sug-t{font-size:15px;font-weight:500}
 .sug-s{font-size:13px;color:var(--sec);margin-top:2px}
-.map-wrap{height:240px;background:#e8e4dc;position:relative}
+.map-wrap{height:200px;background:#e8e4dc;position:relative}
 #ymap{width:100%;height:100%}
 .addr-flds{padding:14px 16px;display:flex;flex-direction:column;gap:9px}
 .fld{display:flex;flex-direction:column;gap:3px}
@@ -206,7 +186,6 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .fld-row{display:flex;gap:9px}
 .fld-row .fld{flex:1}
 
-/* ── STATUS ── */
 .status-wrap{display:flex;flex-direction:column;align-items:center;padding:36px 20px;gap:0}
 .s-icon{width:80px;height:80px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:38px;margin-bottom:18px}
 .s-icon.pulse{animation:pulse 1.5s ease-in-out infinite}
@@ -238,7 +217,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .ml-txt{flex:1;font-size:15px;font-weight:500}
 .ml-arr{color:var(--sec)}
 
-/* ── ORDERS HISTORY ── */
+/* ── ORDERS ── */
 .ord-list{padding:10px 16px;display:flex;flex-direction:column;gap:10px}
 .ord-card{background:var(--white);border-radius:var(--r);overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .ord-card:active{transform:scale(.99)}
@@ -256,7 +235,18 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .ord-repeat{width:100%;height:42px;background:var(--bg);color:var(--text);border:none;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;margin-top:10px;transition:background .15s}
 .ord-repeat:active{background:var(--border)}
 
-/* ── BOTTOM BUTTON ── */
+/* ── PAYMENT METHODS SCREEN ── */
+.pay-screen-item{background:var(--white);display:flex;align-items:center;gap:13px;padding:15px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+.pay-screen-item:first-child{border-radius:var(--r) var(--r) 0 0}
+.pay-screen-item:last-child{border-bottom:none;border-radius:0 0 var(--r) var(--r)}
+.pay-screen-item:active{background:var(--bg)}
+.pay-screen-ico{width:48px;height:34px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.pay-screen-name{flex:1}
+.pay-screen-title{font-size:16px;font-weight:500}
+.pay-screen-sub{font-size:13px;color:var(--sec);margin-top:2px}
+.pay-screen-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);flex-shrink:0}
+.pay-screen-item.sel .pay-screen-chk{background:var(--red);border-color:var(--red)}
+
 .bot-wrap{padding:12px 16px calc(12px + var(--safe-b))}
 .btn{width:100%;height:var(--bh);background:var(--red);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,transform .1s}
 .btn:active{background:var(--red-d);transform:scale(.98)}
@@ -264,14 +254,11 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .btn.sec{background:var(--bg);color:var(--text)}
 .btn.sec:active{background:var(--border)}
 
-/* ── GAP ── */
 .gap{height:14px}
 
-/* ── TOAST ── */
 .toast{position:fixed;bottom:calc(70px + var(--safe-b));left:50%;transform:translateX(-50%);background:rgba(33,32,31,.92);color:#fff;padding:10px 20px;border-radius:22px;font-size:14px;z-index:9999;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:calc(100vw - 40px);text-align:center}
 .toast.on{opacity:1}
 
-/* ── EMPTY ── */
 .empty{text-align:center;padding:50px 20px;color:var(--sec);font-size:15px}
 .empty-ico{font-size:48px;margin-bottom:12px}
 </style>
@@ -280,12 +267,10 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 
 <div class="toast" id="toast"></div>
 
-<!-- ═══════ SCREEN: CATALOG ═══════ -->
+<!-- ═══════ CATALOG ═══════ -->
 <div class="scr on" id="s-catalog">
   <div class="hdr" style="justify-content:space-between">
-    <div>
-      <div class="hdr-title">Яндекс Еда</div>
-    </div>
+    <div><div class="hdr-title">Яндекс Еда</div></div>
     <div id="hdr-name" style="font-size:14px;color:var(--sec)"></div>
   </div>
   <div class="addr-bar" onclick="nav('address','catalog')">
@@ -302,7 +287,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   </div>
 </div>
 
-<!-- ═══════ SCREEN: MENU ═══════ -->
+<!-- ═══════ MENU ═══════ -->
 <div class="scr" id="s-menu">
   <div class="hdr">
     <button class="back" onclick="nav('catalog')">
@@ -332,7 +317,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   </div>
 </div>
 
-<!-- ═══════ SCREEN: CART ═══════ -->
+<!-- ═══════ CART ═══════ -->
 <div class="scr" id="s-cart">
   <div class="hdr">
     <button class="back" id="cart-back"></button>
@@ -343,7 +328,6 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
     <div class="av"><div class="al">Адрес доставки</div><div class="at" id="addr-cart">Укажите адрес</div></div>
     <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </div>
-
   <div class="cart-list page" id="cart-list"></div>
 
   <!-- промокод -->
@@ -429,7 +413,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   </div>
 </div>
 
-<!-- ═══════ SCREEN: ADDRESS ═══════ -->
+<!-- ═══════ ADDRESS ═══════ -->
 <div class="scr" id="s-address">
   <div class="hdr">
     <button class="back" id="addr-back"></button>
@@ -454,7 +438,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   </div>
 </div>
 
-<!-- ═══════ SCREEN: STATUS ═══════ -->
+<!-- ═══════ STATUS ═══════ -->
 <div class="scr" id="s-status">
   <div class="hdr">
     <button class="back" onclick="nav('catalog')">
@@ -479,7 +463,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   </div>
 </div>
 
-<!-- ═══════ SCREEN: ORDERS ═══════ -->
+<!-- ═══════ ORDERS ═══════ -->
 <div class="scr" id="s-orders">
   <div class="hdr">
     <button class="back" id="orders-back"></button>
@@ -490,11 +474,9 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   </div>
 </div>
 
-<!-- ═══════ SCREEN: PROFILE ═══════ -->
+<!-- ═══════ PROFILE ═══════ -->
 <div class="scr" id="s-profile">
-  <div class="hdr">
-    <div class="hdr-title">Профиль</div>
-  </div>
+  <div class="hdr"><div class="hdr-title">Профиль</div></div>
   <div class="profile-head">
     <div class="avatar" id="prf-ava">?</div>
     <div>
@@ -514,19 +496,61 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
       <div class="ml-txt">Мои адреса</div>
       <svg class="ml-arr" width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div class="ml-item" onclick="showLoyalty()">
-      <div class="ml-ico">⭐</div>
-      <div class="ml-txt">Яндекс Плюс</div>
-      <span id="plus-badge" style="font-size:13px;color:var(--sec)"></span>
-    </div>
-    <div class="ml-item" onclick="showBankInfo()">
+    <div class="ml-item" onclick="nav('payment')">
       <div class="ml-ico">💳</div>
-      <div class="ml-txt">Яндекс Банк</div>
-      <span id="bank-badge" style="font-size:13px;color:var(--sec)"></span>
+      <div class="ml-txt">Способы оплаты</div>
+      <svg class="ml-arr" width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
   </div>
-  <div style="margin:4px 16px">
-    <button class="btn sec" onclick="showToast('Токен скопирован в буфер');copyToken()">📋 Скопировать токен</button>
+</div>
+
+<!-- ═══════ ADDRESSES ═══════ -->
+<div class="scr" id="s-addresses">
+  <div class="hdr">
+    <button class="back" onclick="nav('profile')">
+      <svg width="9" height="16" fill="none"><path d="M8 1L1 8l7 7" stroke="#21201F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div><div class="hdr-title">Мои адреса</div></div>
+  </div>
+  <div class="page" id="addresses-content">
+    <div class="loader"><div class="spin"></div><div class="loader-t">Загружаем адреса...</div></div>
+  </div>
+  <div class="bot-wrap">
+    <button class="btn" onclick="nav('address','addresses')">+ Добавить адрес</button>
+  </div>
+</div>
+
+<!-- ═══════ PAYMENT METHODS ═══════ -->
+<div class="scr" id="s-payment">
+  <div class="hdr">
+    <button class="back" onclick="nav('profile')">
+      <svg width="9" height="16" fill="none"><path d="M8 1L1 8l7 7" stroke="#21201F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div><div class="hdr-title">Способы оплаты</div></div>
+  </div>
+  <div class="page">
+    <div style="height:12px"></div>
+    <div style="margin:0 16px;background:var(--white);border-radius:var(--r);overflow:hidden">
+      <div class="pay-screen-item sel" id="pm-sbp" onclick="setGlobalPay('sbp',5,this)">
+        <div class="pay-screen-ico">🏦</div>
+        <div class="pay-screen-name">
+          <div class="pay-screen-title">СБП</div>
+          <div class="pay-screen-sub">Система быстрых платежей</div>
+        </div>
+        <div class="pay-screen-chk"></div>
+      </div>
+      <div class="pay-screen-item" id="pm-cash" onclick="setGlobalPay('cash',1,this)">
+        <div class="pay-screen-ico">💵</div>
+        <div class="pay-screen-name">
+          <div class="pay-screen-title">Наличные</div>
+          <div class="pay-screen-sub">Курьеру при получении</div>
+        </div>
+        <div class="pay-screen-chk"></div>
+      </div>
+    </div>
+    <div style="padding:12px 16px;font-size:13px;color:var(--sec)">
+      Выбранный способ будет использоваться по умолчанию при оформлении заказа.
+    </div>
   </div>
 </div>
 
@@ -559,11 +583,11 @@ const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#FFFFFF'); }
 
 const P   = new URLSearchParams(location.search);
-const CHAT_ID   = P.get('chat_id') || '';
-const TOKEN     = P.get('token')   || '';
-const DEVICE_ID = P.get('device_id') || '';
-const AM_UUID   = P.get('appmetrica_uuid') || '';
-const PROXY     = (P.get('proxy') || '').replace(/\/$/, '');
+const CHAT_ID    = P.get('chat_id') || '';
+const TOKEN      = P.get('token')   || '';
+const DEVICE_ID  = P.get('device_id') || '';
+const AM_UUID    = P.get('appmetrica_uuid') || '';
+const PROXY      = (P.get('proxy') || '').replace(/\/$/, '');
 const BANK_TOKEN = P.get('bank_token') || '';
 const PLUS_TOKEN = P.get('plus_token') || '';
 
@@ -590,13 +614,9 @@ const S = {
   ymapInited: false,
   ymapObj: null,
   ymapPin: null,
-  cartVersion: 0,
-  idem: '',
-  profile: null,
 };
 
-// ─── back buttons init ───
-$('cart-back').onclick  = () => nav('menu');
+$('cart-back').onclick  = () => nav(S.prevScreen === 'cart' ? 'menu' : 'menu');
 $('addr-back').onclick  = () => nav(S.prevScreen === 'address' ? 'catalog' : S.prevScreen);
 $('orders-back').onclick= () => nav(S.prevScreen === 'orders' ? 'catalog' : S.prevScreen);
 
@@ -615,9 +635,6 @@ function uid4() {
 function showToast(msg, d=2500) {
   const t = $('toast'); t.textContent = msg; t.classList.add('on');
   setTimeout(() => t.classList.remove('on'), d);
-}
-function copyToken() {
-  navigator.clipboard?.writeText(TOKEN).catch(()=>{});
 }
 function setBtn(id, loading, txt) {
   const b = $(id); if (!b) return;
@@ -651,61 +668,80 @@ function hdrs(extra={}) {
 }
 
 async function api(path, opts={}) {
+  if (!PROXY) return {};
   const url = PROXY + '/proxy/' + path.replace(/^\//, '');
-  const res = await fetch(url, {
-    method: opts.method || 'GET',
-    headers: hdrs(opts.headers || {}),
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
-  });
-  return res.json().catch(() => ({}));
+  try {
+    const res = await fetch(url, {
+      method: opts.method || 'GET',
+      headers: hdrs(opts.headers || {}),
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    });
+    return res.json().catch(() => ({}));
+  } catch(e) {
+    console.error('[API ERR]', path, e);
+    return {};
+  }
 }
 
 async function post(path, body={}, extra={}) {
   return api(path, {method:'POST', headers:{'Content-Type':'application/json',...extra}, body});
 }
 
+// Suggest через наш прокси (который использует SOCKS5)
 async function suggest(text) {
-  const r = await fetch(PROXY + '/proxy-suggest', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({text, lat: S.lat||55.7558, lon: S.lon||37.6176})
-  });
-  return r.json().catch(()=>({}));
+  if (!PROXY) return {};
+  try {
+    const r = await fetch(PROXY + '/proxy-suggest', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text, lat: S.lat||55.7558, lon: S.lon||37.6176})
+    });
+    return r.json().catch(()=>({}));
+  } catch(e) { return {}; }
 }
 
+// Geocode через наш прокси (который использует SOCKS5)
 async function geocode(text) {
-  const r = await fetch(PROXY + '/proxy-geocode', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({text})
-  });
-  return r.json().catch(()=>({}));
+  if (!PROXY) return {};
+  try {
+    const r = await fetch(PROXY + '/proxy-geocode', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text})
+    });
+    return r.json().catch(()=>({}));
+  } catch(e) { return {}; }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════════════════════════
-const NAVSCREENS = ['catalog','menu','cart','address','status','orders','profile','addresses'];
-const BN_MAP = {catalog:'catalog',menu:'catalog',cart:'cart',orders:'orders',profile:'profile',status:'catalog',address:null,addresses:'profile'};
+const ALL_SCREENS = ['catalog','menu','cart','address','status','orders','profile','addresses','payment'];
+const BN_MAP = {
+  catalog:'catalog', menu:'catalog', cart:'cart',
+  orders:'orders', profile:'profile', status:'catalog',
+  address:null, addresses:'profile', payment:'profile'
+};
 
 function nav(screen, from) {
   if (from) S.prevScreen = from;
   else S.prevScreen = S.screen;
   S.screen = screen;
 
-  NAVSCREENS.forEach(s => $('s-'+s)?.classList.remove('on'));
+  ALL_SCREENS.forEach(s => $('s-'+s)?.classList.remove('on'));
   $('s-'+screen)?.classList.add('on');
   window.scrollTo(0,0);
 
-  // bottom nav
   document.querySelectorAll('.bn').forEach(b => b.classList.remove('on'));
   const bnId = BN_MAP[screen];
   if (bnId) $('bn-'+bnId)?.classList.add('on');
   $('bnav').style.display = screen === 'address' ? 'none' : 'flex';
 
-  if (screen === 'catalog') loadCatalog();
-  if (screen === 'cart')    renderCart();
-  if (screen === 'profile') loadProfile();
-  if (screen === 'orders')  loadOrders();
-  if (screen === 'address') initAddr();
+  if (screen === 'catalog')   loadCatalog();
+  if (screen === 'cart')      renderCart();
+  if (screen === 'profile')   loadProfile();
+  if (screen === 'orders')    loadOrders();
+  if (screen === 'address')   initAddr();
+  if (screen === 'addresses') loadAddresses();
+  if (screen === 'payment')   syncPayScreen();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -733,23 +769,49 @@ async function loadCatalog() {
   $('r-list').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем рестораны...</div></div>';
   try {
     const lat = S.lat||55.7558, lon = S.lon||37.6176;
-    const d = await api(`eats/v1/layout-constructor/v1/layout?latitude=${lat}&longitude=${lon}&region_id=1`);
+
+    // Пробуем несколько эндпоинтов для получения списка ресторанов
     let list = [];
-    for (const blk of (d?.payload?.blocks||d?.blocks||[])) {
+
+    // Вариант 1: layout-constructor (основной)
+    const d1 = await api(`eats/v1/layout-constructor/v1/layout?latitude=${lat}&longitude=${lon}&region_id=1`);
+    for (const blk of (d1?.payload?.blocks||d1?.blocks||[])) {
       for (const it of (blk?.payload?.places||blk?.places||blk?.items||[])) {
         const p = it?.place||it;
         if (p?.slug||p?.place_slug) list.push(p);
       }
     }
-    if (!list.length) list = d?.places||d?.payload?.places||[];
+    if (d1?.payload?.places) list = [...list, ...(d1.payload.places)];
+
+    // Вариант 2: places/v1/nearby
     if (!list.length) {
-      $('r-list').innerHTML = `<div class="err-box">Рестораны не найдены. <a onclick="nav('address','catalog')" style="color:var(--red);cursor:pointer">Укажите адрес</a></div>`;
+      const d2 = await api(`eats/v1/places/v1/nearby?latitude=${lat}&longitude=${lon}`);
+      const places = d2?.places||d2?.payload?.places||d2?.data||[];
+      list = places;
+    }
+
+    // Вариант 3: /api/v2/catalog
+    if (!list.length) {
+      const d3 = await api(`api/v2/catalog?latitude=${lat}&longitude=${lon}`);
+      list = d3?.places||d3?.data||d3?.restaurants||[];
+    }
+
+    // Дедупликация по slug
+    const seen = new Set();
+    list = list.filter(r => {
+      const k = r.slug||r.place_slug||r.id||'';
+      if (!k || seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+
+    if (!list.length) {
+      $('r-list').innerHTML = `<div class="err-box">Рестораны не найдены. <br><br>Укажите <a onclick="nav('address','catalog')" style="color:var(--red);cursor:pointer;text-decoration:underline">адрес доставки</a> — это поможет найти рестораны рядом.</div>`;
       return;
     }
     _rAll = list; _rLoaded = true;
     renderR(list);
   } catch(e) {
-    $('r-list').innerHTML = `<div class="err-box">Ошибка: ${e.message}</div>`;
+    $('r-list').innerHTML = `<div class="err-box">Ошибка загрузки: ${e.message}</div>`;
   }
 }
 
@@ -760,10 +822,10 @@ function renderR(list) {
     const slug = r.slug||r.place_slug||r.id||'';
     const rating = r.rating?.value||r.rating||'';
     const mn = r.delivery?.min_time||r.min_time||'';
-    const mx = r.delivery?.max_time||r.max_time||'';
+    const mx = r.delivery?.max_time||r.max_time||mn;
     const free = !r.delivery?.price||r.delivery?.price===0;
     const dp = r.delivery?.price ? fmtK(r.delivery.price) : 'Бесплатно';
-    const img = r.logo_url||r.image_url||r.logo||'';
+    const img = r.logo_url||r.image_url||r.logo||r.cover_url||'';
     const cats = (r.categories||r.tags||[]).slice(0,3).map(c=>c.name||c).filter(Boolean);
     const imgH = img
       ? `<img class="r-img" src="${img}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\\'r-img-ph\\'>${emoji(cats)}</div>'">`
@@ -803,18 +865,32 @@ async function openR(slug, name) {
   nav('menu');
   try {
     const lat=S.lat||55.7558, lon=S.lon||37.6176;
-    const d = await api(`eats/v1/menu/v2/menu?placeSlug=${slug}&latitude=${lat}&longitude=${lon}`);
-    const cats = d?.payload?.categories||d?.categories||d?.menu||[];
+
+    // Пробуем несколько эндпоинтов для меню
+    let d = await api(`eats/v1/menu/v2/menu?placeSlug=${slug}&latitude=${lat}&longitude=${lon}`);
+    let cats = d?.payload?.categories||d?.categories||d?.menu||[];
+
+    // Фоллбэк на v1
+    if (!cats.length) {
+      d = await api(`eats/v1/menu/v1/menu?placeSlug=${slug}&latitude=${lat}&longitude=${lon}`);
+      cats = d?.payload?.categories||d?.categories||d?.menu||[];
+    }
+
     if (!cats.length) { $('menu-content').innerHTML='<div class="err-box">Меню недоступно</div>'; return; }
 
     const pl = d?.payload?.place||d?.place||{};
     if (pl.rating?.value) $('menu-rating').textContent = `⭐ ${pl.rating.value}`;
-    if (pl.delivery?.min_time) $('menu-time').textContent = `${pl.delivery.min_time}–${pl.delivery.max_time} мин`;
+    if (pl.delivery?.min_time) $('menu-time').textContent = `${pl.delivery.min_time}–${pl.delivery.max_time||pl.delivery.min_time} мин`;
     $('menu-deliv').textContent = pl.delivery?.price ? fmtK(pl.delivery.price) : 'Бесплатно';
 
     const hero = $('menu-hero');
-    const heroImg = pl.logo_url||pl.cover_url||'';
-    if (heroImg) { hero.style.backgroundImage=`url(${heroImg})`;hero.style.backgroundSize='cover';hero.style.backgroundPosition='center';hero.textContent=''; }
+    const heroImg = pl.logo_url||pl.cover_url||pl.image_url||'';
+    if (heroImg) {
+      hero.style.backgroundImage=`url(${heroImg})`;
+      hero.style.backgroundSize='cover';
+      hero.style.backgroundPosition='center';
+      hero.textContent='';
+    }
 
     $('menu-cats').innerHTML = cats.map((c,i)=>`<button class="cat ${i===0?'on':''}" onclick="scrollCat('cat${i}',this)">${c.name||c.category||''}</button>`).join('');
     $('menu-content').innerHTML = cats.map((c,i)=>{
@@ -833,15 +909,18 @@ function menuItem(it) {
   const name = it.name||it.title||'—';
   const desc = it.description||it.description_text||'';
   const price= it.price||it.price_info?.price||0;
-  const priceR = price > 200 ? price/100 : price; // иногда в копейках, иногда в рублях
+  // Яндекс Еда отдаёт цену в копейках если > 500, иначе в рублях
+  const priceR = price > 500 ? price/100 : price;
   const img  = it.picture_url||it.picture?.uri||it.image_url||'';
   const inC  = S.cart.find(c=>c.item.id===id);
   const imgH = img
     ? `<img class="m-img" src="${img}" loading="lazy" onerror="this.style.display='none'">`
     : `<div class="m-img-ph">🍽️</div>`;
+  // Сохраняем оригинальную цену из API (в той единице что пришла)
+  const itemData = JSON.stringify({id, name, desc, price, priceR, img});
   const ctrl = inC
     ? `<div class="qty" id="qc-${id}"><button class="qb" onclick="cQ('${id}',-1,event)">−</button><span class="qn">${inC.qty}</span><button class="qb" onclick="cQ('${id}',1,event)">+</button></div>`
-    : `<button class="add-btn" id="qc-${id}" onclick="addItem(${JSON.stringify(JSON.stringify({id,name,desc,price,img}))},event)">+</button>`;
+    : `<button class="add-btn" id="qc-${id}" onclick="addItem(${JSON.stringify(itemData)},event)">+</button>`;
   return `<div class="m-item">${imgH}<div class="m-info"><div class="m-name">${name}</div>${desc?`<div class="m-desc">${desc}</div>`:''}<div class="m-price">${fmtR(priceR)}</div></div>${ctrl}</div>`;
 }
 
@@ -879,10 +958,11 @@ function refreshQC(id) {
   const el = $(`qc-${id}`);
   if (!el) return;
   const inC = S.cart.find(c=>c.item.id===id);
+  const itemData = inC ? JSON.stringify(JSON.stringify(inC.item)) : JSON.stringify(JSON.stringify({id}));
   if (inC) {
     el.outerHTML = `<div class="qty" id="qc-${id}"><button class="qb" onclick="cQ('${id}',-1,event)">−</button><span class="qn">${inC.qty}</span><button class="qb" onclick="cQ('${id}',1,event)">+</button></div>`;
   } else {
-    el.outerHTML = `<button class="add-btn" id="qc-${id}" onclick="addItem(${JSON.stringify(JSON.stringify({id}))},event)">+</button>`;
+    el.outerHTML = `<button class="add-btn" id="qc-${id}" onclick="addItem(${itemData},event)">+</button>`;
   }
 }
 
@@ -897,18 +977,13 @@ function updateFab() {
   } else {
     fab.style.display='none';
   }
-  // badge on bnav
   const bnCnt = $('bn-cart-cnt');
   if (cnt > 0) { bnCnt.style.display='inline'; bnCnt.textContent=cnt; }
   else bnCnt.style.display='none';
 }
 
 function cartTotal() {
-  const items = S.cart.reduce((s,c) => {
-    const p = c.item.price||0;
-    const r = p > 200 ? p/100 : p;
-    return s + r * c.qty;
-  }, 0);
+  const items = S.cart.reduce((s,c) => s + (c.item.priceR||c.item.price||0) * c.qty, 0);
   return {items, discount: S.promoDisc, total: Math.max(0, items - S.promoDisc)};
 }
 
@@ -922,7 +997,7 @@ function renderCart() {
   } else {
     el.innerHTML = S.cart.map((c,i) => {
       const it = c.item;
-      const p  = it.price||0; const r = p>200?p/100:p;
+      const r = it.priceR||it.price||0;
       const img= it.img||it.picture_url||it.image_url||'';
       const imgH = img
         ? `<img class="ci-img" src="${img}" onerror="this.style.display='none'">`
@@ -950,6 +1025,21 @@ function renderCart() {
   const aT = S.address?.short_text||S.address?.full_text||'Укажите адрес';
   $('addr-cart').textContent = aT;
   $('addr-top').textContent  = aT;
+
+  // Синхронизируем способ оплаты из корзины
+  syncCartPayMethods();
+}
+
+function syncCartPayMethods() {
+  document.querySelectorAll('.pay-m').forEach(m => {
+    m.classList.remove('sel');
+    m.querySelector('.pay-chk').innerHTML = '';
+  });
+  const sel = document.querySelector(`.pay-m[data-m="${S.payMethod}"]`);
+  if (sel) {
+    sel.classList.add('sel');
+    sel.querySelector('.pay-chk').innerHTML = '<svg width="10" height="8" fill="none"><path d="M1 4l3 3L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
 }
 
 function cCart(i, d) {
@@ -984,12 +1074,15 @@ async function applyPromo() {
 
     const disc = r.discount_amount||r.discount||0;
     if (disc) {
-      S.promo = code; S.promoDisc = disc>500?disc/100:disc; S.promoOk=true;
+      S.promo = code;
+      S.promoDisc = disc > 1000 ? disc/100 : disc;
+      S.promoOk = true;
       msg.textContent=`✓ Скидка ${fmtR(S.promoDisc)}`; msg.className='promo-msg ok';
       $('promo-display').innerHTML=`<span style="color:var(--red)">${code}</span> ✓`;
       renderCart();
     } else {
-      msg.textContent='✗ '+(r.message||r.err||'Промокод не найден'); msg.className='promo-msg er';
+      const errMsg = r.message||r.err||r.error||'Промокод не найден';
+      msg.textContent='✗ '+errMsg; msg.className='promo-msg er';
     }
   } catch(e) { msg.textContent='✗ '+e.message; msg.className='promo-msg er'; }
 }
@@ -1005,30 +1098,51 @@ function selPay(el) {
   S.payMethodId = parseInt(el.dataset.mid);
 }
 
+function setGlobalPay(method, mid, el) {
+  S.payMethod   = method;
+  S.payMethodId = mid;
+  document.querySelectorAll('.pay-screen-item').forEach(m=>m.classList.remove('sel'));
+  el.classList.add('sel');
+  showToast(method === 'sbp' ? 'СБП выбран как основной' : 'Наличные выбраны как основной');
+}
+
+function syncPayScreen() {
+  document.querySelectorAll('.pay-screen-item').forEach(m=>m.classList.remove('sel'));
+  const selId = S.payMethod === 'sbp' ? 'pm-sbp' : 'pm-cash';
+  $(selId)?.classList.add('sel');
+}
+
 // ═══════════════════════════════════════════════════════════════
 // PLACE ORDER
 // ═══════════════════════════════════════════════════════════════
 function buildCart() {
-  return S.cart.map(c=>({id:c.item.id||'',quantity:c.qty,price:c.item.price||0}));
+  return S.cart.map(c=>({
+    id: c.item.id||'',
+    quantity: c.qty,
+    // Передаём цену в копейках как ожидает API (если была в рублях — переводим)
+    price: c.item.price > 500 ? c.item.price : Math.round((c.item.priceR||c.item.price||0) * 100)
+  }));
 }
 
 async function placeOrder() {
   if (!S.address) { showToast('Укажите адрес доставки'); nav('address','cart'); return; }
   if (!S.cart.length) { showToast('Корзина пуста'); return; }
   setBtn('order-btn', true, 'Оформляем...');
-  S.idem = uid4();
-  const t   = cartTotal();
-  const a   = S.address;
+  const idem = uid4();
+  const t = cartTotal();
+  const a = S.address;
 
   const body = {
     courier_options:  [],
     persons_quantity: S.persons,
-    location: { latitude: a.lat||S.lat||55.7558, longitude: a.lon||S.lon||37.6176 },
+    location: {
+      latitude:  a.lat||S.lat||55.7558,
+      longitude: a.lon||S.lon||37.6176
+    },
     comment: $('cmt')?.value||'',
     payment: { recently_link_cards: false },
     payment_method_id: S.payMethodId,
     place_slug: S.restaurant?.slug||'',
-    phone: tg?.initDataUnsafe?.user?.phone_number||'',
     extended_options: [{type:'delivery_options'}],
     address: {
       office:     $('f-flat')?.value||'',
@@ -1045,34 +1159,39 @@ async function placeOrder() {
       country:    'Россия',
       areas:      a.areas||[],
       type:       {id:0},
-      location:   {latitude:a.lat||55.7558, longitude:a.lon||37.6176},
-      ...(a.uri?{uri:a.uri,log:JSON.stringify({uri:a.uri})}:{})
+      location:   {
+        latitude:  a.lat||55.7558,
+        longitude: a.lon||37.6176
+      },
+      ...(a.uri?{uri:a.uri}:{})
     },
     payment_information: {
-      type: S.payMethod==='sbp'?'sbp':'cash',
-      id:   S.payMethod==='sbp'?'sbp_qr':'cash',
+      type: S.payMethod==='sbp' ? 'sbp' : 'cash',
+      id:   S.payMethod==='sbp' ? 'sbp_qr' : 'cash',
       costForCustomer: t.total.toFixed(2)
     },
     without_callback: true,
     first_order: false,
     currency: 'RUB',
     country_code: 'RU',
-    ...(S.promoOk?{promo_code:S.promo}:{}),
+    ...(S.promoOk ? {promo_code: S.promo} : {}),
     cart: buildCart()
   };
 
   try {
-    const r = await post('api/v2/place-order', body, {'X-Idempotency-Token': S.idem});
-    if (r?.status==='error'||r?.domain) {
-      showToast(r?.err||r?.message||'Ошибка заказа');
-      setBtn('order-btn',false,'Оформить заказ'); return;
+    const r = await post('api/v2/place-order', body, {'X-Idempotency-Token': idem});
+    if (r?.status==='error' || r?.domain || r?.code) {
+      const errMsg = r?.err||r?.message||r?.description||'Ошибка оформления заказа';
+      showToast(errMsg);
+      setBtn('order-btn', false, 'Оформить заказ');
+      return;
     }
     S.orderId = r?.order?.order?.order_id||r?.order_id||r?.id||'';
     nav('status');
     handleOrder(r);
   } catch(e) {
     showToast('Ошибка: '+e.message);
-    setBtn('order-btn',false,'Оформить заказ');
+    setBtn('order-btn', false, 'Оформить заказ');
   }
 }
 
@@ -1081,13 +1200,13 @@ function handleOrder(r) {
   $('s-oid').textContent = oid ? `Заказ №${oid}` : '';
   const pay = r?.order?.payment||r?.payment;
   const tr  = r?.transparentPayment;
-  if (pay?.status==='sbp_required'||tr) {
+  if (pay?.status==='sbp_required'||tr||S.payMethod==='sbp') {
     const url = pay?.payload?.url||tr?.screen?.actions?.[0]?.url||'';
     S.sbpUrl = url;
     $('s-ico').textContent='💳'; $('s-ico').classList.add('pulse');
     $('s-title').textContent='Ожидаем оплату';
-    $('s-desc').textContent=tr?.screen?.text?.text||'Подтвердите платёж в вашем банке';
-    $('sbp-card').style.display='block';
+    $('s-desc').textContent=tr?.screen?.text?.text||'Подтвердите платёж в приложении банка';
+    if (url) $('sbp-card').style.display='block';
     if (oid) startPoll(oid);
   } else {
     $('s-ico').textContent='✅'; $('s-ico').classList.remove('pulse');
@@ -1098,14 +1217,14 @@ function handleOrder(r) {
 }
 
 function openSBP() {
-  if (!S.sbpUrl) return;
+  if (!S.sbpUrl) { showToast('Ссылка для оплаты недоступна'); return; }
   tg ? tg.openLink(S.sbpUrl) : window.open(S.sbpUrl,'_blank');
 }
 
 function startPoll(oid) {
   if (S.pollTimer) clearInterval(S.pollTimer);
   S.pollTimer = setInterval(()=>pollOrder(oid), 3000);
-  setTimeout(()=>clearInterval(S.pollTimer), 600000);
+  setTimeout(()=>{ if(S.pollTimer) clearInterval(S.pollTimer); }, 600000);
 }
 
 async function pollOrder(oid) {
@@ -1114,17 +1233,17 @@ async function pollOrder(oid) {
     const ps = r?.order?.payment?.status||r?.payment_status||'';
     const os = r?.order?.order?.status||r?.order_status||'';
     if (ps==='paid'||os==='confirmed'||os==='cooking'||os==='delivering') {
-      clearInterval(S.pollTimer);
+      clearInterval(S.pollTimer); S.pollTimer=null;
       $('s-ico').textContent='✅'; $('s-ico').classList.remove('pulse');
       $('s-title').textContent='Оплата прошла!';
       $('s-desc').textContent='Ресторан принял заказ';
       $('sbp-card').style.display='none';
       S.cart=[]; updateFab();
     } else if (ps==='failed'||os==='cancelled') {
-      clearInterval(S.pollTimer);
+      clearInterval(S.pollTimer); S.pollTimer=null;
       $('s-ico').textContent='❌'; $('s-ico').classList.remove('pulse');
       $('s-title').textContent='Оплата не прошла';
-      $('s-desc').textContent='Попробуйте другой способ';
+      $('s-desc').textContent='Попробуйте другой способ оплаты';
     }
   } catch(e){}
 }
@@ -1156,14 +1275,16 @@ function renderOrder(o) {
   const totalR= total>5000?total/100:total;
   const status= o.status||o.order_status||'';
   const statMap = {
-    delivered:['done','Доставлен'],
-    completed:['done','Выполнен'],
-    cancelled:['wait','Отменён'],
-    delivering:['del','Везут'],
-    cooking:['del','Готовится'],
-    confirmed:['del','Принят'],
+    delivered:['done','Доставлен'], completed:['done','Выполнен'],
+    cancelled:['wait','Отменён'], delivering:['del','Везут'],
+    cooking:['del','Готовится'], confirmed:['del','Принят'],
   };
   const [cls, label] = statMap[status]||['wait', status||'В обработке'];
+  const safeO = encodeURIComponent(JSON.stringify({
+    place_slug: o.place_slug||o.place?.slug||'',
+    place_name: rest,
+    items: (o.items||[]).map(i=>({id:i.id||i.item_id||'',name:i.name||'',price:i.price||0,qty:i.quantity||1}))
+  }));
   return `<div class="ord-card">
     <div class="ord-head">
       <div>
@@ -1177,62 +1298,125 @@ function renderOrder(o) {
       <div class="ord-footer">
         <span class="ord-price">${fmtR(totalR)}</span>
       </div>
-      <button class="ord-repeat" onclick="repeatOrder(${JSON.stringify(JSON.stringify(o))})">Повторить заказ</button>
+      <button class="ord-repeat" onclick="repeatOrder('${safeO}')">Повторить заказ</button>
     </div>
   </div>`;
 }
 
-async function repeatOrder(strData) {
-  const o = JSON.parse(strData);
-  const slug = o.place_slug||o.place?.slug||'';
-  if (!slug) { showToast('Нет данных о ресторане'); return; }
-  const items = o.items||o.products||[];
-  if (!items.length) { showToast('Нет товаров для повтора'); return; }
-  S.restaurant = {slug, name: o.place_name||o.place?.name||'Ресторан'};
-  S.cart = items.map(it=>({ item:{id:it.id||it.item_id||'',name:it.name||it.title||'',price:it.price||0}, qty:it.quantity||it.qty||1 }));
-  updateFab();
-  nav('cart');
-  showToast('Заказ добавлен в корзину');
+function repeatOrder(encoded) {
+  try {
+    const o = JSON.parse(decodeURIComponent(encoded));
+    if (!o.place_slug) { showToast('Нет данных о ресторане'); return; }
+    if (!o.items?.length) { showToast('Нет товаров для повтора'); return; }
+    S.restaurant = {slug: o.place_slug, name: o.place_name||'Ресторан'};
+    S.cart = o.items.map(it=>({
+      item: {id:it.id, name:it.name, price:it.price, priceR: it.price>500?it.price/100:it.price},
+      qty: it.qty||1
+    }));
+    updateFab();
+    nav('cart');
+    showToast('Заказ добавлен в корзину');
+  } catch(e) { showToast('Ошибка'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADDRESSES
+// ═══════════════════════════════════════════════════════════════
+async function loadAddresses() {
+  $('addresses-content').innerHTML = '<div class="loader"><div class="spin"></div><div class="loader-t">Загружаем...</div></div>';
+  try {
+    const d = await api('api/v2/user/addresses');
+    const addrs = d?.addresses||d?.data||[];
+    if (!addrs.length && S.address) {
+      // Показываем текущий введённый адрес
+      $('addresses-content').innerHTML = `<div class="ord-list page">
+        <div class="ord-card">
+          <div class="ord-head"><div><div class="ord-rest">Текущий адрес</div><div class="ord-date">${S.address.full_text||S.address.short_text||''}</div></div></div>
+          <div class="ord-body"><button class="ord-repeat" onclick="nav('address','addresses')">Изменить адрес</button></div>
+        </div>
+      </div>`;
+      return;
+    }
+    if (!addrs.length) {
+      $('addresses-content').innerHTML = '<div class="empty"><div class="empty-ico">📍</div>Нет сохранённых адресов</div>';
+      return;
+    }
+    $('addresses-content').innerHTML = `<div class="ord-list page">${addrs.map(a=>{
+      const txt = a.full_text||a.short_text||a.name||a.address||'Адрес';
+      return `<div class="ord-card" onclick="useAddress(${JSON.stringify(JSON.stringify(a))})">
+        <div class="ord-head"><div><div class="ord-rest">${txt}</div>${a.entrance?`<div class="ord-date">Подъезд ${a.entrance}${a.floor?`, этаж ${a.floor}`:''}</div>`:''}</div>
+        <svg width="7" height="12" fill="none"><path d="M1 1l5 5-5 5" stroke="#9E9B98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>`;
+    }).join('')}</div>`;
+  } catch(e) {
+    $('addresses-content').innerHTML = '<div class="empty"><div class="empty-ico">📍</div>Нет сохранённых адресов</div>';
+  }
+}
+
+function useAddress(strData) {
+  try {
+    const a = JSON.parse(strData);
+    S.address = {
+      full_text: a.full_text||a.name||'',
+      short_text: a.short_text||a.name||'',
+      city: a.city||'',
+      street: a.street||'',
+      house: a.house||'',
+      lat: a.lat||a.location?.latitude||55.7558,
+      lon: a.lon||a.location?.longitude||37.6176,
+      entrance: a.entrance||'',
+      floor: a.floor||'',
+      flat: a.flat||a.office||'',
+      doorcode: a.doorcode||'',
+      areas: a.areas||[],
+      uri: a.uri||''
+    };
+    const disp = S.address.short_text||S.address.full_text;
+    $('addr-top').textContent = disp;
+    $('addr-cart').textContent = disp;
+    showToast('Адрес выбран ✓');
+    nav('catalog');
+    _rLoaded = false; // перегружаем каталог с новым адресом
+  } catch(e) {}
 }
 
 // ═══════════════════════════════════════════════════════════════
 // PROFILE
 // ═══════════════════════════════════════════════════════════════
 async function loadProfile() {
-  // Базовые данные из URL
   const tgUser = tg?.initDataUnsafe?.user;
   let name = tgUser?.first_name || '';
   let uid  = '';
 
+  // Используем api/v2/user/info — он не требует client_id whitelist
   try {
-    const d = await api('eats/v1/launch/v2/native', {method:'POST', headers:{'Content-Type':'application/json'}, body:{experiments:{}}});
-    const p = d?.profile||{};
-    name = p.name||p.display_name||p.first_name||name;
-    uid  = String(p.passport_uid||p.uid||'');
-    S.profile = p;
+    const d = await api('api/v2/user/info');
+    if (d && !d.error) {
+      name = d.name||d.display_name||d.first_name||name;
+      uid  = String(d.passport_uid||d.uid||'');
+    }
   } catch(e){}
 
-  if (!name) { try { const d2=await api('api/v2/user/info'); name=d2.name||d2.display_name||name; uid=String(d2.passport_uid||d2.uid||uid); } catch(e){} }
+  // Фоллбэк на eats/v1/user/v1/user-info
+  if (!name) {
+    try {
+      const d2 = await api('eats/v1/user/v1/user-info');
+      const p = d2?.user||d2;
+      name = p?.name||p?.display_name||p?.first_name||name;
+      uid  = String(p?.passport_uid||p?.uid||uid);
+    } catch(e){}
+  }
 
   const initials = name ? name[0].toUpperCase() : '?';
-  $('prf-ava').textContent   = initials;
-  $('prf-name').textContent  = name||'Пользователь';
-  $('prf-uid').textContent   = uid ? `UID: ${uid}` : '';
+  $('prf-ava').textContent  = initials;
+  $('prf-name').textContent = name||'Пользователь';
+  $('prf-uid').textContent  = uid ? `UID: ${uid}` : '';
 
   const badges = [];
-  if (PLUS_TOKEN) badges.push('<span class="prf-badge b">⭐ Плюс</span>');
-  if (BANK_TOKEN) badges.push('<span class="prf-badge g">💳 Банк</span>');
+  if (PLUS_TOKEN) badges.push('<span class="prf-badge b">⭐ Яндекс Плюс</span>');
+  if (BANK_TOKEN) badges.push('<span class="prf-badge g">💳 Яндекс Банк</span>');
   $('prf-badges').innerHTML = badges.join('');
-  $('plus-badge').textContent = PLUS_TOKEN ? '✅' : '—';
-  $('bank-badge').textContent = BANK_TOKEN ? '✅' : '—';
   $('hdr-name').textContent = name ? name.split(' ')[0] : '';
-}
-
-function showLoyalty() {
-  showToast(PLUS_TOKEN ? 'Яндекс Плюс подключён ✅' : 'Яндекс Плюс не подключён');
-}
-function showBankInfo() {
-  showToast(BANK_TOKEN ? 'Яндекс Банк подключён ✅' : 'Яндекс Банк не подключён');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1242,37 +1426,50 @@ let _sugTimer=null, _ymInited=false;
 
 function initAddr() {
   if (S.address) {
-    $('addr-in').value        = S.address.short_text||S.address.full_text||'';
-    $('f-entr').value         = S.address.entrance||'';
-    $('f-floor').value        = S.address.floor||'';
-    $('f-flat').value         = S.address.flat||'';
-    $('f-door').value         = S.address.doorcode||'';
-    $('f-acmt').value         = S.address.comment||'';
+    $('addr-in').value   = S.address.short_text||S.address.full_text||'';
+    $('f-entr').value    = S.address.entrance||'';
+    $('f-floor').value   = S.address.floor||'';
+    $('f-flat').value    = S.address.flat||'';
+    $('f-door').value    = S.address.doorcode||'';
+    $('f-acmt').value    = S.address.comment||'';
   }
   if (!_ymInited) { _ymInited=true; loadYmap(); }
   else if (S.ymapObj && S.address) setPin(S.address.lat, S.address.lon);
 }
 
 function loadYmap() {
+  // Яндекс Карты через прокси не нужны — они работают из браузера
+  // Но API key нужен для геокодирования через наш прокси
   const s = document.createElement('script');
   s.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=84a7e8e1-6a86-4b9d-b6db-b7c0dcb9c8e1';
-  s.onload = () => ymaps.ready(() => {
-    const lat=S.address?.lat||S.lat||55.7558, lon=S.address?.lon||S.lon||37.6176;
-    S.ymapObj = new ymaps.Map('ymap',{center:[lat,lon],zoom:16,controls:['zoomControl']});
-    S.ymapPin = new ymaps.Placemark([lat,lon],{},{preset:'islands#redDotIcon'});
-    S.ymapObj.geoObjects.add(S.ymapPin);
-    S.ymapReady = true;
-    S.ymapObj.events.add('click', e => {
-      const [la,lo]=e.get('coords'); setPin(la,lo); revGeo(la,lo);
+  s.onerror = () => {
+    // Если карта не загрузилась — не критично
+    console.log('[MAP] Яндекс Карты не загрузились');
+  };
+  s.onload = () => {
+    if (!window.ymaps) return;
+    ymaps.ready(() => {
+      try {
+        const lat=S.address?.lat||S.lat||55.7558, lon=S.address?.lon||S.lon||37.6176;
+        S.ymapObj = new ymaps.Map('ymap',{center:[lat,lon],zoom:16,controls:['zoomControl']});
+        S.ymapPin = new ymaps.Placemark([lat,lon],{},{preset:'islands#redDotIcon'});
+        S.ymapObj.geoObjects.add(S.ymapPin);
+        S.ymapReady = true;
+        S.ymapObj.events.add('click', e => {
+          const [la,lo]=e.get('coords'); setPin(la,lo); revGeo(la,lo);
+        });
+      } catch(e) { console.log('[MAP ERR]', e); }
     });
-  });
+  };
   document.head.appendChild(s);
 }
 
 function setPin(lat, lon) {
   if (!S.ymapObj) return;
-  S.ymapPin.geometry.setCoordinates([lat,lon]);
-  S.ymapObj.setCenter([lat,lon],16,{duration:300});
+  try {
+    S.ymapPin.geometry.setCoordinates([lat,lon]);
+    S.ymapObj.setCenter([lat,lon],16,{duration:300});
+  } catch(e){}
 }
 
 async function revGeo(lat, lon) {
@@ -1282,71 +1479,110 @@ async function revGeo(lat, lon) {
     if (!go) return;
     const txt = go.metaDataProperty?.GeocoderMetaData?.text||'';
     $('addr-in').value = txt;
-    parseGeoObj(go, txt);
+    parseGeoObj(go, txt, lat, lon);
   } catch(e){}
 }
 
-function parseGeoObj(go, fullText) {
+function parseGeoObj(go, fullText, fallLat, fallLon) {
   const addr = go.metaDataProperty?.GeocoderMetaData?.Address||{};
   const comps = addr.Components||[];
   const get = kind => comps.find(c=>c.kind===kind)?.name||'';
   const short = [get('street'),get('house')].filter(Boolean).join(', ');
-  let lat=S.address?.lat||55.7558, lon=S.address?.lon||37.6176;
+  let lat = fallLat||S.address?.lat||55.7558;
+  let lon = fallLon||S.address?.lon||37.6176;
   const pos = go.Point?.pos;
   if (pos) { const p=pos.split(' '); lon=parseFloat(p[0]); lat=parseFloat(p[1]); }
-  S.address = { ...S.address, full_text:fullText, short_text:short||fullText, city:get('locality')||get('province'), street:get('street'), house:get('house'), lat, lon, areas:[get('province')||get('country')].filter(Boolean), uri:go.uri||'' };
+  S.address = {
+    ...S.address,
+    full_text:  fullText,
+    short_text: short||fullText,
+    city:       get('locality')||get('province'),
+    street:     get('street'),
+    house:      get('house'),
+    lat, lon,
+    areas:      [get('province')||get('country')].filter(Boolean),
+    uri:        go.uri||go.metaDataProperty?.GeocoderMetaData?.AddressDetails?.Country?.AddressLine||''
+  };
 }
 
 function onAddrInput(val) {
   clearTimeout(_sugTimer);
-  if (!val||val.length<2) { $('sug-list').innerHTML=''; return; }
-  _sugTimer = setTimeout(()=>fetchSug(val), 320);
+  $('sug-list').innerHTML = '';
+  if (!val||val.length<2) return;
+  _sugTimer = setTimeout(()=>fetchSug(val), 400);
 }
 
 async function fetchSug(text) {
   try {
     const d = await suggest(text);
+    // Яндекс Suggest API возвращает results или suggest
     const items = d?.results||d?.suggest||d?.items||[];
     if (!items.length) { $('sug-list').innerHTML=''; return; }
-    $('sug-list').innerHTML = items.map(it => {
-      const t=it?.title?.text||it?.name||'', s=it?.subtitle?.text||it?.description||'';
-      return `<div class="sug" onclick="selSug(${JSON.stringify(JSON.stringify({t,s,uri:it?.uri||''}))})">
+    $('sug-list').innerHTML = items.slice(0,8).map(it => {
+      const t = it?.title?.text||it?.name||it?.text||'';
+      const s = it?.subtitle?.text||it?.description||it?.displayName||'';
+      const uri = it?.uri||it?.tags?.find?.(t=>t.startsWith('ymapsbm:'))||'';
+      const enc = encodeURIComponent(JSON.stringify({t,s,uri}));
+      return `<div class="sug" onclick="selSug('${enc}')">
         <svg style="flex-shrink:0;margin-top:2px" width="16" height="20" fill="none"><path d="M8 0C4.7 0 2 2.7 2 6c0 4.5 6 11 6 11S14 10.5 14 6C14 2.7 11.3 0 8 0zm0 8.5A2.5 2.5 0 1 1 8 3.5a2.5 2.5 0 0 1 0 5z" fill="#9E9B98"/></svg>
         <div><div class="sug-t">${t}</div>${s?`<div class="sug-s">${s}</div>`:''}</div>
       </div>`;
     }).join('');
-  } catch(e){}
+  } catch(e){ console.log('[SUG ERR]', e); }
 }
 
-async function selSug(strData) {
-  const {t,s,uri} = JSON.parse(strData);
-  const full = [t,s].filter(Boolean).join(', ');
-  $('addr-in').value = t;
-  $('sug-list').innerHTML = '';
+async function selSug(encoded) {
   try {
+    const {t, s, uri} = JSON.parse(decodeURIComponent(encoded));
+    const full = [t, s].filter(Boolean).join(', ');
+    $('addr-in').value = t;
+    $('sug-list').innerHTML = '';
+
+    // Геокодируем выбранный адрес
     const r = await geocode(full);
     const go = r?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject;
     if (go) {
-      parseGeoObj(go, full);
+      parseGeoObj(go, full, null, null);
       if (S.ymapReady && S.address) setPin(S.address.lat, S.address.lon);
     } else {
-      S.address = {...S.address, full_text:full, short_text:t, uri};
+      // Если геокодирование не сработало — сохраняем что есть
+      if (!S.address) S.address = {};
+      S.address.full_text  = full;
+      S.address.short_text = t;
+      S.address.uri        = uri;
     }
-  } catch(e) { S.address={...S.address, full_text:full, short_text:t, uri}; }
+  } catch(e) { console.log('[SEL SUG ERR]', e); }
 }
 
 function confirmAddr() {
-  if (!S.address) { showToast('Введите адрес'); return; }
+  if (!S.address && !$('addr-in').value) { showToast('Введите адрес'); return; }
+
+  // Если адрес введён вручную но не геокодирован
+  if (!S.address) {
+    S.address = {
+      full_text: $('addr-in').value,
+      short_text: $('addr-in').value,
+      lat: S.lat||55.7558,
+      lon: S.lon||37.6176,
+      areas: []
+    };
+  }
+
   S.address.entrance = $('f-entr').value;
   S.address.floor    = $('f-floor').value;
   S.address.flat     = $('f-flat').value;
   S.address.doorcode = $('f-door').value;
   S.address.comment  = $('f-acmt').value;
+
   const disp = S.address.short_text||S.address.full_text||'';
-  $('addr-top').textContent   = disp;
-  $('addr-cart').textContent  = disp;
+  $('addr-top').textContent  = disp;
+  $('addr-cart').textContent = disp;
+
+  // Сбрасываем кеш каталога при смене адреса
+  _rLoaded = false;
+
   showToast('Адрес сохранён ✓');
-  nav(S.prevScreen==='address'?'catalog':S.prevScreen);
+  nav(S.prevScreen==='address' ? 'catalog' : S.prevScreen);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1358,7 +1594,7 @@ if (!TOKEN && !PROXY) {
   $('r-list').innerHTML = '<div class="err-box">Откройте приложение через Telegram-бота</div>';
 } else {
   loadCatalog();
-  loadProfile(); // загружаем профиль в фоне
+  loadProfile();
 }
 </script>
 </body>
