@@ -1527,47 +1527,42 @@ async function suggestAddr(text) {
   const el = document.getElementById('addrRes');
   el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
 
-  // Реальный эндпоинт из снифа приложения
-  const bbox = [LON-0.2, LAT-0.15, LON+0.2, LAT+0.15];
-  const d = await POST('/eats/v1/persuggest/v1/suggest', {
-    action: 'user_input',
-    type: 'a',
-    part: text,
-    state: {
-      current_mode: 'eats',
-      location: [LON, LAT],
-      bbox
-    }
-  });
-
-  console.log('[SUGGEST persuggest]', JSON.stringify(d)?.slice(0,500));
-
   const geoBtn = `<div class="addr-ri" onclick="useGeo()"><div class="ari-ic">🎯</div><div><div class="ari-main">Моё местоположение</div><div class="ari-sub">Определить автоматически</div></div></div>`;
 
-  const items = d?.results || d?.suggests || d?.items || [];
+  // Яндекс Maps Suggest API через прокси
+  let items = [];
+  try {
+    const r = await fetch(PX+'/proxy-suggest', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text, lat:LAT, lon:LON})
+    });
+    if (r.ok) {
+      const d = await r.json().catch(()=>null);
+      console.log('[SUGGEST]', JSON.stringify(d)?.slice(0,400));
+      // Яндекс Maps suggest возвращает {results:[{title:{text}, subtitle:{text}, tags[], uri, distance}]}
+      items = d?.results || [];
+    } else {
+      console.warn('[SUGGEST ERR]', r.status, await r.text().catch(()=>''));
+    }
+  } catch(e) {
+    console.error('[SUGGEST]', e);
+  }
 
   if (!items.length) {
     el.innerHTML = geoBtn +
-      `<div style="text-align:center;padding:24px 16px;color:var(--gt)">Адрес не найден по запросу "<b>${text}</b>"<br><br>
-       <span style="font-size:12px">Попробуйте: "Москва Тверская 1"</span></div>` +
+      `<div style="text-align:center;padding:16px;color:var(--gt);font-size:13px">Ничего не найдено по "<b>${text}</b>"</div>` +
       CITIES.slice(0,5).map(c=>`<div class="addr-ri" onclick="setCity('${c.n}',${c.lat},${c.lon})"><div class="ari-ic">🏙️</div><div><div class="ari-main">${c.n}</div></div></div>`).join('');
     return;
   }
 
   el.innerHTML = geoBtn + items.slice(0,12).map(s=>{
-    const title   = s.title?.text || s.short_text || s.text || '';
-    const sub     = s.subtitle?.text || s.text || '';
-    // persuggest возвращает position: [lon, lat]
-    const pos     = s.position || [];
-    const lat     = parseFloat(pos[1]||s.point?.lat||s.coordinates?.latitude||0);
-    const lon     = parseFloat(pos[0]||s.point?.lon||s.coordinates?.longitude||0);
-    const city    = s.city   || '';
-    const street  = s.street || '';
-    const house   = s.house  || '';
-    const country = s.country|| 'Россия';
-    const areas   = s.areas  || [];
-    const uri     = s.uri    || s.log || '';
-    const ad = {title, sub, lat, lon, city, street, house, country, areas, uri, log: s.log||''};
+    // Яндекс Maps suggest формат
+    const title  = s.title?.text  || s.name || '';
+    const sub    = s.subtitle?.text || s.description || '';
+    const uri    = s.uri || '';
+    // координаты получим при выборе через geocode
+    const ad = {title, sub, uri, lat:0, lon:0, needGeocode:true};
     const adStr = JSON.stringify(ad).replace(/'/g,"&#39;");
     return `<div class="addr-ri" onclick='selAddr(${adStr})'>
       <div class="ari-ic">📍</div>
@@ -1584,10 +1579,9 @@ function selAddr(data) {
   const lat = parseFloat(data.lat||data.latitude||0);
   const lon = parseFloat(data.lon||data.longitude||0);
 
-  // Если нет координат — finalsuggest для уточнения
-  if (!lat || !lon) {
-    if (data.log) finalizeAddr(data);
-    else geocodeAndSet(data.title||data.sub||'');
+  // Если нет координат или needGeocode — геокодируем
+  if (!lat || !lon || data.needGeocode) {
+    geocodeAndSet(data.title||data.sub||'', data.uri||'');
     return;
   }
 
@@ -1634,29 +1628,46 @@ async function finalizeAddr(data) {
   }
 }
 
-async function geocodeAndSet(text) {
+async function geocodeAndSet(text, uri='') {
   toast('⏳ Определяю координаты...');
-  const d = await POST('/eats/v1/eats-addresses/v1/geocode', {
-    text,
-    locale: 'ru'
-  });
-  console.log('[GEOCODE]', d);
-  if (d?.address || d?.point) {
-    const pt = d.point||d.location||{};
-    LAT = parseFloat(pt.lat||pt.latitude||LAT);
-    LON = parseFloat(pt.lon||pt.longitude||LON);
-    const a = d.address||{};
-    ADDR = {
-      short:  a.short_text||a.title||text,
-      full:   a.full_text||a.short_text||text,
-      city:   a.city||'',
-      street: a.street||'',
-      house:  a.house||'',
-      country:'Россия'
-    };
-  } else {
-    ADDR = {short:text,full:text,city:'',street:'',house:'',country:'Россия'};
-  }
+
+  // Используем Яндекс Geocoder через наш /proxy-geocode
+  try {
+    const r = await fetch(PX+'/proxy-geocode', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text: uri||text})
+    });
+    if (r.ok) {
+      const d = await r.json().catch(()=>null);
+      console.log('[GEOCODE]', JSON.stringify(d)?.slice(0,400));
+      // Яндекс geocode формат: response.GeoObjectCollection.featureMember[0].GeoObject
+      const geoObj = d?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject;
+      if (geoObj) {
+        const pos = (geoObj.Point?.pos || '').split(' ');
+        LON = parseFloat(pos[0]) || LON;
+        LAT = parseFloat(pos[1]) || LAT;
+        const meta = geoObj.metaDataProperty?.GeocoderMetaData;
+        const addr = meta?.Address || {};
+        const comp = addr.Components || [];
+        const get  = (kind) => comp.find(c=>c.kind===kind)?.name || '';
+        ADDR = {
+          short:   geoObj.name || text,
+          full:    meta?.text  || geoObj.name || text,
+          city:    get('locality') || get('area') || '',
+          street:  get('street')   || '',
+          house:   get('house')    || '',
+          country: get('country')  || 'Россия',
+          areas:   [],
+          uri:     uri || ''
+        };
+        applyAddr(); return;
+      }
+    }
+  } catch(e) { console.warn('[GEOCODE ERR]', e); }
+
+  // Fallback: просто устанавливаем название без координат
+  ADDR = {short:text, full:text, city:'', street:'', house:'', country:'Россия', areas:[]};
   applyAddr();
 }
 
@@ -1680,13 +1691,35 @@ async function useGeo() {
   toast('⏳ Определяю...');
   navigator.geolocation.getCurrentPosition(async pos=>{
     LAT = pos.coords.latitude; LON = pos.coords.longitude;
-    const d = await POST('/eats/v1/eats-addresses/v1/geocode', {
-      point: {lat:LAT, lon:LON},
-      locale: 'ru'
-    });
-    const a = d?.address||{};
-    const short = a.short_text||a.title||`${LAT.toFixed(4)}, ${LON.toFixed(4)}`;
-    ADDR = {short, full:a.full_text||short, city:a.city||'', street:a.street||'', house:a.house||'', country:'Россия'};
+    // Обратный геокод через Яндекс Maps
+    try {
+      const r2 = await fetch(PX+'/proxy-geocode', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({text: `${LON},${LAT}`})
+      });
+      if (r2.ok) {
+        const d2 = await r2.json().catch(()=>null);
+        const geoObj = d2?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject;
+        if (geoObj) {
+          const meta = geoObj.metaDataProperty?.GeocoderMetaData;
+          const addr = meta?.Address || {};
+          const comp = addr.Components || [];
+          const get  = (kind) => comp.find(c=>c.kind===kind)?.name || '';
+          ADDR = {
+            short:   geoObj.name || `${LAT.toFixed(4)}, ${LON.toFixed(4)}`,
+            full:    meta?.text  || geoObj.name || '',
+            city:    get('locality') || '',
+            street:  get('street')   || '',
+            house:   get('house')    || '',
+            country: get('country')  || 'Россия',
+            areas:   []
+          };
+          applyAddr(); return;
+        }
+      }
+    } catch(e2) { console.warn('[REVGEOCODE ERR]', e2); }
+    ADDR = {short:`${LAT.toFixed(4)}, ${LON.toFixed(4)}`, full:'', city:'', street:'', house:'', country:'Россия', areas:[]};
     applyAddr();
   }, ()=>toast('❌ Нет доступа к геолокации'));
 }
