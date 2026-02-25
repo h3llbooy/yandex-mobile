@@ -430,9 +430,9 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'SF Pro Display'
       <div class="co-sec">
         <div class="co-title">💳 Оплата</div>
         <div class="pay-opts" id="payOpts">
-          <div class="pay-opt sel" onclick="selPay(this,'sbp','sbp')"><div class="po-i">⚡</div><div class="po-n">СБП</div></div>
-          <div class="pay-opt" onclick="selPay(this,'card','card')"><div class="po-i">💳</div><div class="po-n">Карта</div></div>
-          <div class="pay-opt" onclick="selPay(this,'cash','cash')"><div class="po-i">💵</div><div class="po-n">Наличные</div></div>
+          <div class="pay-opt sel" onclick="selPay(this,'sbp_qr','sbp','sbp_qr')"><div class="po-i">⚡</div><div class="po-n">СБП</div></div>
+          <div class="pay-opt" onclick="selPay(this,'card','card','')"><div class="po-i">💳</div><div class="po-n">Карта</div></div>
+          <div class="pay-opt" onclick="selPay(this,'cash','cash','')"><div class="po-i">💵</div><div class="po-n">Наличные</div></div>
         </div>
       </div>
       <div class="co-sec">
@@ -443,7 +443,11 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'SF Pro Display'
         <div class="co-title">🧾 Состав</div>
         <div id="coItems"></div>
         <div class="sdiv"></div>
-        <div class="sr st-row" style="margin-top:10px"><span class="sl">Итого</span><span class="sv" id="coTotal">0 ₽</span></div>
+        <div class="sr"><span class="sl">Товары</span><span class="sv" id="coSub">0 ₽</span></div>
+        <div class="sr"><span class="sl">Доставка</span><span class="sv sfree" id="coDel">Бесплатно</span></div>
+        <div class="sr"><span class="sl">Сервисный сбор</span><span class="sv" id="coFee">0 ₽</span></div>
+        <div class="sdiv"></div>
+        <div class="sr st-row"><span class="sl">Итого</span><span class="sv" id="coTotal">0 ₽</span></div>
       </div>
       <button class="place-btn" id="placeBtn" onclick="placeOrder()">Заказать · <span id="placeBtnT">0 ₽</span></button>
     </div>
@@ -453,8 +457,14 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'SF Pro Display'
       <div class="ord-wrap">
         <div class="ord-ico">✅</div>
         <div class="ord-t">Заказ принят!</div>
-        <div class="ord-s">Ресторан начал готовить</div>
+        <div class="ord-s" id="trackStatus">Ресторан начал готовить</div>
+        <div style="font-size:13px;color:var(--gt);margin-bottom:16px" id="trackDesc"></div>
         <div class="ord-nr"><div class="onl">Номер заказа</div><div class="onv" id="orderNr">—</div></div>
+        <!-- СБП блок -->
+        <div id="ordSbpWrap" style="display:none;background:#e8f8ee;border-radius:16px;padding:16px;margin-bottom:16px;text-align:center">
+          <div style="font-size:14px;font-weight:700;color:var(--gn);margin-bottom:10px">Оплата через СБП</div>
+          <a id="ordSbpLink" href="#" target="_blank" style="display:inline-block;background:var(--gn);color:#fff;border-radius:12px;padding:12px 24px;font-size:15px;font-weight:700;text-decoration:none">📲 Оплатить</a>
+        </div>
         <div class="track-box">
           <div class="ts"><div class="ts-dot td-done" id="s1">✓</div><div class="ts-line"></div><div class="ts-body"><div class="ts-lbl">Заказ принят</div><div class="ts-tm" id="s1t"></div></div></div>
           <div class="ts"><div class="ts-dot td-act" id="s2">🍳</div><div class="ts-line"></div><div class="ts-body"><div class="ts-lbl">Ресторан готовит</div><div class="ts-tm">~20 мин</div></div></div>
@@ -608,14 +618,16 @@ function iurl(uri,w,h) {
 
 function addrObj() {
   return {
-    location:{longitude:LON, latitude:LAT},
-    house:ADDR.house||'',
-    short_text:ADDR.short,
-    full_text:ADDR.full,
-    city:ADDR.city||'',
-    street:ADDR.street||'',
-    country:ADDR.country||'Россия',
-    type:{id:0}
+    location:   {longitude:LON, latitude:LAT},
+    house:      ADDR.house   || '',
+    short_text: ADDR.short,
+    full_text:  ADDR.full    || ADDR.short,
+    city:       ADDR.city    || '',
+    street:     ADDR.street  || '',
+    country:    ADDR.country || 'Россия',
+    areas:      ADDR.areas   || [],
+    districts:  [],
+    ...(ADDR.uri ? {uri: ADDR.uri} : {})
   };
 }
 
@@ -1110,28 +1122,34 @@ function renderCart() {
   document.getElementById('coBtnT').textContent = total+' ₽';
 }
 
-// ── Промокод через API ──
+// ── Промокод через API — точный формат из снифа ──
 async function applyPromo() {
   const code = document.getElementById('promoInp').value.trim().toUpperCase();
   if (!code) { toast('❌ Введите промокод'); return; }
   toast('⏳ Проверяю...');
 
-  const d = await POST(`/api/v2/cart/promocode?shippingType=${shipType}&placeSlug=${cart.slug||''}`, {
-    code,
-    place_slug: cart.slug||'',
-    location: {latitude:LAT, longitude:LON}
+  // Из снифа: /api/v2/cart/promocode?placeSlug=...&soft_multi=true&shippingType=delivery&offer_identity=...
+  const offerQ = cartServerData?._offer_identity ? `&offer_identity=${cartServerData._offer_identity}` : '';
+  const d = await POST(`/api/v2/cart/promocode?placeSlug=${cart.slug||''}&soft_multi=true&shippingType=${shipType}${offerQ}`, {
+    code
   });
 
-  console.log('[PROMO]', d);
+  console.log('[PROMO]', JSON.stringify(d));
 
-  if (d && (d.discount||d.applied||d.success||d.status==='ok')) {
-    promoDiscount = parseInt(d.discount||d.discount_value||d.amount||0);
+  if (d?.status === 'error' || d?.code) {
+    const msg = d.err || d.message || d.error || 'Промокод не применён';
+    toast('❌ '+msg);
+    return;
+  }
+
+  if (d && !d.status) {
+    // Успешный ответ — нет status error
+    promoDiscount = parseInt(d.discount||d.discount_value||d.amount||d.value||0);
     promoCode = code;
     toast('✅ Промокод применён!');
     renderCart();
   } else {
-    const msg = d?.message || d?.error || 'Промокод не найден';
-    toast('❌ '+msg);
+    toast('❌ Промокод не найден');
   }
 }
 
@@ -1140,16 +1158,47 @@ async function goCheckout() {
   if (!cart.items?.length) return;
   toast('⏳ Загрузка...');
 
-  // Загружаем данные корзины с сервера
   if (cart.slug) {
-    const d = await POST('/api/v2/cart/go-checkout', {
+    const d = await POST(`/api/v2/cart/go-checkout?longitude=${LON}&latitude=${LAT}`, {
+      address:   addrObj(),
       place_slug: cart.slug,
-      address: addrObj()
+      payment:   {recently_link_cards: false}
     });
-    if (d) cartServerData = d;
+    if (d) {
+      cartServerData = d;
+      // Извлекаем offer_identity из первого offer
+      if (d.offers?.[0]?.offer_identity) {
+        cartServerData._offer_identity = d.offers[0].offer_identity;
+      }
+      // Извлекаем методы оплаты из offers
+      if (d.offers?.length) {
+        cartServerData._payment_offers = d.offers.map(o=>({
+          offer_identity: o.offer_identity,
+          id:    o.possiblePayment?.id,
+          title: o.possiblePayment?.title || o.possiblePayment?.id,
+          type:  guessPayType(o.possiblePayment?.id || ''),
+          cost:  o.possiblePayment?.costForCustomer?.value || ''
+        }));
+      }
+      // Доставка из cross_check
+      const items = d.offers?.[0]?.possiblePayment?.cross_check?.items || [];
+      const delRow = items.find(i=>i.name?.value?.includes?.('Тариф доставки') || i.name?.value?.includes?.('Доставка'));
+      if (delRow?.amount?.value) {
+        const delAmt = parseInt(delRow.amount.value.replace(/\D/g,'')) || 0;
+        cartServerData._delivery = delAmt;
+      }
+    }
   }
 
   goTo('checkout');
+}
+
+function guessPayType(id) {
+  if (!id) return 'card';
+  if (id.includes('sbp') || id==='sbp_qr') return 'sbp';
+  if (id.includes('cash'))  return 'cash';
+  if (id.includes('card') || id.includes('x'))  return 'card';
+  return 'card';
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1157,8 +1206,10 @@ async function goCheckout() {
 // ══════════════════════════════════════════════════════════
 async function renderCO() {
   const sub = getSubtotal();
-  const fee = Math.round(sub*0.05);
-  const del = cartServerData?.delivery_price||0;
+  const del = cartServerData?._delivery || 0;
+  // Сервисный сбор из go-checkout если есть
+  const feeRow = cartServerData?.offers?.[0]?.possiblePayment?.cross_check?.items?.find(i=>i.name?.value?.includes('Сервис'));
+  const fee = feeRow ? parseInt(feeRow.amount?.value?.replace(/\D/g,'')||0) : Math.round(sub*0.05);
   const total = sub + fee + del - promoDiscount;
 
   document.getElementById('coTotal').textContent = total+' ₽';
@@ -1171,37 +1222,64 @@ async function renderCO() {
       <span class="sv">${ci.p*ci.qty} ₽</span>
     </div>`).join('');
 
+  // Сумма в checkout
+  document.getElementById('coSub').textContent = sub+' ₽';
+  document.getElementById('coFee').textContent = fee+' ₽';
+  document.getElementById('coDel').textContent = del > 0 ? del+' ₽' : 'Бесплатно';
+  document.getElementById('coDel').className = 'sv'+(del===0?' sfree':'');
+
   if (cartServerData) {
     if (cartServerData.address?.short_text)
       document.getElementById('coAddr').textContent = cartServerData.address.short_text;
-    if (cartServerData.delivery_time)
-      document.getElementById('coTime').textContent = '~'+cartServerData.delivery_time+' мин';
 
-    // Методы оплаты с сервера
-    if (cartServerData.payment_methods?.length) {
-      const icons = {sbp:'⚡',card:'💳',cash:'💵',wallet:'👛',applepay:'🍎',googlepay:'G'};
+    // Методы оплаты из offers
+    const payOffers = cartServerData._payment_offers || [];
+    if (payOffers.length) {
+      const icons = {sbp:'⚡',card:'💳',cash:'💵'};
       let first = true;
-      document.getElementById('payOpts').innerHTML = cartServerData.payment_methods.slice(0,4).map(m=>{
-        const t = m.type||'card';
-        const id = m.payment_method_id||m.id||t;
-        const n = m.name||({sbp:'СБП',card:'Карта',cash:'Наличные'}[t]||t);
+      document.getElementById('payOpts').innerHTML = payOffers.slice(0,4).map(m=>{
+        const t   = m.type || 'card';
         const sel = first ? 'sel' : '';
-        if (first) { payId=id; payType=t; payMethodId=m.payment_method_id||m.id||null; first=false; }
-        return `<div class="pay-opt ${sel}" onclick="selPay(this,'${id}','${t}','${m.payment_method_id||m.id||''}')">
-          <div class="po-i">${icons[t]||'💳'}</div><div class="po-n">${n}</div>
+        const lbl = m.title || ({sbp:'СБП',card:'Карта',cash:'Наличные'}[t]||t);
+        if (first) { payId = m.id||t; payType = t; payMethodId = m.id||null; first=false; }
+        return `<div class="pay-opt ${sel}" onclick="selPay(this,'${m.id||t}','${t}','${m.id||''}')">
+          <div class="po-i">${icons[t]||'💳'}</div><div class="po-n">${lbl}</div>
         </div>`;
       }).join('');
+    } else {
+      // Дефолт: СБП + карта
+      renderDefaultPayOpts();
     }
   } else {
-    // Подгружаем данные если ещё нет
+    renderDefaultPayOpts();
     if (cart.slug) {
-      const d = await POST('/api/v2/cart/go-checkout', {
-        place_slug: cart.slug,
-        address: addrObj()
+      const d = await POST(`/api/v2/cart/go-checkout?longitude=${LON}&latitude=${LAT}`, {
+        address: addrObj(), place_slug: cart.slug, payment: {recently_link_cards: false}
       });
-      if (d) { cartServerData = d; renderCO(); }
+      if (d) {
+        cartServerData = d;
+        if (d.offers?.[0]?.offer_identity) cartServerData._offer_identity = d.offers[0].offer_identity;
+        if (d.offers?.length) {
+          cartServerData._payment_offers = d.offers.map(o=>({
+            offer_identity: o.offer_identity,
+            id: o.possiblePayment?.id,
+            title: o.possiblePayment?.title||o.possiblePayment?.id,
+            type: guessPayType(o.possiblePayment?.id||''),
+            cost: o.possiblePayment?.costForCustomer?.value||''
+          }));
+        }
+        renderCO();
+      }
     }
   }
+}
+
+function renderDefaultPayOpts() {
+  document.getElementById('payOpts').innerHTML =
+    `<div class="pay-opt sel" onclick="selPay(this,'sbp_qr','sbp','sbp_qr')"><div class="po-i">⚡</div><div class="po-n">СБП</div></div>
+     <div class="pay-opt" onclick="selPay(this,'card','card','')"><div class="po-i">💳</div><div class="po-n">Карта</div></div>
+     <div class="pay-opt" onclick="selPay(this,'cash','cash','')"><div class="po-i">💵</div><div class="po-n">Наличные</div></div>`;
+  payId = 'sbp_qr'; payType = 'sbp';
 }
 
 function selPay(el, id, type, methodId) {
@@ -1211,7 +1289,7 @@ function selPay(el, id, type, methodId) {
 }
 
 // ══════════════════════════════════════════════════════════
-// ОФОРМЛЕНИЕ ЗАКАЗА — реальный API вызов
+// ОФОРМЛЕНИЕ ЗАКАЗА — точный формат из снифа eda.yandex.ru
 // ══════════════════════════════════════════════════════════
 async function placeOrder() {
   if (!cart.items?.length) return;
@@ -1219,77 +1297,162 @@ async function placeOrder() {
   btn.disabled = true;
   btn.textContent = '⏳ Оформляю...';
 
-  let nr = null;
-
-  if (cart.slug) {
-    // Строим тело запроса в формате Яндекс Еда API
-    const items = cart.items.map(ci=>({
-      id: ci.iid,
-      quantity: ci.qty,
-      ...(ci.optId ? {options:[{id:ci.optId}]} : {})
-    }));
-
-    const paymentMethodId = payType==='sbp' ? 5 : payType==='cash' ? 1 : 2;
-
-    const orderBody = {
-      persons_quantity: 1,
-      comment: document.getElementById('coComment').value||'',
-      place_slug: cart.slug,
-      shipping_type: shipType,
-      address: addrObj(),
-      location: {latitude:LAT, longitude:LON},
-      items,
-      payment: {
-        payment_method_id: paymentMethodId,
-        type: payType,
-        ...(payMethodId ? {id: payMethodId} : {})
-      },
-      ...(promoCode ? {promocode: promoCode} : {})
-    };
-
-    console.log('[ORDER] Sending:', JSON.stringify(orderBody).slice(0,500));
-    const d = await POST('/api/v1/orders', orderBody);
-    console.log('[ORDER] Response:', JSON.stringify(d)?.slice(0,300));
-
-    if (d?.order_nr || d?.id || d?.order_id) {
-      nr = d.order_nr || d.id || d.order_id;
-    } else if (d?.error || d?.message) {
-      toast('❌ '+(d.error||d.message));
-      btn.disabled=false; btn.innerHTML='Заказать · <span id="placeBtnT">'+document.getElementById('coTotal').textContent+'</span>';
-      return;
+  // Если нет cartServerData — получаем go-checkout
+  if (!cartServerData && cart.slug) {
+    const gc = await POST(`/api/v2/cart/go-checkout?longitude=${LON}&latitude=${LAT}`, {
+      address: addrObj(), place_slug: cart.slug, payment: {recently_link_cards: false}
+    });
+    if (gc) {
+      cartServerData = gc;
+      if (gc.offers?.[0]?.offer_identity) cartServerData._offer_identity = gc.offers[0].offer_identity;
     }
   }
 
-  // Если API не вернул номер — генерируем локальный
+  const sub = getSubtotal();
+  const del = cartServerData?._delivery || 0;
+  const fee = Math.round(sub*0.05);
+  const total = sub + fee + del - promoDiscount;
+
+  // payment_method_id числовой: СБП=5, карта=2, наличные=1
+  const pmIdMap = {sbp:5, card:2, cash:1};
+  const pmNumId = pmIdMap[payType] || 5;
+
+  const orderAddr = addrObj();
+
+  // Точный формат из снифа
+  const orderBody = {
+    payment_method_id:      pmNumId,
+    phone:                  '',           // заполнится из профиля если есть
+    change_on:              0,
+    persons_quantity:       1,
+    payment_information:    {
+      type:            payType === 'sbp' ? 'sbp' : payType === 'cash' ? 'cash' : 'card',
+      costForCustomer: String(total)+'.00',
+      id:              payType === 'sbp' ? 'sbp_qr' : (payMethodId || 'card'),
+      currency:        'RUB'
+    },
+    extended_options:       [],
+    payment:                {recently_link_cards: true},
+    place_slug:             cart.slug,
+    address:                orderAddr,
+    plus_subscription_toggle_state: false,
+    request_id:             crypto.randomUUID().replace(/-/g,'') + '.' + crypto.randomUUID().replace(/-/g,''),
+    ...(promoCode ? {promo_code: promoCode} : {}),
+    ...(cartServerData?._offer_identity ? {offer_identity: cartServerData._offer_identity} : {})
+  };
+
+  console.log('[ORDER] Sending:', JSON.stringify(orderBody).slice(0,800));
+
+  let nr = null;
+  let sbpUrl = null;
+  let purchaseToken = null;
+
+  try {
+    const d = await POST('/api/v1/orders', orderBody);
+    console.log('[ORDER] Response:', JSON.stringify(d)?.slice(0,500));
+
+    if (d?.order_nr || d?.id || d?.order_id) {
+      nr = d.order_nr || d.id || d.order_id;
+    } else if (d?.status === 'error' || d?.code) {
+      const msg = d.err || d.message || d.error || JSON.stringify(d).slice(0,100);
+      toast('❌ '+msg);
+      btn.disabled = false;
+      btn.innerHTML = 'Заказать · <span id="placeBtnT">'+total+' ₽</span>';
+      return;
+    } else if (d) {
+      // Может вернуть без явного error
+      nr = d.order_nr || d.id || null;
+    }
+  } catch(e) {
+    console.error('[ORDER ERR]', e);
+  }
+
   if (!nr) {
-    const d = new Date();
-    nr = `${String(d.getDate()).padStart(2,'0')}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getFullYear()).slice(-2)}-${Math.floor(1000000+Math.random()*9000000)}`;
+    const now = new Date();
+    nr = `${String(now.getDate()).padStart(2,'0')}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getFullYear()).slice(-2)}-${Math.floor(1000000+Math.random()*9000000)}`;
   }
 
   clearCart();
   cartServerData = null;
-  trackOrder(nr);
   btn.disabled = false;
   btn.innerHTML = 'Заказать · <span id="placeBtnT">0 ₽</span>';
+
+  // Запускаем tracking
+  trackOrder(nr, sbpUrl, purchaseToken);
 }
 
-function trackOrder(nr) {
+function trackOrder(nr, sbpUrl, purchaseToken) {
   document.getElementById('orderNr').textContent = nr;
   const fmt = d=>d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
   document.getElementById('s1t').textContent = fmt(new Date());
   goTo('order');
+
+  // Если СБП — показываем QR / ссылку
+  if (sbpUrl) {
+    document.getElementById('ordSbpWrap').style.display = 'block';
+    document.getElementById('ordSbpLink').href = sbpUrl;
+    document.getElementById('ordSbpLink').textContent = 'Открыть СБП →';
+  }
+
+  // Polling трекинга через реальный API
+  let trackAttempts = 0;
+  const MAX_ATTEMPTS = 60;
+
+  async function pollTracking() {
+    if (trackAttempts++ > MAX_ATTEMPTS) return;
+    try {
+      const d = await POST('/eats/v1/eats-payments/v1/order/tracking', {order_id: nr});
+      if (!d) { setTimeout(pollTracking, 3000); return; }
+
+      const payment = d.order?.payment;
+      const title   = d.order?.title || '';
+      const screen  = d.transparentPayment?.screen;
+
+      document.getElementById('trackStatus').textContent = screen?.title?.text || title || '⏳';
+      document.getElementById('trackDesc').textContent   = screen?.text?.text  || d.order?.description || '';
+
+      const status = payment?.status || '';
+
+      if (status === 'sbp_required' && payment.payload?.url) {
+        document.getElementById('ordSbpWrap').style.display = 'block';
+        document.getElementById('ordSbpLink').href = payment.payload.url;
+        document.getElementById('ordSbpLink').textContent = '📲 Оплатить через СБП';
+      }
+      if (status === 'success' || status === 'paid' || status === 'confirmed') {
+        document.getElementById('s2').textContent='✓';
+        document.getElementById('s2').className='ts-dot td-done';
+        document.getElementById('s3').className='ts-dot td-act';
+        document.getElementById('s3t').textContent=fmt(new Date());
+        document.getElementById('trackStatus').textContent = '✅ Оплата прошла!';
+        setTimeout(()=>{
+          document.getElementById('s3').textContent='✓';
+          document.getElementById('s3').className='ts-dot td-done';
+          document.getElementById('s4').className='ts-dot td-act';
+          document.getElementById('s4t').textContent=fmt(new Date(Date.now()+30*60000));
+        },5000);
+        return; // Останавливаем polling
+      }
+      if (status === 'failed' || status === 'error') {
+        document.getElementById('trackStatus').textContent = '❌ Ошибка оплаты: '+(payment.error_message||'');
+        return;
+      }
+
+      const delay = (d.meta?.check_after || 2) * 1000;
+      setTimeout(pollTracking, Math.min(delay, 5000));
+    } catch(e) {
+      setTimeout(pollTracking, 3000);
+    }
+  }
+
+  // Начало анимации и polling
   setTimeout(()=>{
     document.getElementById('s2').textContent='✓';
     document.getElementById('s2').className='ts-dot td-done';
     document.getElementById('s3').className='ts-dot td-act';
-    document.getElementById('s3t').textContent='~10 мин';
+    document.getElementById('s3t').textContent='~'+fmt(new Date());
   },8000);
-  setTimeout(()=>{
-    document.getElementById('s3').textContent='✓';
-    document.getElementById('s3').className='ts-dot td-done';
-    document.getElementById('s4').className='ts-dot td-act';
-    document.getElementById('s4t').textContent=fmt(new Date(Date.now()+5*60000));
-  },18000);
+
+  pollTracking();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1338,17 +1501,24 @@ async function suggestAddr(text) {
   const el = document.getElementById('addrRes');
   el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
 
-  const d = await POST('/eats/v1/eats-addresses/v1/suggest', {
-    text,
-    location: {latitude:LAT, longitude:LON},
-    locale: 'ru'
+  // Реальный эндпоинт из снифа приложения
+  const bbox = [LON-0.2, LAT-0.15, LON+0.2, LAT+0.15];
+  const d = await POST('/eats/v1/persuggest/v1/suggest', {
+    action: 'user_input',
+    type: 'a',
+    part: text,
+    state: {
+      current_mode: 'eats',
+      location: [LON, LAT],
+      bbox
+    }
   });
 
-  console.log('[SUGGEST]', JSON.stringify(d)?.slice(0,400));
+  console.log('[SUGGEST persuggest]', JSON.stringify(d)?.slice(0,500));
 
   const geoBtn = `<div class="addr-ri" onclick="useGeo()"><div class="ari-ic">🎯</div><div><div class="ari-main">Моё местоположение</div><div class="ari-sub">Определить автоматически</div></div></div>`;
 
-  const items = d?.suggests || d?.items || d?.results || [];
+  const items = d?.results || d?.suggests || d?.items || [];
 
   if (!items.length) {
     el.innerHTML = geoBtn +
@@ -1359,18 +1529,19 @@ async function suggestAddr(text) {
   }
 
   el.innerHTML = geoBtn + items.slice(0,12).map(s=>{
-    const title = s.title?.text || s.title || s.full_text || s.short_text || s.text || s.name || '';
-    const sub   = s.subtitle?.text || s.subtitle || s.description || s.short_text || '';
-    // Координаты — много вариантов
-    const lat = parseFloat(s.point?.lat||s.point?.latitude||s.coordinates?.latitude||s.location?.latitude||s.geo?.lat||0);
-    const lon = parseFloat(s.point?.lon||s.point?.longitude||s.coordinates?.longitude||s.location?.longitude||s.geo?.lon||0);
-    // Компоненты адреса
-    const comps = s.component||s.address_components||[];
-    const gc = kind=>comps.find?.(c=>c.kind===kind||c.type===kind)?.name||'';
-    const city   = s.city||gc('locality')||gc('city')||'';
-    const street = s.street||gc('street')||'';
-    const house  = s.house||gc('house')||gc('number')||'';
-    const ad = {title, sub, lat, lon, city, street, house};
+    const title   = s.title?.text || s.short_text || s.text || '';
+    const sub     = s.subtitle?.text || s.text || '';
+    // persuggest возвращает position: [lon, lat]
+    const pos     = s.position || [];
+    const lat     = parseFloat(pos[1]||s.point?.lat||s.coordinates?.latitude||0);
+    const lon     = parseFloat(pos[0]||s.point?.lon||s.coordinates?.longitude||0);
+    const city    = s.city   || '';
+    const street  = s.street || '';
+    const house   = s.house  || '';
+    const country = s.country|| 'Россия';
+    const areas   = s.areas  || [];
+    const uri     = s.uri    || s.log || '';
+    const ad = {title, sub, lat, lon, city, street, house, country, areas, uri, log: s.log||''};
     const adStr = JSON.stringify(ad).replace(/'/g,"&#39;");
     return `<div class="addr-ri" onclick='selAddr(${adStr})'>
       <div class="ari-ic">📍</div>
@@ -1387,22 +1558,54 @@ function selAddr(data) {
   const lat = parseFloat(data.lat||data.latitude||0);
   const lon = parseFloat(data.lon||data.longitude||0);
 
-  // Если нет координат — пробуем геокодер
+  // Если нет координат — finalsuggest для уточнения
   if (!lat || !lon) {
-    geocodeAndSet(data.title||data.sub||'');
+    if (data.log) finalizeAddr(data);
+    else geocodeAndSet(data.title||data.sub||'');
     return;
   }
 
   LAT = lat; LON = lon;
   ADDR = {
-    short: data.title || data.sub || 'Адрес',
-    full:  data.sub   || data.title || '',
-    city:  data.city  || '',
-    street:data.street|| '',
-    house: data.house || '',
-    country:'Россия'
+    short:   data.title  || data.sub   || 'Адрес',
+    full:    data.sub    || data.title || '',
+    city:    data.city   || '',
+    street:  data.street || '',
+    house:   data.house  || '',
+    country: data.country|| 'Россия',
+    areas:   data.areas  || [],
+    uri:     data.uri    || ''
   };
   applyAddr();
+}
+
+async function finalizeAddr(data) {
+  toast('⏳ Уточняю адрес...');
+  const d = await POST('/eats/v1/persuggest/v1/finalsuggest', {
+    action: 'finalize',
+    type: 'a',
+    prev_log: data.log,
+    position: [LON, LAT],
+    state: {current_mode: 'eats'}
+  });
+  const r = d?.results?.[0];
+  if (r) {
+    LAT = parseFloat(r.position?.[1]||LAT);
+    LON = parseFloat(r.position?.[0]||LON);
+    ADDR = {
+      short:   r.short_text || r.title?.text || r.text || data.title,
+      full:    r.text       || r.title?.text || '',
+      city:    r.city       || '',
+      street:  r.street     || '',
+      house:   r.house      || '',
+      country: r.country    || 'Россия',
+      areas:   r.areas      || [],
+      uri:     r.uri        || r.log || ''
+    };
+    applyAddr();
+  } else {
+    geocodeAndSet(data.title||data.sub||'');
+  }
 }
 
 async function geocodeAndSet(text) {
@@ -1463,34 +1666,37 @@ async function useGeo() {
 }
 
 // ══════════════════════════════════════════════════════════
-// ПРОФИЛЬ: ЗАКАЗЫ
+// ПРОФИЛЬ: ЗАКАЗЫ — реальный эндпоинт из снифа
 // ══════════════════════════════════════════════════════════
 async function loadOrders() {
   const el = document.getElementById('ordersC');
   el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
 
-  // Пробуем разные эндпоинты
-  let d = await GET('/api/v1/user/orders?page=1&limit=20');
-  if (!d?.orders) d = await GET('/api/v1/orders?page=1&limit=20');
-  if (!d?.orders) d = await GET('/eats/v1/user/v1/orders?page=1&limit=20');
-
-  console.log('[ORDERS]', JSON.stringify(d)?.slice(0,300));
+  // Основной эндпоинт из снифа сайта
+  let d = await POST('/eats/v1/orders-info/v1/orders', {goods_items_limit: 6});
+  console.log('[ORDERS new]', JSON.stringify(d)?.slice(0,400));
 
   if (d?.orders?.length) {
     el.innerHTML = '<div class="ord-list">'+d.orders.map(o=>{
-      const dt = o.created_at ? new Date(o.created_at).toLocaleDateString('ru',{day:'numeric',month:'long'}) : '';
-      const st = o.status||'delivered';
-      const sc = {delivered:'ob-ok',cancelled:'ob-no',pending:'ob-pend',cooking:'ob-pend',in_progress:'ob-pend'};
-      const sl = {delivered:'Доставлен',cancelled:'Отменён',pending:'В обработке',cooking:'Готовится',in_progress:'В пути'};
-      const items = (o.items||[]).slice(0,2).map(i=>i.name||i.n||'').filter(Boolean).join(', ');
-      const total = o.total||o.cost||o.total_cost||0;
+      const w = o.widgets?.general || {};
+      const goods = o.widgets?.goods?.items || [];
+      const nr    = o.order_nr || '—';
+      const name  = w.name  || o.place_name || '';
+      const date  = w.date  || '';
+      const cost  = w.cost_value || o.cost || '';
+      const stText= w.status?.text || 'Доставлен';
+      const stOk  = stText.includes('Доставл') || stText.includes('выполн');
+      const stBad = stText.includes('Отмен') || stText.includes('Ошибк');
+      const stCls = stOk ? 'ob-ok' : stBad ? 'ob-no' : 'ob-pend';
+      const itemNames = goods.slice(0,3).map(i=>i.title||'').filter(Boolean).join(', ');
+      const more = goods.length > 3 ? ` +${goods.length-3}` : '';
       return `<div class="ord-card">
-        <div class="oc-head"><span class="oc-nr">№ ${o.order_nr||o.id||'—'}</span><span class="oc-dt">${dt}</span></div>
-        <div class="oc-rest">${o.place_name||o.restaurant_name||''}</div>
-        ${items?`<div class="oc-items">${items}${(o.items||[]).length>2?'...':''}</div>`:''}
+        <div class="oc-head"><span class="oc-nr">№ ${nr}</span><span class="oc-dt">${date}</span></div>
+        ${name ? `<div class="oc-rest">${name}</div>` : ''}
+        ${itemNames ? `<div class="oc-items">${itemNames}${more}</div>` : ''}
         <div class="oc-foot">
-          <span class="oc-tot">${total} ₽</span>
-          <span class="ob ${sc[st]||'ob-ok'}">${sl[st]||st}</span>
+          <span class="oc-tot">${cost} ₽</span>
+          <span class="ob ${stCls}">${stText}</span>
         </div>
       </div>`;
     }).join('')+'</div>';
@@ -1501,17 +1707,17 @@ async function loadOrders() {
 }
 
 // ══════════════════════════════════════════════════════════
-// ПРОФИЛЬ: АДРЕСА
+// ПРОФИЛЬ: АДРЕСА — реальный эндпоинт из снифа
 // ══════════════════════════════════════════════════════════
 async function loadAddresses() {
   const el = document.getElementById('addressesC');
   el.innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
 
-  let d = await GET('/eats/v1/eats-addresses/v1/addresses');
-  if (!d?.addresses) d = await GET('/api/v1/user/addresses');
-  console.log('[ADDRESSES]', JSON.stringify(d)?.slice(0,300));
+  // Из снифа: GET /api/v3/user/addresses (возвращает массив напрямую)
+  let addrs = await GET('/api/v3/user/addresses');
+  if (!Array.isArray(addrs)) addrs = addrs?.addresses || addrs?.items || [];
+  console.log('[ADDRESSES]', JSON.stringify(addrs)?.slice(0,400));
 
-  const addrs = d?.addresses || [];
   let html = `<div class="addr-card" onclick="openAddr()">
     <div class="ac-ic">📍</div>
     <div class="ac-bd"><div class="ac-nm">Текущий адрес</div><div class="ac-fl">${ADDR.full||ADDR.short}</div></div>
@@ -1520,16 +1726,20 @@ async function loadAddresses() {
 
   if (addrs.length) {
     html += addrs.map(a=>{
-      const ic = {home:'🏠',work:'🏢',other:'📍'}[a.type]||'📍';
-      const lat = a.coordinates?.latitude||a.location?.latitude||LAT;
-      const lon = a.coordinates?.longitude||a.location?.longitude||LON;
+      const t = a.type?.id || a.type || 0;
+      const ic = {0:'🏠',1:'🏢',2:'📍'}[t] || '📍';
+      // В /api/v3 координаты в location.latitude / location.longitude
+      const lat = a.location?.latitude  || LAT;
+      const lon = a.location?.longitude || LON;
       const ad = {
-        title: a.short_text||a.title||a.full_text||'Адрес',
-        sub:   a.full_text||'',
+        title:   a.short_text || a.title || a.full_text || 'Адрес',
+        sub:     a.full_text  || '',
         lat, lon,
-        city:  a.city||'',
-        street:a.street||'',
-        house: a.house||''
+        city:    a.city    || '',
+        street:  a.street  || '',
+        house:   a.house   || '',
+        country: a.country || 'Россия',
+        uri:     a.uri     || ''
       };
       const adStr = JSON.stringify(ad).replace(/'/g,"&#39;");
       return `<div class="addr-card" onclick='selAddr(${adStr})'>
