@@ -1,60 +1,37 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body { background: #F5F5F5; font-family: sans-serif; text-align: center; padding-top: 50px; }
-        .btn { background: #FFD200; border: none; padding: 15px 30px; border-radius: 10px; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <div id="status">Инициализация...</div>
-    <button class="btn" onclick="makeOrder()">Применить промокод и купить</button>
+const tg = window.Telegram.WebApp;
+const PROXY_URL = "https://stylographic-affably-luana.ngrok-free.dev"; // ТВОЙ NGROK
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+async function callYandex(path, method = "GET", data = null) {
+    const cid = new URLSearchParams(window.location.search).get('cid');
+    
+    // Получаем координаты
+    let coords = "latitude=55.75,longitude=37.61";
+    try {
+        const loc = await new Promise((res) => tg.getLocation(res));
+        if (loc) coords = `latitude=${loc.latitude},longitude=${loc.longitude}`;
+    } catch(e) { console.log("Гео не доступно"); }
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const cid = urlParams.get('cid');
-        const PROXY = "https://stylographic-affably-luana.ngrok-free.dev"; // Твой URL
+    const response = await fetch(PROXY_URL, {
+        method: method,
+        headers: {
+            'x-cid': cid,
+            'x-path': path,
+            'x-coords': coords,
+            'Content-Type': 'application/json'
+        },
+        body: data ? JSON.stringify(data) : null
+    });
 
-        async function apiRequest(path, method = "GET", body = null) {
-            // Берем координаты
-            let coords = "latitude=55.75,longitude=37.61";
-            if (tg.Location && tg.Location.latitude) {
-                coords = `latitude=${tg.Location.latitude},longitude=${tg.Location.longitude}`;
-            }
+    return await response.json();
+}
 
-            const url = `${PROXY}/proxy?cid=${cid}&path=${encodeURIComponent(path)}&coords=${encodeURIComponent(coords)}`;
-            
-            const res = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: body ? JSON.stringify(body) : null
-            });
-            return await res.json();
-        }
-
-        async function makeOrder() {
-            document.getElementById('status').innerText = "Оформляю...";
-            
-            // Пример чекаута
-            const data = await apiRequest("/eats/v1/checkout/v1/init-payment", "POST", {
-                cart_id: "твой_id_корзины",
-                offer_id: "твой_id_оффера"
-            });
-
-            // ОБРАБОТКА ОПЛАТЫ СБП (из твоего HAR)
-            if (data.transparentPayment && data.transparentPayment.screen) {
-                tg.openLink(data.transparentPayment.screen.url);
-            } else {
-                alert("Ошибка или промокод не прошел");
-            }
-        }
-
-        tg.ready();
-    </script>
-</body>
-</html>
+// ПРИМЕР: Загрузка меню при старте
+async function init() {
+    tg.ready();
+    const catalog = await callYandex("/eats/v1/checkout/v1/multi-carts", "POST", {
+        location: {latitude: 55.75, longitude: 37.61},
+        shipping_type: "delivery"
+    });
+    console.log("Данные Яндекса:", catalog);
+}
+init();
