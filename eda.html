@@ -585,12 +585,12 @@ async function POST(path, body={}) {
       },
       body: JSON.stringify(body)
     });
+    const txt = await r.text().catch(()=>'');
     if (!r.ok) {
-      const txt = await r.text().catch(()=>'');
-      console.warn('[POST]',r.status,path,txt.slice(0,300));
+      console.warn('[POST ERR]', r.status, path, txt.slice(0,400));
       return null;
     }
-    return r.json().catch(()=>null);
+    try { return JSON.parse(txt); } catch(e) { console.warn('[POST JSON ERR]', path, txt.slice(0,200)); return null; }
   } catch(e) {console.error('[POST]',path,e); return null;}
 }
 
@@ -602,12 +602,12 @@ async function GET(path) {
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({path, bearer:TOKEN, device_id:DEV_ID, session:SES})
     });
+    const txt = await r.text().catch(()=>'');
     if (!r.ok) {
-      const txt = await r.text().catch(()=>'');
-      console.warn('[GET]',r.status,path,txt.slice(0,300));
+      console.warn('[GET ERR]', r.status, path, txt.slice(0,400));
       return null;
     }
-    return r.json().catch(()=>null);
+    try { return JSON.parse(txt); } catch(e) { console.warn('[GET JSON ERR]', path, txt.slice(0,200)); return null; }
   } catch(e) {console.error('[GET]',path,e); return null;}
 }
 
@@ -708,19 +708,30 @@ async function loadRests() {
   document.getElementById('addrTxt').textContent = ADDR.short;
   document.getElementById('restsCount').textContent = '';
 
+  console.log('[RESTS] Loading for', ADDR.short, 'lat:', LAT, 'lon:', LON, 'ship:', shipType);
+  // region_id определяется автоматически по координатам — не передаём жёстко
   const d = await POST('/eats/v1/layout-constructor/v1/layout', {
     filters_v2:{filters:[]},
     sort:'default',
     is_bottomsheet:false,
     selected_state:'online',
     location:{longitude:LON, latitude:LAT},
-    region_id:17,
     shipping_type:shipType
   });
 
   if (!d?.data) {
+    console.error('[RESTS] null response, d=', JSON.stringify(d)?.slice(0,500));
     document.getElementById('restsList').innerHTML =
-      '<div class="empty"><div class="e-ic">😔</div><div class="e-t">Нет ресторанов</div><div class="e-s">По этому адресу нет доставки.<br>Попробуйте другой адрес.</div></div>';
+      `<div class="empty">
+        <div class="e-ic">😔</div>
+        <div class="e-t">Нет ресторанов</div>
+        <div class="e-s">Попробуйте выбрать другой город или адрес</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;width:100%">
+          <button class="cart-go" onclick="openAddr()">📍 Изменить адрес</button>
+          <button class="cart-go" style="background:#eee;color:#333" onclick="setCity('Москва',55.7558,37.6176)">🏙️ Попробовать Москву</button>
+          <button class="cart-go" style="background:#eee;color:#333" onclick="setCity('Нижний Новгород',56.3269,44.0059)">🏙️ Нижний Новгород</button>
+        </div>
+      </div>`;
     return;
   }
 
@@ -828,7 +839,7 @@ async function openPickup() {
   const d = await POST('/eats/v1/layout-constructor/v1/layout',{
     filters_v2:{filters:[]}, sort:'default', is_bottomsheet:false,
     selected_state:'online', location:{longitude:LON,latitude:LAT},
-    region_id:17, shipping_type:'pickup'
+    shipping_type:'pickup'
   });
   const places = d?.data ? parsePlaces(d.data) : [];
   if (!places.length) {
